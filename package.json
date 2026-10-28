@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "smoke:spark": "node --env-file=.env.local scripts/smoke-spark.mjs"
+    "smoke:spark": "node --env-file=.env.local scripts/smoke-spark.mjs",
+    "smoke:sam": "node --env-file=.env.local scripts/smoke-sam.mjs"
   },
   "dependencies": {
     "@meta-sam/parser": "^0.1.0",
