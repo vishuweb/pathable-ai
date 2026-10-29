@@ -12,6 +12,7 @@ import {
   type SavedReport,
 } from "@/lib/report";
 import type { Finding } from "@/lib/types";
+import { DeleteReportButton } from "./DeleteReportButton";
 import { EvidenceViewer } from "./EvidenceViewer";
 
 const DECISION_LABEL: Record<ReviewDecision, string> = {
@@ -30,9 +31,11 @@ interface Props {
   report: SavedReport;
   /** Formatted on the server so server and client render the same text. */
   createdLabel: string;
+  /** Shows the owner-only delete action. */
+  canDelete?: boolean;
 }
 
-export function SavedReportView({ report, createdLabel }: Props) {
+export function SavedReportView({ report, createdLabel, canDelete }: Props) {
   const [selectedId, setSelectedId] = useState<string>();
   const [showOverlay, setShowOverlay] = useState(true);
   const summary = summarizeReport(report);
@@ -103,6 +106,7 @@ export function SavedReportView({ report, createdLabel }: Props) {
           <button type="button" className="button-secondary" onClick={() => window.print()}>
             Print or save as PDF
           </button>
+          {canDelete && <DeleteReportButton reportId={report.id} />}
         </div>
       </header>
 

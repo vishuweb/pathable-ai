@@ -1081,3 +1081,13 @@ fieldset:disabled .segment {
   color: #3a404a;
   border-style: dashed;
 }
+
+/* Destructive actions: same shape as secondary buttons, in the danger colour */
+.button-secondary.button-danger {
+  color: var(--danger-text);
+  border-color: var(--danger-text);
+}
+
+.button-secondary.button-danger:hover {
+  background: var(--danger-bg);
+}

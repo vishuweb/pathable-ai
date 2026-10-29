@@ -29,7 +29,7 @@ Open the app and pick a photo under **No photo handy? Try a sample** to run the 
 Command-line checks:
 
 ```bash
-npm test                                                       # 40 tests; the Meta API is mocked, so they cost nothing
+npm test                                                       # 41 tests; the Meta API is mocked, so they cost nothing
 npm run lint && npm run typecheck                              # ESLint (Next.js rules) and TypeScript
 npm run smoke:spark -- path/to/photo.jpg                       # Muse Spark alone
 npm run smoke:sam -- path/to/photo.jpg "electric scooter"      # SAM 3.1 alone
@@ -128,6 +128,7 @@ The app runs on Vercel as is. A serverless disk does not persist, so a deploymen
 On a public link, three protections are on:
 
 - **Owner-only evaluation tools.** Batch analysis and the review queue need the owner key; sign in at `/owner`. Visitors can still analyze a photo, review it and save a report. A deployment without `OWNER_KEY` keeps these tools locked rather than open.
+- **Moderation.** Signed in as owner, a **Delete report** button on each saved report removes it and its photo, for spam or a photo showing an identifiable person.
 - **Clean measurements.** Visitors' single uploads are left out of the measured results, so the numbers come only from the owner's reviewed batches.
 - **Cost limits.** Each visitor can run 30 photo analyses, 30 evidence runs and 30 voice notes an hour (`ANALYZE_LIMIT_PER_HOUR`). All visitors together get 300 AI calls a day (`AI_DAILY_LIMIT`), and `AI_PAUSED=1` stops AI calls entirely. The counts are kept in memory on each server instance, so they bound cost rather than enforce an exact total; set a spending limit on the API account as well if one is available.
 

@@ -31,7 +31,7 @@ flowchart LR
 | Validation | `lib/report-validate.ts`, `lib/image-input.ts`, `lib/http.ts` | Everything the browser sends is re-validated on the server: image type and size, body size (checked while streaming, so a missing Content-Length cannot bypass it), every field's type and range, SVG outline paths restricted to `M L Z`, digits and spaces, and complete reviews. |
 | Storage | `lib/store.ts` | One JSON file and one JPEG per item. Local disk by default; a private Vercel Blob store when `BLOB_READ_WRITE_TOKEN` is set. IDs are UUIDs checked by pattern, so paths cannot escape the data folder. |
 | Measurement | `lib/metrics.ts`, `app/results` | Precision, recall, category accuracy, highlight quality, false-alarm rate and review time, from human verdicts, with 95% Wilson intervals. |
-| Public-deployment protections | `lib/owner.ts`, `lib/rate-limit.ts` | Owner key for the evaluation tools (fails closed on Vercel), per-visitor hourly limits, a daily cap on all AI calls, and a pause switch. |
+| Public-deployment protections | `lib/owner.ts`, `lib/rate-limit.ts` | Owner key for the evaluation tools and for deleting saved reports (fails closed on Vercel), per-visitor hourly limits, a daily cap on all AI calls, and a pause switch. |
 
 ## Trust boundaries
 
@@ -53,4 +53,4 @@ flowchart LR
 
 ## Testing
 
-`npm test` runs 40 tests with Node's built-in test runner. The Meta API is replaced by a local mock server (`tests/mock-meta.ts`) that speaks the same Chat Completions, SAM streaming and transcription formats, so the tests exercise the real client code without network calls or cost. `npm run lint` (ESLint with Next.js rules), `npm run typecheck` and `npm run build` complete the checks.
+`npm test` runs 41 tests with Node's built-in test runner. The Meta API is replaced by a local mock server (`tests/mock-meta.ts`) that speaks the same Chat Completions, SAM streaming and transcription formats, so the tests exercise the real client code without network calls or cost. `npm run lint` (ESLint with Next.js rules), `npm run typecheck` and `npm run build` complete the checks.

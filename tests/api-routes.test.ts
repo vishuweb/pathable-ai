@@ -185,6 +185,18 @@ test("reports: a reviewed report is saved and can be read back as JSON and Markd
   assert.equal(missing.status, 404, "ids are validated, so paths cannot escape the data folder");
 });
 
+test("reports: the owner can delete a report and its photo", async () => {
+  const saved = await read(await reportsRoute.POST(post(submission({ f1: { decision: "rejected" } }))));
+  const id: string = saved.body.id;
+  const params = { params: Promise.resolve({ id }) };
+  assert.equal((await reportRoute.DELETE(new Request("http://localhost"), params)).status, 204);
+  assert.equal((await reportRoute.GET(new Request("http://localhost"), params)).status, 404);
+  assert.ok(!(await readdir(path.join(dataDir, "reports"))).some((f) => f.startsWith(id)), "photo removed too");
+  assert.equal((await reportRoute.DELETE(new Request("http://localhost"), params)).status, 404);
+  const traversal = { params: Promise.resolve({ id: "../reports" }) };
+  assert.equal((await reportRoute.DELETE(new Request("http://localhost"), traversal)).status, 404);
+});
+
 test("health: reports configuration without exposing the key", async () => {
   const response = await healthRoute.GET();
   const text = await response.text();

@@ -28,7 +28,7 @@ The detailed Official Rules and the submission form are only visible to register
 
 - [ ] https://pathable-ai.vercel.app opens in a private window
 - [ ] `GET /api/health` shows `"apiKeyConfigured": true` and `"storage": "blob"`
-- [ ] One photo analyzed, reviewed and saved end to end on the live site
+- [ ] One photo analyzed, reviewed and saved end to end on the live site (signed in as owner, you can remove it afterwards with **Delete report** on its page)
 - [ ] The owner key works at `/owner`, and Batch analyze and Review queue are locked when signed out
 - [ ] Cost limits suit the judging period (`AI_DAILY_LIMIT`, default 300 a day; `AI_PAUSED=1` to stop)
 
@@ -49,7 +49,7 @@ The whole project was created during the hackathon window (Oct 26 – Nov 4, 202
 - Saved reports with Markdown, JSON and PDF export
 - Batch analysis, review queue and the measured-results page with Wilson intervals
 - Vercel deployment with private Blob storage, owner key and cost limits
-- 40 automated tests against a mocked Meta API
+- 41 automated tests against a mocked Meta API
 
 Third-party pieces: Next.js, React, the `openai` SDK (pointed at the Meta Model API), `@meta-sam/parser`, `@vercel/blob`, Zod. Sample and evaluation photos come from Wikimedia Commons under their licences.
 

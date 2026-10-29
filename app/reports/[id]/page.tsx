@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SavedReportView } from "@/components/SavedReportView";
 import { formatDateTime } from "@/lib/format";
+import { isOwner } from "@/lib/owner";
 import { reports } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export default async function ReportPage({ params }: Params) {
       <p className="back-link">
         <Link href="/reports">← All reports</Link>
       </p>
-      <SavedReportView report={report} createdLabel={formatDateTime(report.createdAt)} />
+      <SavedReportView report={report} createdLabel={formatDateTime(report.createdAt)} canDelete={await isOwner()} />
     </>
   );
 }
