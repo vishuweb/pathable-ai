@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --no-warnings --import ./tests/register.mjs --test tests/*.test.ts",
     "smoke:spark": "node --env-file=.env.local scripts/smoke-spark.mjs",
     "smoke:sam": "node --env-file=.env.local scripts/smoke-sam.mjs"
   },

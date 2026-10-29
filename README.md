@@ -25,6 +25,7 @@ Open the app and click **Try a sample** to run the full pipeline without your ow
 Command-line checks:
 
 ```bash
+npm test                                                       # unit tests: metrics, review rules, geometry, WAV
 npm run smoke:spark -- path/to/photo.jpg                       # Muse Spark alone
 npm run smoke:sam -- path/to/photo.jpg "electric scooter"      # SAM 3.1 alone
 node scripts/try-analyze.mjs public/samples/e-scooters-warsaw.jpg  # full pipeline (needs npm run dev)
