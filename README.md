@@ -8,7 +8,11 @@ Built for the Meta Global AI Developer Hackathon with the Meta Model API:
 - **SAM 3.1** segments the visual evidence behind each finding.
 - **Muse Voice Transcribe 1.0** turns the reviewer's spoken notes into text.
 
-**Live demo:** https://pathable-ai.vercel.app. Click **Try a sample** or upload a photo of a street, crossing or entrance.
+**Live demo:** https://pathable-ai.vercel.app. Upload a photo of a street, crossing or entrance, or pick one under **No photo handy? Try a sample**.
+
+**Docs:** [Architecture](docs/ARCHITECTURE.md) · [Evaluation plan](docs/EVALUATION.md) · [Demo script](docs/DEMO.md) · [Submission checklist](docs/SUBMISSION.md)
+
+**Built during the hackathon.** Everything here was written during the hackathon window (Oct 26 – Nov 4, 2026); the git history starts on Oct 29. See [what was built](docs/SUBMISSION.md#5-built-during-the-hackathon).
 
 ## Quick start
 
@@ -20,7 +24,7 @@ npm run dev                  # http://localhost:3000
 
 Health check: `GET /api/health` reports whether the API key is configured.
 
-Open the app and click **Try a sample** to run the full pipeline without your own photo.
+Open the app and pick a photo under **No photo handy? Try a sample** to run the full pipeline without your own photo.
 
 Command-line checks:
 
@@ -31,6 +35,14 @@ npm run smoke:spark -- path/to/photo.jpg                       # Muse Spark alon
 npm run smoke:sam -- path/to/photo.jpg "electric scooter"      # SAM 3.1 alone
 node scripts/try-analyze.mjs public/samples/e-scooters-warsaw.jpg  # full pipeline (needs npm run dev)
 ```
+
+### Checking the real Meta API by hand
+
+The automated tests use a mock of the Meta API, so they cost nothing. To confirm the real integration, make a few deliberate calls yourself (each one uses your API quota):
+
+1. `npm run dev`, then open http://localhost:3000/api/health: it should show `"apiKeyConfigured": true`.
+2. Pick a photo under **No photo handy? Try a sample**. Findings should appear in about 10 seconds, then outlines.
+3. Optional, from a terminal: `npm run smoke:spark -- public/samples/e-scooters-warsaw.jpg` (one Muse Spark call), or `npm run smoke:sam -- public/samples/e-scooters-warsaw.jpg "electric scooter"` (one SAM call).
 
 ## How it works
 
@@ -51,6 +63,8 @@ Photo ─► browser re-encodes it (fixes rotation, max 1600 px, strips GPS/EXIF
 - what the photo cannot show (uncertainty)
 - a suggested next step
 - an **evidence phrase** (such as "electric scooter") and a rough **bounding box**
+
+The reply is validated with Zod before use: a bad value falls back to a safe default (an unknown confidence becomes "low"), and a finding with no usable location is kept but drawn nowhere, so a possible barrier is never silently dropped.
 
 The prompt treats every finding as a *candidate for human review*. It never certifies compliance, and it never concludes a route is inaccessible just because an object is visible.
 
@@ -139,7 +153,7 @@ The evaluation set is built from human reviews in the app itself (see *Measured 
 - **80 web photos** of streets and entrances from Wikimedia Commons (CC BY / CC BY-SA / public domain). They were hand-picked as 54 likely-barrier and 26 likely-clear scenes, so false alarms are measured as well as hits.
 - **The author's own photos** of local streets, reported separately, because web photos are often taken *because* something is wrong.
 
-The numbers are on the app's **Results** page (`/results`, or `/api/results` as JSON) and will be summarized here once review is complete.
+The numbers are on the app's **Results** page (`/results`, or `/api/results` as JSON) and will be summarized here once review is complete. The full protocol, measures and threats to validity are in the [evaluation plan](docs/EVALUATION.md).
 
 ## Limitations
 
