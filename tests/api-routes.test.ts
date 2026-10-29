@@ -208,6 +208,47 @@ test("reports: the owner can delete a report and its photo", async () => {
   assert.equal((await reportRoute.DELETE(new Request("http://localhost"), traversal)).status, 404);
 });
 
+test("reports: status changes are validated and recorded as dated history", async () => {
+  const save = async () =>
+    (await read(await reportsRoute.POST(post(submission({ f1: { decision: "confirmed", highlight: "correct" } }))))).body.id as string;
+  const [id, other] = [await save(), await save()];
+  const params = { params: Promise.resolve({ id }) };
+  const patch = (body: unknown) =>
+    reportRoute.PATCH(new Request("http://localhost", { method: "PATCH", body: JSON.stringify(body) }), params);
+
+  const fresh = await read(await reportRoute.GET(new Request("http://localhost"), params));
+  assert.deepEqual(fresh.body.statusHistory.map((e: { status: string }) => e.status), ["submitted"]);
+
+  assert.equal((await patch({ status: "fixed" })).status, 400, "unknown status");
+  assert.equal((await patch({ status: "submitted" })).status, 400, "no change and no note");
+  const needsNote = await read(await patch({ status: "resolved" }));
+  assert.equal(needsNote.status, 400, "resolved needs a note saying what it is based on");
+  assert.match(needsNote.body.error, /what "Resolved" is based on/);
+  assert.equal((await patch({ status: "verified", duplicateOf: other })).status, 400, "only closed reports are duplicates");
+  assert.equal((await patch({ status: "closed", note: "Dup", duplicateOf: id })).status, 400, "not a duplicate of itself");
+  assert.equal((await patch({ status: "closed", note: "Dup", duplicateOf: "../x" })).status, 400);
+
+  assert.equal((await patch({ status: "verified" })).status, 200);
+  assert.equal((await patch({ status: "resolved", note: "Recheck photo shows the ramp is clear." })).status, 200);
+  const updated = await read(await reportRoute.GET(new Request("http://localhost"), params));
+  const history = updated.body.statusHistory as { status: string; at: string; note: string }[];
+  assert.deepEqual(history.map((e) => e.status), ["submitted", "verified", "resolved"]);
+  assert.equal(history[2].note, "Recheck photo shows the ramp is clear.");
+  assert.ok(history[1].at >= history[0].at && history[2].at >= history[1].at, "events are in time order");
+
+  const closed = await read(
+    await reportRoute.PATCH(
+      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ status: "closed", note: "Same ramp", duplicateOf: id }) }),
+      { params: Promise.resolve({ id: other }) },
+    ),
+  );
+  assert.equal(closed.body.statusHistory.at(-1).duplicateOf, id);
+
+  const markdown = await (await markdownRoute.GET(new Request("http://localhost"), params)).text();
+  assert.match(markdown, /\*\*Status:\*\* Resolved/);
+  assert.match(markdown, /Resolved: Recheck photo shows the ramp is clear\./);
+});
+
 test("health: reports configuration without exposing the key", async () => {
   const response = await healthRoute.GET();
   const text = await response.text();

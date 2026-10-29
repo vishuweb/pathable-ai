@@ -14,6 +14,7 @@ import {
 import type { Finding } from "@/lib/types";
 import { DeleteReportButton } from "./DeleteReportButton";
 import { EvidenceViewer } from "./EvidenceViewer";
+import { ReportStatusPanel, type LabelledEvent } from "./ReportStatusPanel";
 
 const DECISION_LABEL: Record<ReviewDecision, string> = {
   confirmed: "Confirmed by reviewer",
@@ -31,11 +32,13 @@ interface Props {
   report: SavedReport;
   /** Formatted on the server so server and client render the same text. */
   createdLabel: string;
-  /** Shows the owner-only delete action. */
-  canDelete?: boolean;
+  /** Status history with dates formatted on the server. */
+  statusEvents: LabelledEvent[];
+  /** Shows the owner-only actions: status changes and deletion. */
+  isOwner?: boolean;
 }
 
-export function SavedReportView({ report, createdLabel, canDelete }: Props) {
+export function SavedReportView({ report, createdLabel, statusEvents, isOwner }: Props) {
   const [selectedId, setSelectedId] = useState<string>();
   const [showOverlay, setShowOverlay] = useState(true);
   const summary = summarizeReport(report);
@@ -106,9 +109,11 @@ export function SavedReportView({ report, createdLabel, canDelete }: Props) {
           <button type="button" className="button-secondary" onClick={() => window.print()}>
             Print or save as PDF
           </button>
-          {canDelete && <DeleteReportButton reportId={report.id} />}
+          {isOwner && <DeleteReportButton reportId={report.id} />}
         </div>
       </header>
+
+      <ReportStatusPanel reportId={report.id} events={statusEvents} canEdit={Boolean(isOwner)} />
 
       <p className="scene-text">{report.analysis.scene_summary}</p>
 

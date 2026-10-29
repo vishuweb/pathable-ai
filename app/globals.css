@@ -1143,3 +1143,75 @@ fieldset:disabled .segment {
     display: none;
   }
 }
+
+/* Report status: the label always carries the meaning; colour only reinforces it */
+.status-panel {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.status-panel h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.status-panel h3 {
+  margin: 16px 0 4px;
+  font-size: 1rem;
+}
+
+.status-history {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.status-history li + li {
+  margin-top: 6px;
+}
+
+.status-history p {
+  margin: 2px 0 0;
+}
+
+.status-form {
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.chip.status-submitted,
+.chip.status-under_review {
+  background: #eef0f3;
+  color: #3a404a;
+}
+
+.chip.status-verified,
+.chip.status-rechecked {
+  background: #eef4fb;
+  color: #2a4f7a;
+}
+
+.chip.status-action_reported {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.chip.status-resolved {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+.chip.status-closed {
+  background: #fff;
+  color: #3a404a;
+  border-style: dashed;
+}
+
+@media print {
+  .status-form {
+    display: none;
+  }
+}

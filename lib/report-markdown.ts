@@ -1,6 +1,7 @@
 import { CATEGORY_INFO, LEVEL_LABEL } from "./categories";
 import { formatCoordinates } from "./format";
 import type { FindingReview, HighlightRating, SavedReport } from "./report";
+import { STATUS_INFO, currentStatus, statusHistory } from "./report-status";
 import type { Finding } from "./types";
 
 const HIGHLIGHT_LABEL: Record<HighlightRating, string> = {
@@ -22,6 +23,7 @@ export function reportToMarkdown(report: SavedReport, reportUrl?: string): strin
 
   const out: string[] = ["# Accessibility barrier report", ""];
   out.push(`- **Date:** ${report.createdAt.slice(0, 16).replace("T", " ")} UTC`);
+  out.push(`- **Status:** ${STATUS_INFO[currentStatus(report).status].label}`);
   if (report.location?.label) out.push(`- **Location:** ${oneLine(report.location.label)}`);
   const coordinates = report.location && formatCoordinates(report.location);
   if (coordinates) out.push(`- **Coordinates:** ${coordinates}`);
@@ -65,6 +67,17 @@ export function reportToMarkdown(report: SavedReport, reportUrl?: string): strin
   }
 
   if (report.reviewerNote) out.push("## Reviewer note", "", report.reviewerNote, "");
+
+  const history = statusHistory(report);
+  if (history.length > 1) {
+    out.push("## Status history", "");
+    for (const event of history) {
+      const note = event.note ? `: ${oneLine(event.note)}` : "";
+      const duplicate = event.duplicateOf ? ` (duplicate of report ${event.duplicateOf})` : "";
+      out.push(`- ${event.at.slice(0, 16).replace("T", " ")} UTC · ${STATUS_INFO[event.status].label}${note}${duplicate}`);
+    }
+    out.push("");
+  }
 
   out.push(
     "---",

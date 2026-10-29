@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/format";
 import { summarizeReport } from "@/lib/report";
+import { STATUS_INFO, currentStatus } from "@/lib/report-status";
 import { reports as reportStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,12 @@ export default async function ReportsPage() {
                   <h2>
                     <Link href={`/reports/${report.id}`}>{report.location?.label || `Report from ${created}`}</Link>
                   </h2>
-                  <p className="muted">{created}</p>
+                  <p className="muted">
+                    {created} · Status:{" "}
+                    <span className={`chip status-${currentStatus(report).status}`}>
+                      {STATUS_INFO[currentStatus(report).status].label}
+                    </span>
+                  </p>
                   <p>
                     <strong>
                       {s.verified} verified {s.verified === 1 ? "barrier" : "barriers"}

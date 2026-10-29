@@ -28,7 +28,13 @@ export async function POST(request: Request) {
   if (!jpeg) return jsonResponse<ApiError>({ error: "This photo is no longer in the review queue." }, 404);
 
   const createdAt = new Date().toISOString();
-  const report: SavedReport = { id: crypto.randomUUID(), createdAt, ...rest, consentedAt: consent ? createdAt : undefined };
+  const report: SavedReport = {
+    id: crypto.randomUUID(),
+    createdAt,
+    ...rest,
+    consentedAt: consent ? createdAt : undefined,
+    statusHistory: [{ status: "submitted", at: createdAt, note: "" }],
+  };
   try {
     await reports.save(report, jpeg);
     if (draftId) await drafts.remove(draftId);

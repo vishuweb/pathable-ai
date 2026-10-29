@@ -109,6 +109,12 @@ function collection<T extends Item>(name: string) {
       await backend.write(key(item.id, "json"), JSON.stringify(item), "application/json");
     },
 
+    /** Replaces an existing item's data; its image is unchanged. */
+    async update(item: T): Promise<void> {
+      if (!isStoreId(item.id)) throw new Error("Invalid id.");
+      await backend.write(key(item.id, "json"), JSON.stringify(item), "application/json");
+    },
+
     /** All items, oldest first. */
     async list(): Promise<T[]> {
       const ids = (await backend.keys(name))

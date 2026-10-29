@@ -1,3 +1,4 @@
+import type { StatusEvent } from "./report-status";
 import type { Evidence, IssueCategory, SceneAnalysis } from "./types";
 
 export const REVIEW_DECISIONS = ["confirmed", "corrected", "rejected"] as const;
@@ -86,6 +87,8 @@ export interface ReportSubmission extends Omit<AnalysisResult, "timings"> {
 export interface SavedReport extends Omit<ReportSubmission, "image" | "draftId" | "consent"> {
   /** When the sharing statement was confirmed; absent on reports saved before consent was recorded. */
   consentedAt?: string;
+  /** Status changes, oldest first, starting with "submitted"; absent on reports saved before statuses existed. */
+  statusHistory?: StatusEvent[];
   id: string;
   createdAt: string;
 }

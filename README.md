@@ -29,7 +29,7 @@ Open the app and pick a photo under **No photo handy? Try a sample** to run the 
 Command-line checks:
 
 ```bash
-npm test                                                       # 42 tests; the Meta API is mocked, so they cost nothing
+npm test                                                       # 43 tests; the Meta API is mocked, so they cost nothing
 npm run lint && npm run typecheck                              # ESLint (Next.js rules) and TypeScript
 npm run smoke:spark -- path/to/photo.jpg                       # Muse Spark alone
 npm run smoke:sam -- path/to/photo.jpg "electric scooter"      # SAM 3.1 alone
@@ -86,7 +86,7 @@ The reviewer can also add barriers the AI missed, attach a location (typed, or t
 
 **Voice notes.** Every note field has a **Dictate** button, for reviewers who find typing on a phone hard or are standing at the barrier. The browser records up to 60 seconds and converts it to 16 kHz mono WAV, and `POST /api/transcribe` sends it to Muse Voice Transcribe 1.0. Recognition is biased toward accessibility terms such as "curb ramp", "tactile paving" and "bollard". The transcript is added to the field for the reviewer to check and edit; it is never saved unseen.
 
-**5. Saved reports.** Each report keeps the photo, the AI findings, the evidence outlines, and the human verdicts. The **Saved reports** page lists them. Each report can be downloaded as a Markdown maintenance request, as JSON data, or printed or saved as a PDF.
+**5. Saved reports.** Each report keeps the photo, the AI findings, the evidence outlines, and the human verdicts. It also has a **status** with a dated history: *Submitted* → *Under review* → *Verified* → *Action reported* → *Rechecked* → *Resolved*, or *Closed* (a duplicate, linked to the original, or not a barrier). Only the project owner can change it, and statuses that claim something happened (action reported, rechecked, resolved, closed) need a note saying what they are based on, so a report is never shown as fixed without a stated reason. The **Saved reports** page lists them. Each report can be downloaded as a Markdown maintenance request, as JSON data, or printed or saved as a PDF.
 
 Every review doubles as an evaluation label. Confirmed, corrected, rejected and missed counts, highlight ratings, and review time are recorded automatically, and they feed the measured results below.
 
