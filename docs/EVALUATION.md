@@ -28,6 +28,24 @@ The photos are kept out of the repository (`data/` is git-ignored); the web phot
    - Add every barrier the AI missed, with its category.
 3. Read the numbers from `/results` (or `/api/results` as JSON). Nothing is entered by hand.
 
+## Labelling guide
+
+Apply the same rules to every photo, and do not change them part-way through. Labels must come from a person looking at the photo; AI-generated labels would make the evaluation circular.
+
+| Question | Answer | When |
+| --- | --- | --- |
+| Is this a real barrier? | **Yes, real barrier** | The photo shows the condition the finding describes, and it would plausibly hinder a wheelchair user, someone with a walker or pram, or someone with low vision. You would want it checked on site. |
+| | **Real, wrong category** | As above, but another category fits better. Pick the one a maintenance team would file it under. |
+| | **Not a barrier** | The condition is not visible; it is visible but leaves an obviously clear route (for example a bin well off the path); or the finding is speculation, not observation. |
+| Does the highlight show it? | **Yes** | The outline or box covers the object or area causing the problem, without mostly covering something else. |
+| | **Partly** | It covers part of the cause, or the cause plus a lot of unrelated area, or only an approximate box is shown. |
+| | **No** | It points at the wrong object or area. |
+| Did the AI miss anything? | Add it | A barrier you would report that no finding covers. Do not add things you cannot see clearly. |
+
+**Uncertain cases.** If the photo cannot show whether something is a barrier (for example the remaining width is impossible to judge), answer *Not a barrier* only if nothing points to a problem; otherwise answer *Yes* and write "uncertain: …" in the note. Count such notes at the end and report them.
+
+**Time.** About 30–60 seconds per photo; 80 photos take roughly an hour. Stopping and resuming is fine: the queue keeps the remaining photos.
+
 ## Measures
 
 | Measure | Definition |

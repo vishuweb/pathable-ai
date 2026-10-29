@@ -4,6 +4,20 @@ Meta Global AI Developer Hackathon: submissions close **Nov 4, 2026, 9:00 PM ET*
 
 **Track:** Indie developer ("judged on creativity, technical ambition, and whether it works"). **Theme:** Build for Your World.
 
+## Status on Oct 30, 2026
+
+| Item | State | Evidence |
+| --- | --- | --- |
+| Public repository, sole author | Done | GitHub shows the repository as Public; all commits are by the owner's account |
+| No secrets or private data in git | Done | Full-history scan: no API key, tokens, `.env` files or `data/` in any commit |
+| Lint, typecheck, 44 unit tests, 3 browser tests, production build, `npm audit` | Pass | Run locally before each push; Vercel builds every push |
+| Live site | Up | `/api/health` reports the key configured and Blob storage |
+| Live save, consent, status history, retrieval, metadata stripping | Verified | One labelled test report saved from an existing analysis (no AI calls): consent recorded, status *Submitted*, JSON/Markdown/page/list all served, stored photo byte-identical to the browser-prepared copy with no EXIF; visitors get 403 on status change and delete |
+| Evaluation results | **Pending** | 80 web photos queued; reviews must be done by a person |
+| Demo video | **Not recorded** | Script and run sheet in `docs/DEMO.md` |
+| Official rules and form fields | **Not checked** | Only visible to registered participants |
+| Licence | **Not chosen** | Owner's decision |
+
 ## 1. Official rules
 
 The detailed Official Rules and the submission form are only visible to registered participants. Before submitting, open them from the event dashboard and check:
