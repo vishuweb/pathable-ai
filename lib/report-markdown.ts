@@ -35,7 +35,7 @@ export function reportToMarkdown(report: SavedReport, reportUrl?: string): strin
   verified.forEach(({ finding, number, review }, i) => {
     out.push(`### ${i + 1}. ${oneLine(finding.title)}`, "");
     out.push(`- **Category:** ${categoryLine(finding, review)}`);
-    out.push(`- **Observed:** ${oneLine(finding.observed_condition)}`);
+    out.push(`- **AI description (confirmed by reviewer):** ${oneLine(finding.observed_condition)}`);
     out.push(`- **Why it may matter:** ${oneLine(finding.why_it_matters)}`);
     out.push(`- **Potential impact:** ${LEVEL_LABEL[finding.potential_impact]}`);
     out.push(`- **Suggested next step:** ${oneLine(finding.suggested_next_step)}`);
@@ -52,7 +52,7 @@ export function reportToMarkdown(report: SavedReport, reportUrl?: string): strin
 
   report.missedIssues.forEach((issue, i) => {
     out.push(`### ${verified.length + i + 1}. ${CATEGORY_INFO[issue.category].label} (added by reviewer)`, "");
-    out.push(`- **Observed:** ${oneLine(issue.description)}`, "");
+    out.push(`- **Reviewer description:** ${oneLine(issue.description)}`, "");
   });
 
   if (rejected.length) {

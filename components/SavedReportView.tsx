@@ -229,7 +229,7 @@ function SavedFinding({ finding, index, review, selected, onSelect }: SavedFindi
       </ul>
 
       <dl className="finding-details">
-        <dt>Observed</dt>
+        <dt>What the AI reported seeing</dt>
         <dd>{finding.observed_condition}</dd>
         <dt>Suggested next step</dt>
         <dd>{finding.suggested_next_step}</dd>

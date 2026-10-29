@@ -2,7 +2,14 @@
 
 import { CATEGORY_INFO, LEVEL_LABEL } from "@/lib/categories";
 import { findingColor, findingTextColor } from "@/lib/colors";
+import type { ReviewDecision } from "@/lib/report";
 import type { Evidence, Finding } from "@/lib/types";
+
+const VERIFICATION_LABEL: Record<ReviewDecision, string> = {
+  confirmed: "Confirmed by you",
+  corrected: "Confirmed by you · category corrected",
+  rejected: "Rejected by you",
+};
 
 interface Props {
   finding: Finding;
@@ -11,11 +18,13 @@ interface Props {
   evidencePending: boolean;
   selected: boolean;
   onSelect: (findingId: string) => void;
+  /** The reviewer's decision so far; undefined while the finding is unverified. */
+  decision?: ReviewDecision;
   /** Review controls, rendered at the end of the card. */
   children?: React.ReactNode;
 }
 
-export function FindingCard({ finding, index, evidence, evidencePending, selected, onSelect, children }: Props) {
+export function FindingCard({ finding, index, evidence, evidencePending, selected, onSelect, decision, children }: Props) {
   const color = findingColor(index);
   const headingId = `finding-${finding.id}-title`;
 
@@ -43,6 +52,9 @@ export function FindingCard({ finding, index, evidence, evidencePending, selecte
       </header>
 
       <ul className="chips" aria-label="Assessment">
+        <li className={decision ? `chip decision-${decision}` : "chip unverified"}>
+          {decision ? VERIFICATION_LABEL[decision] : "Unverified AI finding"}
+        </li>
         <li className={`chip impact-${finding.potential_impact}`}>
           Potential impact: {LEVEL_LABEL[finding.potential_impact]}
         </li>
@@ -51,8 +63,9 @@ export function FindingCard({ finding, index, evidence, evidencePending, selecte
         </li>
       </ul>
 
+      <p className="detail-group">AI interpretation</p>
       <dl className="finding-details">
-        <dt>Observed</dt>
+        <dt>What the AI reports seeing</dt>
         <dd>{finding.observed_condition}</dd>
         <dt>Why it may matter</dt>
         <dd>{finding.why_it_matters}</dd>
@@ -62,6 +75,7 @@ export function FindingCard({ finding, index, evidence, evidencePending, selecte
         <dd>{finding.suggested_next_step}</dd>
       </dl>
 
+      <p className="detail-group">Visible evidence</p>
       <p className={`evidence-status status-${evidence?.status ?? "pending"}`}>
         {evidence ? evidence.note : evidencePending ? "Locating visual evidence…" : "No visual evidence."}
       </p>

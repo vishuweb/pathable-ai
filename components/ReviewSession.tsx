@@ -180,6 +180,7 @@ export function ReviewSession({
                       evidencePending={evidencePending}
                       selected={selectedId === finding.id}
                       onSelect={toggleSelected}
+                      decision={reviews[finding.id]?.decision}
                     >
                       {ready && (
                         <FindingReviewControls

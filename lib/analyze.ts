@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { CATEGORY_INFO } from "./categories";
 import { ANALYSIS_MODEL, getMetaClient } from "./meta";
 import {
@@ -133,71 +134,87 @@ export async function analyzeImage(imageDataUrl: string, signal?: AbortSignal): 
   return normalizeAnalysis(raw);
 }
 
-// Strict mode constrains the shape, but we still guard the values the UI depends on.
-function normalizeAnalysis(raw: unknown): SceneAnalysis {
-  if (!isRecord(raw) || !Array.isArray(raw.findings)) {
-    throw new AnalysisError("The model response did not match the expected structure.");
-  }
-  const findings = raw.findings.filter(isRecord).slice(0, MAX_FINDINGS).map(normalizeFinding);
+// Strict mode constrains the shape, but the reply is still untrusted input: every field the UI
+// depends on is validated, and a bad value falls back to a safe default instead of failing the
+// whole analysis. Only a reply with no findings list at all is rejected.
+const text = z.string().catch("");
+
+const coordinate = z.coerce
+  .number()
+  .refine(Number.isFinite)
+  .transform((v) => Math.min(1000, Math.max(0, Math.round(v))));
+
+/** A box on the 0-1000 scale, with corners put in order; undefined if it is missing or degenerate. */
+const modelBox = z
+  .object({ x_min: coordinate, y_min: coordinate, x_max: coordinate, y_max: coordinate })
+  .transform((b): NormalizedBox | undefined => {
+    const [x1, x2] = [b.x_min, b.x_max].sort((a, c) => a - c);
+    const [y1, y2] = [b.y_min, b.y_max].sort((a, c) => a - c);
+    return x2 - x1 < 2 || y2 - y1 < 2 ? undefined : { x_min: x1, y_min: y1, x_max: x2, y_max: y2 };
+  })
+  .catch(undefined);
+
+const modelFinding = z.object({
+  category: z.enum(ISSUE_CATEGORIES).catch("other"),
+  title: text,
+  observed_condition: text,
+  why_it_matters: text,
+  evidence_phrase: z.string().trim().catch(""),
+  evidence_box: modelBox,
+  potential_impact: z.enum(LEVELS).catch("medium"),
+  confidence: z.enum(LEVELS).catch("low"),
+  uncertainty: text,
+  suggested_next_step: text,
+});
+
+const modelAnalysis = z.object({
+  scene_type: text,
+  scene_summary: text,
+  image_quality: z.enum(IMAGE_QUALITIES).catch("limited"),
+  image_quality_notes: text,
+  findings: z.array(z.unknown()),
+  no_findings_reason: text,
+});
+
+export function normalizeAnalysis(raw: unknown): SceneAnalysis {
+  const parsed = modelAnalysis.safeParse(raw);
+  if (!parsed.success) throw new AnalysisError("The model response did not match the expected structure.");
+  const findings = parsed.data.findings
+    .flatMap((f) => {
+      const finding = modelFinding.safeParse(f);
+      return finding.success ? [finding.data] : [];
+    })
+    .slice(0, MAX_FINDINGS)
+    .map(toFinding);
   return {
-    scene_type: str(raw.scene_type),
-    scene_summary: str(raw.scene_summary),
-    image_quality: oneOf(raw.image_quality, IMAGE_QUALITIES, "limited"),
-    image_quality_notes: str(raw.image_quality_notes),
+    scene_type: parsed.data.scene_type,
+    scene_summary: parsed.data.scene_summary,
+    image_quality: parsed.data.image_quality,
+    image_quality_notes: parsed.data.image_quality_notes,
     findings,
     no_findings_reason: findings.length
       ? ""
-      : str(raw.no_findings_reason) || "The model did not report any potential barriers.",
+      : parsed.data.no_findings_reason || "The model did not report any potential barriers.",
   };
 }
 
 // A finding without a usable box or phrase is kept (dropping it would hide a possible barrier),
 // but marked unlocated so it is not segmented or drawn.
-function normalizeFinding(f: Record<string, unknown>): Finding {
-  const category = oneOf(f.category, ISSUE_CATEGORIES, "other");
-  const box = normalizeBox(f.evidence_box);
-  const evidencePhrase = str(f.evidence_phrase).trim();
-  const located = box !== undefined && evidencePhrase !== "";
-  if (!located) {
-    console.warn("[analyze] finding has no usable evidence location", {
-      title: f.title,
-      box: f.evidence_box,
-      phrase: f.evidence_phrase,
-    });
-  }
+function toFinding(f: z.infer<typeof modelFinding>): Finding {
+  const located = f.evidence_box !== undefined && f.evidence_phrase !== "";
+  if (!located) console.warn("[analyze] finding has no usable evidence location", { title: f.title });
   return {
     id: crypto.randomUUID(),
-    category,
-    title: str(f.title),
-    observed_condition: str(f.observed_condition),
-    why_it_matters: str(f.why_it_matters),
-    evidence_phrase: evidencePhrase || CATEGORY_INFO[category].label.toLowerCase(),
-    evidence_box: box ?? FULL_IMAGE_BOX,
+    category: f.category,
+    title: f.title,
+    observed_condition: f.observed_condition,
+    why_it_matters: f.why_it_matters,
+    evidence_phrase: f.evidence_phrase || CATEGORY_INFO[f.category].label.toLowerCase(),
+    evidence_box: f.evidence_box ?? FULL_IMAGE_BOX,
     located,
-    potential_impact: oneOf(f.potential_impact, LEVELS, "medium"),
-    confidence: oneOf(f.confidence, LEVELS, "low"),
-    uncertainty: str(f.uncertainty),
-    suggested_next_step: str(f.suggested_next_step),
+    potential_impact: f.potential_impact,
+    confidence: f.confidence,
+    uncertainty: f.uncertainty,
+    suggested_next_step: f.suggested_next_step,
   };
-}
-
-function normalizeBox(b: unknown): NormalizedBox | undefined {
-  if (!isRecord(b)) return undefined;
-  const clamp = (v: unknown) => Math.min(1000, Math.max(0, Math.round(Number(v))));
-  const [x1, x2] = [clamp(b.x_min), clamp(b.x_max)].sort((a, c) => a - c);
-  const [y1, y2] = [clamp(b.y_min), clamp(b.y_max)].sort((a, c) => a - c);
-  if ([x1, x2, y1, y2].some(Number.isNaN) || x2 - x1 < 2 || y2 - y1 < 2) return undefined;
-  return { x_min: x1, y_min: y1, x_max: x2, y_max: y2 };
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
-function str(v: unknown): string {
-  return typeof v === "string" ? v : "";
-}
-
-function oneOf<T extends string>(v: unknown, allowed: readonly T[], fallback: T): T {
-  return allowed.includes(v as T) ? (v as T) : fallback;
 }

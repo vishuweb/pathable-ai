@@ -1065,3 +1065,19 @@ fieldset:disabled .segment {
     display: none;
   }
 }
+
+/* Separates the AI's interpretation from the visible evidence on each finding card */
+.detail-group {
+  margin: 14px 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.chip.unverified {
+  background: #fff;
+  color: #3a404a;
+  border-style: dashed;
+}
