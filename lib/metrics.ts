@@ -102,7 +102,8 @@ function metricsFor(dataset: string, reports: SavedReport[]): DatasetMetrics {
         continue;
       }
       if (review?.decision !== "confirmed" && review?.decision !== "corrected") continue;
-      review.decision === "confirmed" ? confirmed++ : corrected++;
+      if (review.decision === "confirmed") confirmed++;
+      else corrected++;
       verifiedHere++;
       ai.aiReal++;
       const trueCategory = review.decision === "corrected" && review.correctedCategory ? review.correctedCategory : finding.category;

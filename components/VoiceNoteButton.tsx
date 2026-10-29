@@ -27,6 +27,8 @@ export function VoiceNoteButton({ label, onText }: Props) {
   onTextRef.current = onText;
 
   const mounted = useRef(true);
+  // The auto-stop timer calls the latest stop() without restarting when the component re-renders.
+  const stopRef = useRef<() => Promise<void>>(undefined);
 
   useEffect(() => setSupported(canRecordVoice()), []);
   useEffect(() => {
@@ -43,10 +45,9 @@ export function VoiceNoteButton({ label, onText }: Props) {
     const timer = setInterval(() => {
       const elapsed = Math.floor((Date.now() - started) / 1000);
       setSeconds(elapsed);
-      if (elapsed >= MAX_VOICE_NOTE_SECONDS) void stop();
+      if (elapsed >= MAX_VOICE_NOTE_SECONDS) void stopRef.current?.();
     }, 250);
     return () => clearInterval(timer);
-    // stop() only reads refs and state setters, so this need not re-run when it is recreated.
   }, [state]);
 
   if (!supported) return null;
@@ -98,6 +99,7 @@ export function VoiceNoteButton({ label, onText }: Props) {
     }
   }
 
+  stopRef.current = stop;
   const recordingNow = state === "recording";
   return (
     <div className="voice-note">
