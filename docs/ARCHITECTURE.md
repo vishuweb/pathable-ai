@@ -54,4 +54,4 @@ flowchart LR
 
 ## Testing
 
-`npm test` runs 43 tests with Node's built-in test runner. The Meta API is replaced by a local mock server (`tests/mock-meta.ts`) that speaks the same Chat Completions, SAM streaming and transcription formats, so the tests exercise the real client code without network calls or cost. `npm run lint` (ESLint with Next.js rules), `npm run typecheck` and `npm run build` complete the checks.
+`npm test` runs 43 tests with Node's built-in test runner, and `npm run e2e` drives the whole flow in Chrome (upload, findings, outlines, review, consent, save, plus analysis and segmentation failures) with axe accessibility checks along the way. The Meta API is replaced by a local mock server (`tests/mock-meta.ts`) that speaks the same Chat Completions, SAM streaming and transcription formats, so the tests exercise the real client code without network calls or cost. `npm run lint` (ESLint with Next.js rules), `npm run typecheck` and `npm run build` complete the checks.

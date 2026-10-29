@@ -10,7 +10,7 @@ Built for the Meta Global AI Developer Hackathon with the Meta Model API:
 
 **Live demo:** https://pathable-ai.vercel.app. Upload a photo of a street, crossing or entrance, or pick one under **No photo handy? Try a sample**.
 
-**Docs:** [Architecture](docs/ARCHITECTURE.md) · [Evaluation plan](docs/EVALUATION.md) · [Demo script](docs/DEMO.md) · [Submission checklist](docs/SUBMISSION.md)
+**Docs:** [Architecture](docs/ARCHITECTURE.md) · [Roadmap and status](docs/ROADMAP.md) · [Evaluation plan](docs/EVALUATION.md) · [Security and privacy](docs/SECURITY-PRIVACY.md) · [Public-beta readiness](docs/BETA-READINESS.md) · [Demo script](docs/DEMO.md) · [Submission checklist](docs/SUBMISSION.md)
 
 **Built during the hackathon.** Everything here was written during the hackathon window (Oct 26 – Nov 4, 2026); the git history starts on Oct 29. See [what was built](docs/SUBMISSION.md#5-built-during-the-hackathon).
 
