@@ -111,7 +111,8 @@ function MetricsTable({ metrics }: { metrics: DatasetMetrics[] }) {
   ];
 
   return (
-    <div className="table-wrap">
+    // Focusable and named, so keyboard users can scroll the table sideways on narrow screens.
+    <div className="table-wrap" tabIndex={0} role="region" aria-label="Results by photo source">
       <table className="metrics-table">
         <caption>Results by photo source</caption>
         <thead>
@@ -143,7 +144,7 @@ function CategoryTable({ metrics }: { metrics: DatasetMetrics }) {
   const rows = metrics.byCategory.filter((c) => c.aiFindings > 0 || c.verified > 0);
   if (!rows.length) return null;
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" tabIndex={0} role="region" aria-label="Results by barrier type">
       <table className="metrics-table">
         <caption>Results by barrier type (all photos)</caption>
         <thead>
