@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { isOwner, ownerKeyRequired } from "@/lib/owner";
+import { isOwner, ownerKeyMissing, ownerKeyRequired } from "@/lib/owner";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Owner sign-in · PathAble AI" };
@@ -12,7 +12,12 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
   return (
     <section aria-labelledby="owner-title" className="owner-page">
       <h1 id="owner-title">Owner sign-in</h1>
-      {!ownerKeyRequired() ? (
+      {ownerKeyMissing() ? (
+        <p className="empty-state">
+          This deployment has no owner key yet, so the evaluation tools are locked. Set <code>OWNER_KEY</code> in the
+          project&apos;s environment variables and redeploy.
+        </p>
+      ) : !ownerKeyRequired() ? (
         <p className="empty-state">
           This copy of PathAble AI has no owner key, so every tool is open. <Link href="/batch">Batch analyze</Link>
         </p>

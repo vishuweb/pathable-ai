@@ -109,7 +109,7 @@ The app runs on Vercel as is. A serverless disk does not persist, so a deploymen
 
 On a public link, three protections are on:
 
-- **Owner-only evaluation tools.** Batch analysis and the review queue need the owner key; sign in at `/owner`. Visitors can still analyze a photo, review it and save a report.
+- **Owner-only evaluation tools.** Batch analysis and the review queue need the owner key; sign in at `/owner`. Visitors can still analyze a photo, review it and save a report. A deployment without `OWNER_KEY` keeps these tools locked rather than open.
 - **Clean measurements.** Visitors' single uploads are left out of the measured results, so the numbers come only from the owner's reviewed batches.
 - **Rate limit.** Each visitor can run 30 photo analyses, 30 evidence runs and 30 voice notes an hour (`ANALYZE_LIMIT_PER_HOUR`), so the link cannot drain the API key. The limit is counted in memory on each server instance, so it is best-effort.
 
