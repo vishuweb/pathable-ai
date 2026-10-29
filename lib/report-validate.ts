@@ -4,9 +4,12 @@ import {
   HIGHLIGHT_RATINGS,
   REVIEW_DECISIONS,
   isReviewComplete,
+  type AnalysisResult,
+  type DraftSubmission,
   type FindingReview,
   type MissedIssue,
-  type ReportDraft,
+  type PhotoSource,
+  type ReportSubmission,
   type ReportLocation,
 } from "./report";
 import {
@@ -29,41 +32,64 @@ const SVG_PATH_RE = /^[MLZ0-9 .\-]*$/;
 
 class InvalidReport extends Error {}
 
-/** Validates a report submitted by the browser. Returns the cleaned draft or a user-facing error. */
-export function parseReportDraft(value: unknown): ReportDraft | { error: string } {
+/** Validates a report submitted by the browser. Returns the cleaned submission or a user-facing error. */
+export function parseReportSubmission(value: unknown): ReportSubmission | { error: string } {
+  return guard(() => {
+    const body = record(value, "The report");
+    const result = parseAnalysisResult(body);
+    const draftId = body.draftId == null ? undefined : text(body.draftId, "The draft id", 64, true);
+    const image = draftId ? undefined : parseJpeg(body.image);
+    const timings = record(body.timings, "timings");
+    return {
+      ...result,
+      image,
+      draftId,
+      location: body.location == null ? undefined : parseLocation(body.location),
+      reviews: parseReviews(body.reviews, result.analysis.findings),
+      missedIssues: list(body.missedIssues ?? [], "missed issues", MAX_MISSED).map(parseMissedIssue),
+      reviewerNote: optionalText(body.reviewerNote, "The reviewer note", 4000),
+      timings: { ...result.timings, reviewMs: number(timings.reviewMs, "reviewMs", 0, 7 * 24 * 3_600_000) },
+    };
+  });
+}
+
+/** Validates an analyzed photo submitted by the batch page for the review queue. */
+export function parseDraftSubmission(value: unknown): DraftSubmission | { error: string } {
+  return guard(() => {
+    const body = record(value, "The draft");
+    return { ...parseAnalysisResult(body), image: parseJpeg(body.image) };
+  });
+}
+
+function guard<T>(parse: () => T): T | { error: string } {
   try {
-    return parseDraft(value);
+    return parse();
   } catch (error) {
     if (error instanceof InvalidReport) return { error: error.message };
     throw error;
   }
 }
 
-function parseDraft(value: unknown): ReportDraft {
-  const body = record(value, "The report");
-  const image = validateImageDataUrl(body.image);
+function parseJpeg(value: unknown): string {
+  const image = validateImageDataUrl(value);
   if (typeof image !== "string") fail(image.error);
-  if (!image.startsWith("data:image/jpeg;base64,")) fail("The report photo must be a JPEG.");
+  if (!image.startsWith("data:image/jpeg;base64,")) fail("The photo must be a JPEG.");
+  return image;
+}
 
+function parseAnalysisResult(body: Record<string, unknown>): AnalysisResult {
   const analysis = parseAnalysis(body.analysis);
   const findingIds = new Set(analysis.findings.map((f) => f.id));
   if (findingIds.size !== analysis.findings.length) fail("Finding ids must be unique.");
-
   const models = record(body.models, "models");
   const timings = record(body.timings, "timings");
-
   return {
-    image,
     width: integer(body.width, "width", 1, MAX_DIMENSION),
     height: integer(body.height, "height", 1, MAX_DIMENSION),
-    location: body.location == null ? undefined : parseLocation(body.location),
     analysis,
     evidence: list(body.evidence, "evidence", MAX_FINDINGS)
       .map(parseEvidence)
       .filter((e) => findingIds.has(e.findingId)),
-    reviews: parseReviews(body.reviews, analysis.findings),
-    missedIssues: list(body.missedIssues ?? [], "missed issues", MAX_MISSED).map(parseMissedIssue),
-    reviewerNote: optionalText(body.reviewerNote, "The reviewer note", 4000),
     models: {
       analysis: text(models.analysis, "The analysis model", 100, true),
       segmentation:
@@ -73,9 +99,16 @@ function parseDraft(value: unknown): ReportDraft {
       analysisMs: number(timings.analysisMs, "analysisMs", 0, 3_600_000),
       segmentationMs:
         timings.segmentationMs == null ? undefined : number(timings.segmentationMs, "segmentationMs", 0, 3_600_000),
-      reviewMs: number(timings.reviewMs, "reviewMs", 0, 7 * 24 * 3_600_000),
     },
+    source: body.source == null ? undefined : parseSource(body.source),
   };
+}
+
+function parseSource(value: unknown): PhotoSource {
+  const s = record(value, "The photo source");
+  const dataset = text(s.dataset, "The dataset name", 40, true);
+  if (!/^[a-z0-9-]+$/.test(dataset)) fail("The dataset name may use only lowercase letters, digits and dashes.");
+  return { dataset, file: text(s.file, "The photo file name", 260, true) };
 }
 
 function parseAnalysis(value: unknown): SceneAnalysis {

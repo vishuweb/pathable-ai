@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/format";
 import { summarizeReport } from "@/lib/report";
-import { listReports } from "@/lib/store";
+import { reports as reportStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Saved reports · PathAble AI" };
 
 export default async function ReportsPage() {
-  const reports = await listReports();
+  const reports = (await reportStore.list()).reverse();
 
   return (
     <section aria-labelledby="reports-title">

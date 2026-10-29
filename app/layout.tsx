@@ -26,6 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Link>
           <nav aria-label="Main">
             <Link href="/">New report</Link>
+            <Link href="/batch">Batch analyze</Link>
+            <Link href="/review">Review queue</Link>
+            <Link href="/results">Results</Link>
             <Link href="/reports">Saved reports</Link>
           </nav>
         </header>

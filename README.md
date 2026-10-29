@@ -68,7 +68,21 @@ The reviewer can also add barriers the AI missed, attach a location (typed, or t
 
 Every review doubles as an evaluation label. Confirmed, corrected, rejected and missed counts, highlight ratings, and review time are recorded automatically, and they feed the measured results below.
 
-Reports are stored on local disk (`data/reports/`, git-ignored; override with `REPORTS_DIR`).
+Reports are stored on local disk (`data/reports/`, git-ignored; override the base folder with `DATA_DIR`).
+
+**6. Measured results.** To evaluate on many photos:
+
+1. **Batch analyze** (`/batch`): select photos or a whole folder, and mark them as your own photos or web photos. They are analyzed two at a time in the background. Photos that were already analyzed are skipped, so you can re-run a growing folder.
+2. **Review queue** (`/review`): step through the analyzed photos without waiting for the AI, and review each one as above. Each save moves straight to the next photo.
+3. **Results** (`/results`, or `/api/results` as JSON):
+   - precision: AI findings that were real barriers
+   - recall: verified barriers the AI found
+   - category accuracy
+   - highlight quality
+   - false alarms on photos with no barrier
+   - median review and AI time
+
+   Results are broken down by photo source and by barrier type. Every rate comes with a 95% Wilson interval, so small samples are not overstated.
 
 **Accessibility of the app itself:** keyboard operable, skip link, visible focus, screen-reader status updates, colour-blind-safe palette with numbered markers (colour is never the only cue), 44 px touch targets, reduced-motion support, and a mobile-first layout.
 

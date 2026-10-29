@@ -33,31 +33,72 @@ export interface ReportLocation {
   accuracyM?: number;
 }
 
-/** What the browser submits when saving a reviewed report. */
-export interface ReportDraft {
-  /** The analyzed photo as a JPEG data URL. */
-  image: string;
-  width: number;
-  height: number;
-  location?: ReportLocation;
-  analysis: SceneAnalysis;
-  evidence: Evidence[];
-  /** Keyed by finding id; every finding must be reviewed. */
-  reviews: Record<string, FindingReview>;
-  missedIssues: MissedIssue[];
-  reviewerNote: string;
-  models: { analysis: string; segmentation?: string };
-  /** reviewMs: wall-clock time from results appearing to the report being saved. */
-  timings: { analysisMs: number; segmentationMs?: number; reviewMs: number };
+/** Where an evaluated photo came from, so results can be reported per dataset (e.g. "own" vs "web"). */
+export interface PhotoSource {
+  dataset: string;
+  file: string;
 }
 
-export interface SavedReport extends Omit<ReportDraft, "image"> {
+export interface ModelInfo {
+  analysis: string;
+  segmentation?: string;
+}
+
+/** The AI's output for one photo, before any human review. */
+export interface AnalysisResult {
+  width: number;
+  height: number;
+  analysis: SceneAnalysis;
+  evidence: Evidence[];
+  models: ModelInfo;
+  timings: { analysisMs: number; segmentationMs?: number };
+  source?: PhotoSource;
+}
+
+/** What the batch page submits: an analyzed photo waiting in the review queue. */
+export interface DraftSubmission extends AnalysisResult {
+  /** The analyzed photo as a JPEG data URL. */
+  image: string;
+}
+
+export interface AnalysisDraft extends AnalysisResult {
   id: string;
   createdAt: string;
 }
 
+/** What the browser submits when saving a reviewed report. */
+export interface ReportSubmission extends Omit<AnalysisResult, "timings"> {
+  /** The photo as a JPEG data URL; omitted when the review came from a queued draft. */
+  image?: string;
+  /** The queued draft this review is for; its photo is reused and the draft is removed. */
+  draftId?: string;
+  location?: ReportLocation;
+  /** Keyed by finding id; every finding must be reviewed. */
+  reviews: Record<string, FindingReview>;
+  missedIssues: MissedIssue[];
+  reviewerNote: string;
+  /** reviewMs: wall-clock time from results appearing to the report being saved. */
+  timings: { analysisMs: number; segmentationMs?: number; reviewMs: number };
+}
+
+export interface SavedReport extends Omit<ReportSubmission, "image" | "draftId"> {
+  id: string;
+  createdAt: string;
+}
+
+/** GET /api/drafts */
+export interface DraftsSummary {
+  pending: number;
+  /** "dataset/file" keys of every photo already queued or reviewed, so batches can skip them. */
+  knownSources: string[];
+}
+
 export interface SaveReportResponse {
   id: string;
+}
+
+export function sourceKey(source: PhotoSource): string {
+  return `${source.dataset}/${source.file}`;
 }
 
 export function emptyReview(): FindingReview {
