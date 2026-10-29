@@ -3,6 +3,7 @@
 import { CATEGORY_INFO } from "@/lib/categories";
 import type { FindingReview, HighlightRating, ReviewDecision } from "@/lib/report";
 import { ISSUE_CATEGORIES, type Finding, type IssueCategory } from "@/lib/types";
+import { VoiceNoteButton, appendDictation } from "./VoiceNoteButton";
 
 const DECISIONS: { value: ReviewDecision; label: string }[] = [
   { value: "confirmed", label: "Yes, real barrier" },
@@ -100,6 +101,10 @@ export function FindingReviewControls({ finding, review, onChange, disabled }: P
           onChange={(e) => onChange({ ...review, note: e.target.value })}
         />
       </label>
+      <VoiceNoteButton
+        label={`a note on “${finding.title}”`}
+        onText={(text) => onChange({ ...review, note: appendDictation(review.note, text, 2000) })}
+      />
     </fieldset>
   );
 }

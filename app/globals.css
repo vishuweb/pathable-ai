@@ -1015,3 +1015,53 @@ fieldset:disabled .segment {
 .definitions dd {
   margin: 2px 0 0;
 }
+
+/* Voice notes */
+.voice-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.voice-button {
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+.voice-dot {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.voice-dot.is-recording {
+  background: #d55e00;
+  animation: voice-pulse 1s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-dot.is-recording {
+    animation: none;
+  }
+}
+
+.voice-message {
+  flex: 1 1 12rem;
+  margin: 0;
+  font-weight: 400;
+}
+
+@media print {
+  .voice-note {
+    display: none;
+  }
+}

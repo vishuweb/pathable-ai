@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { CATEGORY_INFO } from "@/lib/categories";
 import type { MissedIssue } from "@/lib/report";
 import { ISSUE_CATEGORIES, type IssueCategory } from "@/lib/types";
+import { VoiceNoteButton, appendDictation } from "./VoiceNoteButton";
 
 interface Props {
   issues: MissedIssue[];
@@ -87,6 +88,10 @@ export function MissedIssuesEditor({ issues, onChange }: Props) {
           Add missed barrier
         </button>
       </div>
+      <VoiceNoteButton
+        label="what the AI missed"
+        onText={(text) => setDescription((current) => appendDictation(current, text, 1000))}
+      />
       {error && (
         <p id={errorId} className="field-error" role="alert">
           {error}

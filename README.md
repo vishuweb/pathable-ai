@@ -6,6 +6,7 @@ Built for the Meta Global AI Developer Hackathon with the Meta Model API:
 
 - **Muse Spark 1.3** reasons about the scene and returns structured findings.
 - **SAM 3.1** segments the visual evidence behind each finding.
+- **Muse Voice Transcribe 1.0** turns the reviewer's spoken notes into text.
 
 ## Quick start
 
@@ -34,7 +35,8 @@ Photo ─► browser re-encodes it (fixes rotation, max 1600 px, strips GPS/EXIF
       ─► POST /api/analyze ─► Muse Spark 1.3 (strict JSON schema) ─► findings
       ─► POST /api/segment ─► SAM 3.1, one call per evidence phrase ─► masks
       ─► each finding keeps the masks inside its box ─► evidence overlay + report cards
-      ─► human review ─► POST /api/reports ─► saved report (Markdown / JSON / PDF)
+      ─► human review (notes typed, or dictated ─► POST /api/transcribe ─► Muse Voice)
+      ─► POST /api/reports ─► saved report (Markdown / JSON / PDF)
 ```
 
 **1. Analysis: Muse Spark 1.3.** Each finding has:
@@ -63,6 +65,8 @@ The prompt treats every finding as a *candidate for human review*. It never cert
 - whether the highlight on the photo actually shows the barrier: yes, partly, or no
 
 The reviewer can also add barriers the AI missed, attach a location (typed, or the device's current position), and leave a note. The report can be saved only when every finding is reviewed.
+
+**Voice notes.** Every note field has a **Dictate** button, for reviewers who find typing on a phone hard or are standing at the barrier. The browser records up to 60 seconds and converts it to 16 kHz mono WAV, and `POST /api/transcribe` sends it to Muse Voice Transcribe 1.0. Recognition is biased toward accessibility terms such as "curb ramp", "tactile paving" and "bollard". The transcript is added to the field for the reviewer to check and edit; it is never saved unseen.
 
 **5. Saved reports.** Each report keeps the photo, the AI findings, the evidence outlines, and the human verdicts. The **Saved reports** page lists them. Each report can be downloaded as a Markdown maintenance request, as JSON data, or printed or saved as a PDF.
 
@@ -107,7 +111,7 @@ On a public link, three protections are on:
 
 - **Owner-only evaluation tools.** Batch analysis and the review queue need the owner key; sign in at `/owner`. Visitors can still analyze a photo, review it and save a report.
 - **Clean measurements.** Visitors' single uploads are left out of the measured results, so the numbers come only from the owner's reviewed batches.
-- **Rate limit.** Each visitor can make 30 AI requests an hour (`ANALYZE_LIMIT_PER_HOUR`), so the link cannot drain the API key. The limit is counted in memory on each server instance, so it is best-effort.
+- **Rate limit.** Each visitor can run 30 photo analyses, 30 evidence runs and 30 voice notes an hour (`ANALYZE_LIMIT_PER_HOUR`), so the link cannot drain the API key. The limit is counted in memory on each server instance, so it is best-effort.
 
 ## Status
 

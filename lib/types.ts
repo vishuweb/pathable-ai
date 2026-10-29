@@ -117,3 +117,10 @@ export interface SegmentResponse {
 export interface ApiError {
   error: string;
 }
+
+export interface TranscribeResponse {
+  text: string;
+  model: string;
+  audioDurationMs: number;
+  transcriptionMs: number;
+}

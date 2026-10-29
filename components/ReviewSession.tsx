@@ -20,6 +20,7 @@ import { FindingCard } from "./FindingCard";
 import { FindingReviewControls } from "./FindingReviewControls";
 import { LocationField } from "./LocationField";
 import { MissedIssuesEditor } from "./MissedIssuesEditor";
+import { VoiceNoteButton, appendDictation } from "./VoiceNoteButton";
 
 type SaveState = { state: "idle" | "saving" | "error"; error?: string } | { state: "saved"; id: string };
 
@@ -214,6 +215,10 @@ export function ReviewSession({
                       onChange={(e) => setReviewerNote(e.target.value)}
                     />
                   </label>
+                  <VoiceNoteButton
+                    label="the overall note"
+                    onText={(text) => setReviewerNote((current) => appendDictation(current, text, 4000))}
+                  />
                 </fieldset>
 
                 {save.state === "saved" ? (
