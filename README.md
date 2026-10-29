@@ -29,7 +29,7 @@ Open the app and pick a photo under **No photo handy? Try a sample** to run the 
 Command-line checks:
 
 ```bash
-npm test                                                       # 41 tests; the Meta API is mocked, so they cost nothing
+npm test                                                       # 42 tests; the Meta API is mocked, so they cost nothing
 npm run lint && npm run typecheck                              # ESLint (Next.js rules) and TypeScript
 npm run smoke:spark -- path/to/photo.jpg                       # Muse Spark alone
 npm run smoke:sam -- path/to/photo.jpg "electric scooter"      # SAM 3.1 alone
@@ -82,7 +82,7 @@ The prompt treats every finding as a *candidate for human review*. It never cert
 - *Yes, real barrier*, *Real, wrong category* (and picks the right one), or *Not a barrier*
 - whether the highlight on the photo actually shows the barrier: yes, partly, or no
 
-The reviewer can also add barriers the AI missed, attach a location (typed, or the device's current position), and leave a note. The report can be saved only when every finding is reviewed.
+The reviewer can also add barriers the AI missed, attach a location (typed, or the device's current position), and leave a note. The report can be saved only when every finding is reviewed and the reviewer confirms they may share the photo, that it does not clearly show anyone's face or number plate, and that the report will be public. The confirmation time is stored with the report, and the [privacy page](app/privacy/page.tsx) (`/privacy`) explains what is stored and how to ask for removal.
 
 **Voice notes.** Every note field has a **Dictate** button, for reviewers who find typing on a phone hard or are standing at the barrier. The browser records up to 60 seconds and converts it to 16 kHz mono WAV, and `POST /api/transcribe` sends it to Muse Voice Transcribe 1.0. Recognition is biased toward accessibility terms such as "curb ramp", "tactile paving" and "bollard". The transcript is added to the field for the reviewer to check and edit; it is never saved unseen.
 

@@ -39,6 +39,7 @@ export function parseReportSubmission(value: unknown): ReportSubmission | { erro
     const result = parseAnalysisResult(body);
     const draftId = body.draftId == null ? undefined : text(body.draftId, "The draft id", 64, true);
     const image = draftId ? undefined : parseJpeg(body.image);
+    if (body.consent !== true) fail("Confirm the sharing statement before saving.");
     const timings = record(body.timings, "timings");
     return {
       ...result,
@@ -48,6 +49,7 @@ export function parseReportSubmission(value: unknown): ReportSubmission | { erro
       reviews: parseReviews(body.reviews, result.analysis.findings),
       missedIssues: list(body.missedIssues ?? [], "missed issues", MAX_MISSED).map(parseMissedIssue),
       reviewerNote: optionalText(body.reviewerNote, "The reviewer note", 4000),
+      consent: true,
       timings: { ...result.timings, reviewMs: number(timings.reviewMs, "reviewMs", 0, 7 * 24 * 3_600_000) },
     };
   });

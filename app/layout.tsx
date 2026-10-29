@@ -33,6 +33,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
         <main id="main">{children}</main>
+        <footer className="site-footer">
+          <Link href="/privacy">Privacy and data</Link>
+          <span aria-hidden="true"> · </span>
+          <span>AI findings are candidates for human review, not compliance assessments.</span>
+        </footer>
       </body>
     </html>
   );

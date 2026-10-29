@@ -77,11 +77,15 @@ export interface ReportSubmission extends Omit<AnalysisResult, "timings"> {
   reviews: Record<string, FindingReview>;
   missedIssues: MissedIssue[];
   reviewerNote: string;
+  /** The person confirmed they may share the photo and that the report will be public. */
+  consent: true;
   /** reviewMs: wall-clock time from results appearing to the report being saved. */
   timings: { analysisMs: number; segmentationMs?: number; reviewMs: number };
 }
 
-export interface SavedReport extends Omit<ReportSubmission, "image" | "draftId"> {
+export interface SavedReport extends Omit<ReportSubmission, "image" | "draftId" | "consent"> {
+  /** When the sharing statement was confirmed; absent on reports saved before consent was recorded. */
+  consentedAt?: string;
   id: string;
   createdAt: string;
 }

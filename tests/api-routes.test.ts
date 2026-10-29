@@ -151,7 +151,16 @@ const submission = (reviews: unknown, extra: Record<string, unknown> = {}) => ({
   reviews,
   missedIssues: [{ category: "damaged_surface", description: "Cracked kerb edge." }],
   reviewerNote: "",
+  consent: true,
   ...extra,
+});
+
+test("reports: refuses a report without the sharing confirmation", async () => {
+  const reviews = { f1: { decision: "rejected" } };
+  for (const consent of [undefined, false, "yes"]) {
+    const response = await read(await reportsRoute.POST(post(submission(reviews, { consent }))));
+    assert.deepEqual(response, { status: 400, body: { error: "Confirm the sharing statement before saving." } });
+  }
 });
 
 test("reports: refuses unreviewed findings and unsafe outlines", async () => {
@@ -176,6 +185,8 @@ test("reports: a reviewed report is saved and can be read back as JSON and Markd
   const params = { params: Promise.resolve({ id }) };
   const report = await read(await reportRoute.GET(new Request("http://localhost"), params));
   assert.equal(report.body.reviews.f1.decision, "confirmed");
+  assert.equal(report.body.consentedAt, report.body.createdAt, "the confirmation time is recorded");
+  assert.equal(report.body.consent, undefined);
   assert.equal(report.body.missedIssues[0].category, "damaged_surface");
   const markdown = await (await markdownRoute.GET(new Request("http://localhost"), params)).text();
   assert.match(markdown, /AI description \(confirmed by reviewer\)/);

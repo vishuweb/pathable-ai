@@ -67,6 +67,7 @@ export function ReviewSession({
   const [missedIssues, setMissedIssues] = useState<MissedIssue[]>([]);
   const [location, setLocation] = useState<ReportLocation>(EMPTY_LOCATION);
   const [reviewerNote, setReviewerNote] = useState("");
+  const [consent, setConsent] = useState(false);
   const [save, setSave] = useState<SaveState>({ state: "idle" });
   const reviewStartedAt = useRef(0);
 
@@ -99,7 +100,8 @@ export function ReviewSession({
     setSelectedId((current) => (current === findingId ? undefined : findingId));
 
   const reviewedCount = findings.filter((f) => isReviewComplete(reviews[f.id], f.category)).length;
-  const canSave = ready && reviewedCount === findings.length && save.state !== "saving" && !saved;
+  const allReviewed = reviewedCount === findings.length;
+  const canSave = ready && allReviewed && consent && save.state !== "saving" && !saved;
 
   const saveReport = async () => {
     if (!analysis || !models || !canSave) return;
@@ -116,6 +118,7 @@ export function ReviewSession({
         reviews: Object.fromEntries(analysis.findings.map((f) => [f.id, reviews[f.id] ?? emptyReview()])),
         missedIssues,
         reviewerNote,
+        consent: true,
         models,
         timings: {
           analysisMs: timings.analysisMs ?? 0,
@@ -228,12 +231,25 @@ export function ReviewSession({
                   </div>
                 ) : (
                   <div className="save-actions">
+                    <label className="consent">
+                      <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                      <span>
+                        I may share this photo, it does not clearly show anyone&apos;s face or number plate, and I
+                        understand the saved report (photo, findings, notes and location) will be public.{" "}
+                        <a href="/privacy" target="_blank" rel="noopener">
+                          How reports are stored (opens in a new tab)
+                        </a>
+                      </span>
+                    </label>
                     <p className="muted" id="save-hint">
                       {findings.length === 0
                         ? "No AI findings to review. Add any barriers the AI missed, then save."
-                        : reviewedCount === findings.length
-                          ? `All ${findings.length} findings reviewed.`
+                        : allReviewed
+                          ? findings.length === 1
+                            ? "The finding is reviewed."
+                            : `All ${findings.length} findings reviewed.`
                           : `${reviewedCount} of ${findings.length} findings reviewed. Review each one to save.`}
+                      {allReviewed && !consent && " Confirm the sharing statement to save."}
                     </p>
                     <button
                       type="button"

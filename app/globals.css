@@ -1091,3 +1091,55 @@ fieldset:disabled .segment {
 .button-secondary.button-danger:hover {
   background: var(--danger-bg);
 }
+
+/* Sharing statement before saving */
+.consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 16px 0 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.consent input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+}
+
+/* Footer and long-form text pages */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 16px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.site-footer a {
+  display: inline-block;
+  padding: 10px 4px;
+}
+
+.prose {
+  max-width: 70ch;
+}
+
+.prose h2 {
+  margin-top: 28px;
+}
+
+.prose li + li {
+  margin-top: 6px;
+}
+
+@media print {
+  .site-footer {
+    display: none;
+  }
+}

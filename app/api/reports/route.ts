@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const submission = parseReportSubmission(body.value);
   if ("error" in submission) return jsonResponse<ApiError>({ error: submission.error }, 400);
 
-  const { image, draftId, ...rest } = submission;
+  const { image, draftId, consent, ...rest } = submission;
   // Queue reviews and batch sources are evaluation labels, so only the owner may add them.
   if ((draftId || rest.source) && !(await isOwner())) {
     return jsonResponse<ApiError>({ error: "Only the project owner can save reviews from the queue." }, 403);
@@ -27,7 +27,8 @@ export async function POST(request: Request) {
     : Buffer.from(image!.slice(image!.indexOf(",") + 1), "base64");
   if (!jpeg) return jsonResponse<ApiError>({ error: "This photo is no longer in the review queue." }, 404);
 
-  const report: SavedReport = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), ...rest };
+  const createdAt = new Date().toISOString();
+  const report: SavedReport = { id: crypto.randomUUID(), createdAt, ...rest, consentedAt: consent ? createdAt : undefined };
   try {
     await reports.save(report, jpeg);
     if (draftId) await drafts.remove(draftId);
