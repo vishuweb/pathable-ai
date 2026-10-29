@@ -1,7 +1,7 @@
 "use client";
 
 import { CATEGORY_INFO, LEVEL_LABEL } from "@/lib/categories";
-import { findingColor } from "@/lib/colors";
+import { findingColor, findingTextColor } from "@/lib/colors";
 import type { Evidence, Finding } from "@/lib/types";
 
 interface Props {
@@ -24,7 +24,11 @@ export function FindingCard({ finding, index, evidence, evidencePending, selecte
       aria-labelledby={headingId}
     >
       <header className="finding-header">
-        <span className="finding-badge" style={{ background: color }} aria-hidden="true">
+        <span
+          className="finding-badge"
+          style={{ background: color, color: findingTextColor(index) }}
+          aria-hidden="true"
+        >
           {index + 1}
         </span>
         <div>
@@ -60,13 +64,14 @@ export function FindingCard({ finding, index, evidence, evidencePending, selecte
         {evidence ? evidence.note : evidencePending ? "Locating visual evidence…" : "No visual evidence."}
       </p>
 
+      {/* A toggle keeps one label; aria-pressed announces whether the focus is on. */}
       <button
         type="button"
         className="button-secondary"
         aria-pressed={selected}
         onClick={() => onSelect(finding.id)}
       >
-        {selected ? "Show all findings on photo" : "Focus this finding on photo"}
+        Focus this finding on photo
       </button>
     </article>
   );

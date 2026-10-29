@@ -16,6 +16,8 @@ const MIN_CONTAINMENT = 0.4;
 const BOX_PADDING = 0.15;
 /** Below this IoU, a lone best-overlap instance is not trusted as evidence. */
 const MIN_FALLBACK_IOU = 0.1;
+/** Per-phrase deadline, including the streamed body, so slow phrases fail alone inside maxDuration. */
+const SAM_TIMEOUT_MS = 40_000;
 
 /** Segments the evidence for each finding. One SAM call per unique phrase, run in parallel. */
 export async function segmentEvidence(
@@ -23,9 +25,10 @@ export async function segmentEvidence(
   width: number,
   height: number,
   targets: SegmentTarget[],
+  signal?: AbortSignal,
 ): Promise<Evidence[]> {
   const phrases = [...new Set(targets.map((t) => normalizePhrase(t.phrase)))];
-  const settled = await Promise.allSettled(phrases.map((p) => segmentPhrase(image, p)));
+  const settled = await Promise.allSettled(phrases.map((p) => segmentPhrase(image, p, signal)));
   const byPhrase = new Map(phrases.map((p, i) => [p, settled[i]]));
   const owners = assignOwners(targets, byPhrase, width, height);
 
@@ -46,9 +49,13 @@ export async function segmentEvidence(
       };
     }
 
-    const regions = selectRegions(outcome.value, modelBox, width, height).filter(
-      (r) => owners.get(`${phrase}#${r.objectId}`) === target.findingId,
-    );
+    const selected = selectRegions(outcome.value, modelBox, width, height);
+    const owned = selected.filter((r) => owners.get(`${phrase}#${r.objectId}`) === target.findingId);
+    // When every object this finding points at belongs to another finding, both findings describe
+    // the same object (e.g. one scooter blocking a ramp and a footpath), so they share it.
+    const shared = owned.length === 0 && selected.length > 0;
+    const regions = shared ? selected : owned;
+    const count = `${regions.length} ${regions.length === 1 ? "object" : "objects"}`;
     return regions.length
       ? {
           findingId: target.findingId,
@@ -56,7 +63,9 @@ export async function segmentEvidence(
           status: "segmented",
           regions,
           modelBox,
-          note: `SAM 3.1 outlined ${regions.length} ${regions.length === 1 ? "object" : "objects"} matching "${phrase}".`,
+          note: shared
+            ? `SAM 3.1 outlined ${count} matching "${phrase}", also cited by another finding.`
+            : `SAM 3.1 outlined ${count} matching "${phrase}".`,
         }
       : {
           findingId: target.findingId,
@@ -69,7 +78,7 @@ export async function segmentEvidence(
   });
 }
 
-async function segmentPhrase(image: string, phrase: string): Promise<EvidenceRegion[]> {
+async function segmentPhrase(image: string, phrase: string, requestSignal?: AbortSignal): Promise<EvidenceRegion[]> {
   const params = {
     model: SEGMENTATION_MODEL,
     input: [
@@ -85,8 +94,20 @@ async function segmentPhrase(image: string, phrase: string): Promise<EvidenceReg
     stream: true,
   } as ResponseCreateParamsStreaming; // SAM takes no `detail` on input_image, which the SDK types require.
 
-  const stream = await getMetaClient().responses.create(params);
+  const deadline = AbortSignal.timeout(SAM_TIMEOUT_MS);
+  const signal = requestSignal ? AbortSignal.any([requestSignal, deadline]) : deadline;
+  const stream = await getMetaClient().responses.create(params, { signal });
   const result = await parseImageStream(stream).finalResult;
+
+  // An aborted stream ends quietly, and truncated output still parses. Partial output must not
+  // read as "nothing found", so anything but a clean, complete result counts as a failure.
+  if (deadline.aborted) throw new Error(`SAM timed out after ${SAM_TIMEOUT_MS} ms`);
+  const errors = result.diagnostics.filter((d) => d.severity === "error");
+  if (result.outcome.status !== "completed" || errors.length) {
+    throw new Error(
+      `SAM output was incomplete: ${JSON.stringify(result.outcome)} ${errors.map((d) => d.code).join(", ")}`,
+    );
+  }
   return toRegions(result);
 }
 

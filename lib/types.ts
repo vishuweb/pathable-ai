@@ -13,6 +13,9 @@ export type Level = (typeof LEVELS)[number];
 export const IMAGE_QUALITIES = ["good", "limited", "poor"] as const;
 export type ImageQuality = (typeof IMAGE_QUALITIES)[number];
 
+/** Upper bound on findings per photo, shared by analysis, segmentation, and the UI. */
+export const MAX_FINDINGS = 10;
+
 /** Bounding box on a 0–1000 scale relative to image width/height. */
 export interface NormalizedBox {
   x_min: number;
@@ -31,6 +34,8 @@ export interface Finding {
   /** Short noun phrase naming the visible evidence, used as the SAM 3.1 prompt. */
   evidence_phrase: string;
   evidence_box: NormalizedBox;
+  /** False when the model gave no usable box or phrase; such findings are not segmented. */
+  located: boolean;
   potential_impact: Level;
   confidence: Level;
   uncertainty: string;
@@ -71,7 +76,8 @@ export interface EvidenceRegion {
   confidence?: number;
 }
 
-export type EvidenceStatus = "segmented" | "approximate" | "unavailable";
+export const EVIDENCE_STATUSES = ["segmented", "approximate", "unavailable", "unlocated"] as const;
+export type EvidenceStatus = (typeof EVIDENCE_STATUSES)[number];
 
 export interface Evidence {
   findingId: string;
@@ -80,6 +86,7 @@ export interface Evidence {
    * segmented: SAM 3.1 found matching objects inside the model's box.
    * approximate: SAM found nothing that matches, so only the model's rough box is shown.
    * unavailable: segmentation failed; only the rough box is shown.
+   * unlocated: the model gave no specific area, so nothing is drawn.
    */
   status: EvidenceStatus;
   regions: EvidenceRegion[];

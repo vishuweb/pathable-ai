@@ -13,6 +13,13 @@ export class MissingApiKeyError extends Error {
   }
 }
 
+/**
+ * API routes run with maxDuration = 60 s, so each upstream call must finish well inside that.
+ * The SDK timeout only covers waiting for response headers; streamed bodies need their own signal.
+ * No automatic retries: a retry could not finish in time, and the user can retry from the UI.
+ */
+export const UPSTREAM_TIMEOUT_MS = 45_000;
+
 let client: OpenAI | undefined;
 
 export function getMetaClient(): OpenAI {
@@ -21,8 +28,8 @@ export function getMetaClient(): OpenAI {
   client ??= new OpenAI({
     apiKey,
     baseURL: META_BASE_URL,
-    timeout: 90_000,
-    maxRetries: 1,
+    timeout: UPSTREAM_TIMEOUT_MS,
+    maxRetries: 0,
   });
   return client;
 }

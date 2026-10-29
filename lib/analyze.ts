@@ -5,10 +5,13 @@ import {
   IMAGE_QUALITIES,
   ISSUE_CATEGORIES,
   LEVELS,
+  MAX_FINDINGS,
   type Finding,
   type NormalizedBox,
   type SceneAnalysis,
 } from "./types";
+
+const FULL_IMAGE_BOX: NormalizedBox = { x_min: 0, y_min: 0, x_max: 1000, y_max: 1000 };
 
 const categoryGuide = ISSUE_CATEGORIES.map(
   (c) => `- ${c}: ${CATEGORY_INFO[c].description}`,
@@ -23,7 +26,7 @@ Rules:
 - Report only conditions that are visibly supported by the photo. Never invent objects or conditions you cannot see.
 - These are candidate issues for a human to verify, not conclusions. Do not claim a route is inaccessible just because an object is present; describe how it may affect passage and what a reviewer should check (for example the remaining clear width).
 - Never claim compliance or non-compliance with ADA or any other standard; you cannot measure from a photo.
-- Report each distinct barrier once. Prefer fewer, well-supported findings over many speculative ones. If nothing qualifies, return an empty findings list and explain why in no_findings_reason.
+- Report each distinct barrier once, at most ${MAX_FINDINGS} findings, most important first. Prefer fewer, well-supported findings over many speculative ones. If nothing qualifies, return an empty findings list and explain why in no_findings_reason.
 - evidence_phrase must be a short concrete noun phrase (1-4 words) naming the visible object or region that is the evidence, written for an open-vocabulary segmentation model. Examples: "electric scooter", "parked car", "stairs", "cracked pavement", "construction barrier". Not a sentence, not a command.
 - evidence_box is the tight bounding box of that evidence on a 0-1000 scale, where (0,0) is the top-left and (1000,1000) is the bottom-right of the image. Integers only, x_min < x_max and y_min < y_max.
 - confidence reflects how clearly the photo shows the condition. potential_impact reflects how much it could affect someone's passage if confirmed.
@@ -95,24 +98,28 @@ const analysisSchema = {
 
 export class AnalysisError extends Error {}
 
-export async function analyzeImage(imageDataUrl: string): Promise<SceneAnalysis> {
-  const response = await getMetaClient().chat.completions.create({
-    model: ANALYSIS_MODEL,
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: "Identify potential accessibility barriers in this photo." },
-          { type: "image_url", image_url: { url: imageDataUrl } },
-        ],
+/** `signal` aborts the upstream call, e.g. when the browser disconnects. */
+export async function analyzeImage(imageDataUrl: string, signal?: AbortSignal): Promise<SceneAnalysis> {
+  const response = await getMetaClient().chat.completions.create(
+    {
+      model: ANALYSIS_MODEL,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Identify potential accessibility barriers in this photo." },
+            { type: "image_url", image_url: { url: imageDataUrl } },
+          ],
+        },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "accessibility_analysis", strict: true, schema: analysisSchema },
       },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: { name: "accessibility_analysis", strict: true, schema: analysisSchema },
     },
-  });
+    { signal },
+  );
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new AnalysisError("The model returned an empty response.");
@@ -131,29 +138,42 @@ function normalizeAnalysis(raw: unknown): SceneAnalysis {
   if (!isRecord(raw) || !Array.isArray(raw.findings)) {
     throw new AnalysisError("The model response did not match the expected structure.");
   }
-  const findings = raw.findings.filter(isRecord).map(normalizeFinding).filter(isPresent);
+  const findings = raw.findings.filter(isRecord).slice(0, MAX_FINDINGS).map(normalizeFinding);
   return {
     scene_type: str(raw.scene_type),
     scene_summary: str(raw.scene_summary),
     image_quality: oneOf(raw.image_quality, IMAGE_QUALITIES, "limited"),
     image_quality_notes: str(raw.image_quality_notes),
     findings,
-    no_findings_reason: findings.length ? "" : str(raw.no_findings_reason),
+    no_findings_reason: findings.length
+      ? ""
+      : str(raw.no_findings_reason) || "The model did not report any potential barriers.",
   };
 }
 
-function normalizeFinding(f: Record<string, unknown>): Finding | undefined {
+// A finding without a usable box or phrase is kept (dropping it would hide a possible barrier),
+// but marked unlocated so it is not segmented or drawn.
+function normalizeFinding(f: Record<string, unknown>): Finding {
+  const category = oneOf(f.category, ISSUE_CATEGORIES, "other");
   const box = normalizeBox(f.evidence_box);
   const evidencePhrase = str(f.evidence_phrase).trim();
-  if (!box || !evidencePhrase) return undefined;
+  const located = box !== undefined && evidencePhrase !== "";
+  if (!located) {
+    console.warn("[analyze] finding has no usable evidence location", {
+      title: f.title,
+      box: f.evidence_box,
+      phrase: f.evidence_phrase,
+    });
+  }
   return {
     id: crypto.randomUUID(),
-    category: oneOf(f.category, ISSUE_CATEGORIES, "other"),
+    category,
     title: str(f.title),
     observed_condition: str(f.observed_condition),
     why_it_matters: str(f.why_it_matters),
-    evidence_phrase: evidencePhrase,
-    evidence_box: box,
+    evidence_phrase: evidencePhrase || CATEGORY_INFO[category].label.toLowerCase(),
+    evidence_box: box ?? FULL_IMAGE_BOX,
+    located,
     potential_impact: oneOf(f.potential_impact, LEVELS, "medium"),
     confidence: oneOf(f.confidence, LEVELS, "low"),
     uncertainty: str(f.uncertainty),
@@ -172,10 +192,6 @@ function normalizeBox(b: unknown): NormalizedBox | undefined {
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
-function isPresent<T>(v: T | undefined): v is T {
-  return v !== undefined;
 }
 
 function str(v: unknown): string {

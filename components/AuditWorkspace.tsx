@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toPixelBox } from "@/lib/geometry";
 import { prepareImage, type PreparedImage } from "@/lib/prepare-image";
 import type {
   AnalyzeResponse,
   Evidence,
+  Finding,
   SceneAnalysis,
   SegmentRequest,
   SegmentResponse,
@@ -37,7 +38,8 @@ export function AuditWorkspace() {
   const [showOverlay, setShowOverlay] = useState(true);
   const runId = useRef(0);
 
-  const run = useCallback(async (file: Blob) => {
+  /** Runs the whole pipeline. `source` may be a loader so that fetching a sample also counts as busy. */
+  const run = useCallback(async (source: Blob | (() => Promise<Blob>)) => {
     const id = ++runId.current;
     const isStale = () => id !== runId.current;
 
@@ -50,6 +52,8 @@ export function AuditWorkspace() {
     setSelectedId(undefined);
 
     try {
+      const file = typeof source === "function" ? await source() : source;
+      if (isStale()) return;
       const prepared = await prepareImage(file);
       if (isStale()) return;
       setImage(prepared);
@@ -61,7 +65,15 @@ export function AuditWorkspace() {
       setTimings({ analysisMs: analyzed.analysisMs });
 
       const { findings } = analyzed.analysis;
-      if (!findings.length) {
+      const located = findings.filter((f) => f.located);
+      const unlocated = fallbackEvidence(
+        findings.filter((f) => !f.located),
+        prepared,
+        "unlocated",
+        "The AI did not point to a specific area for this finding.",
+      );
+      if (!located.length) {
+        setEvidence(unlocated);
         setPhase("done");
         return;
       }
@@ -72,30 +84,25 @@ export function AuditWorkspace() {
           image: prepared.dataUrl,
           width: prepared.width,
           height: prepared.height,
-          targets: findings.map((f) => ({ findingId: f.id, phrase: f.evidence_phrase, box: f.evidence_box })),
+          targets: located.map((f) => ({ findingId: f.id, phrase: f.evidence_phrase, box: f.evidence_box })),
         };
         const segmented = await postJson<SegmentResponse>("/api/segment", request);
         if (isStale()) return;
-        setEvidence(Object.fromEntries(segmented.evidence.map((e) => [e.findingId, e])));
+        setEvidence({ ...unlocated, ...Object.fromEntries(segmented.evidence.map((e) => [e.findingId, e])) });
         setTimings((t) => ({ ...t, segmentationMs: segmented.segmentationMs }));
-      } catch {
+      } catch (err) {
         if (isStale()) return;
         // Findings are still useful without masks: fall back to the model's approximate boxes.
-        setEvidence(
-          Object.fromEntries(
-            findings.map((f) => [
-              f.id,
-              {
-                findingId: f.id,
-                phrase: f.evidence_phrase,
-                status: "unavailable",
-                regions: [],
-                modelBox: toPixelBox(f.evidence_box, prepared.width, prepared.height),
-                note: "Segmentation was unavailable, so only the approximate area is shown.",
-              } satisfies Evidence,
-            ]),
+        console.warn("[segment] falling back to approximate boxes", err);
+        setEvidence({
+          ...unlocated,
+          ...fallbackEvidence(
+            located,
+            prepared,
+            "unavailable",
+            "Segmentation was unavailable, so only the approximate area is shown.",
           ),
-        );
+        });
       }
       setPhase("done");
     } catch (err) {
@@ -105,27 +112,45 @@ export function AuditWorkspace() {
     }
   }, []);
 
+  const busy = phase === "preparing" || phase === "analyzing" || phase === "segmenting";
+  const busyRef = useRef(busy);
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  // Handle drops anywhere on the page: without this, dropping a photo outside the drop zone makes
+  // the browser navigate to the file and discard the current results.
+  useEffect(() => {
+    const onDragOver = (event: DragEvent) => event.preventDefault();
+    const onDrop = (event: DragEvent) => {
+      event.preventDefault();
+      const file = event.dataTransfer?.files?.[0];
+      if (file?.type.startsWith("image/") && !busyRef.current) void run(file);
+    };
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, [run]);
+
   const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) void run(file);
     event.target.value = "";
   };
 
-  const onDrop = (event: React.DragEvent) => {
-    event.preventDefault();
-    const file = event.dataTransfer.files?.[0];
-    if (file?.type.startsWith("image/")) void run(file);
-  };
-
-  const loadSample = async (fileName: string) => {
-    const res = await fetch(`/samples/${fileName}`);
-    void run(await res.blob());
-  };
+  const loadSample = (fileName: string) =>
+    void run(async () => {
+      const res = await fetch(`/samples/${fileName}`);
+      if (!res.ok) throw new Error("The sample photo could not be loaded. Please try again.");
+      return res.blob();
+    });
 
   const toggleSelected = (findingId: string) =>
     setSelectedId((current) => (current === findingId ? undefined : findingId));
 
-  const busy = phase === "preparing" || phase === "analyzing" || phase === "segmenting";
   const findings = analysis?.findings ?? [];
   const statusMessage =
     PHASE_MESSAGE[phase] ??
@@ -139,7 +164,7 @@ export function AuditWorkspace() {
     <div className="workspace">
       <section className="upload-panel" aria-labelledby="upload-heading">
         <h2 id="upload-heading">1. Add a photo</h2>
-        <div className="dropzone" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+        <div className="dropzone">
           <label className="button-primary">
             Choose a photo
             <input
@@ -150,7 +175,7 @@ export function AuditWorkspace() {
               className="visually-hidden"
             />
           </label>
-          <p className="muted">or drag one here. Photos are resized and stripped of metadata before upload.</p>
+          <p className="muted">or drag one onto the page. Photos are resized and stripped of metadata before upload.</p>
         </div>
         <div className="samples">
           <p className="muted">No photo handy? Try a sample:</p>
@@ -159,7 +184,7 @@ export function AuditWorkspace() {
               key={s.file}
               type="button"
               className="button-secondary"
-              onClick={() => void loadSample(s.file)}
+              onClick={() => loadSample(s.file)}
               disabled={busy}
             >
               {s.label}
@@ -243,6 +268,27 @@ export function AuditWorkspace() {
         </section>
       )}
     </div>
+  );
+}
+
+function fallbackEvidence(
+  findings: Finding[],
+  image: PreparedImage,
+  status: "unlocated" | "unavailable",
+  note: string,
+): Record<string, Evidence> {
+  return Object.fromEntries(
+    findings.map((f) => [
+      f.id,
+      {
+        findingId: f.id,
+        phrase: f.evidence_phrase,
+        status,
+        regions: [],
+        modelBox: toPixelBox(f.evidence_box, image.width, image.height),
+        note,
+      } satisfies Evidence,
+    ]),
   );
 }
 

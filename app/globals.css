@@ -7,7 +7,8 @@
   --accent: #0b5cad;
   --accent-hover: #084a8c;
   --accent-text: #ffffff;
-  --focus: #f2a900;
+  /* Focus ring: ≥3:1 against every background it sits on (16.9:1 on the page). */
+  --focus: #14171c;
   --danger-bg: #fdecec;
   --danger-text: #8a1c1c;
   --warn-bg: #fff4d6;
@@ -156,6 +157,10 @@ main {
 
 .button-secondary:hover {
   background: #eef4fb;
+}
+
+.button-secondary[aria-pressed="true"] {
+  background: #dbe9f8;
 }
 
 button:disabled,
@@ -423,7 +428,8 @@ button:disabled,
   color: var(--warn-text);
 }
 
-.evidence-status.status-pending {
+.evidence-status.status-pending,
+.evidence-status.status-unlocated {
   background: #eef0f3;
   color: var(--muted);
 }

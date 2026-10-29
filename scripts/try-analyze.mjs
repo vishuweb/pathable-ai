@@ -38,10 +38,15 @@ if (!analysis.findings.length) {
   process.exit(0);
 }
 
-const targets = analysis.findings.map((f) => ({ findingId: f.id, phrase: f.evidence_phrase, box: f.evidence_box }));
-const seg = await post("/api/segment", { image, width, height, targets });
-const evidence = new Map(seg.evidence.map((e) => [e.findingId, e]));
-console.log(`${seg.model} · ${seg.segmentationMs} ms`);
+const targets = analysis.findings
+  .filter((f) => f.located)
+  .map((f) => ({ findingId: f.id, phrase: f.evidence_phrase, box: f.evidence_box }));
+const evidence = new Map();
+if (targets.length) {
+  const seg = await post("/api/segment", { image, width, height, targets });
+  for (const e of seg.evidence) evidence.set(e.findingId, e);
+  console.log(`${seg.model} · ${seg.segmentationMs} ms`);
+}
 
 for (const [i, f] of analysis.findings.entries()) {
   const ev = evidence.get(f.id);
@@ -51,23 +56,50 @@ for (const [i, f] of analysis.findings.entries()) {
   console.log(`   why: ${f.why_it_matters}`);
   console.log(`   uncertainty: ${f.uncertainty}`);
   console.log(`   next step: ${f.suggested_next_step}`);
+  if (!ev) {
+    console.log("   evidence: none (the model gave no specific area)");
+    continue;
+  }
   console.log(`   evidence [${ev.status}] ${ev.note}`);
   for (const r of ev.regions) {
     console.log(`     object ${r.objectId} conf ${r.confidence?.toFixed(2) ?? "?"} box`, r.box);
   }
 }
 
-/** Reads width/height from a JPEG or PNG header. */
+/**
+ * Reads width/height from a JPEG or PNG header. Rotated JPEGs (EXIF orientation other than 1) are
+ * refused: SAM reports coordinates in the displayed frame, so stored dimensions would not match.
+ */
 function imageSize(buf) {
   if (buf.readUInt32BE(0) === 0x89504e47) return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
   let o = 2;
-  while (o < buf.length) {
+  while (o + 4 <= buf.length) {
     const marker = buf.readUInt16BE(o);
     const len = buf.readUInt16BE(o + 2);
+    if (marker === 0xffe1 && buf.toString("latin1", o + 4, o + 10) === "Exif\0\0") {
+      const orientation = exifOrientation(buf, o + 10);
+      if (orientation > 1) {
+        console.error("This JPEG is stored rotated (EXIF orientation). Re-save it upright or use the web app.");
+        process.exit(1);
+      }
+    }
     if (marker >= 0xffc0 && marker <= 0xffcf && ![0xffc4, 0xffc8, 0xffcc].includes(marker)) {
       return { height: buf.readUInt16BE(o + 5), width: buf.readUInt16BE(o + 7) };
     }
     o += 2 + len;
   }
   throw new Error("Could not read image size (use JPEG or PNG).");
+}
+
+/** Reads the Orientation tag (0x0112) from the first IFD of an EXIF TIFF block; 1 if absent. */
+function exifOrientation(buf, tiff) {
+  const little = buf.toString("latin1", tiff, tiff + 2) === "II";
+  const u16 = (at) => (little ? buf.readUInt16LE(at) : buf.readUInt16BE(at));
+  const u32 = (at) => (little ? buf.readUInt32LE(at) : buf.readUInt32BE(at));
+  const ifd = tiff + u32(tiff + 4);
+  for (let i = 0, n = u16(ifd); i < n; i++) {
+    const entry = ifd + 2 + i * 12;
+    if (u16(entry) === 0x0112) return u16(entry + 8);
+  }
+  return 1;
 }
