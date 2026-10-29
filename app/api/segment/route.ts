@@ -1,7 +1,7 @@
 import { jsonResponse, readJsonBody } from "@/lib/http";
 import { validateImageDataUrl } from "@/lib/image-input";
 import { MissingApiKeyError, SEGMENTATION_MODEL } from "@/lib/meta";
-import { RATE_LIMITED, allowRequest } from "@/lib/rate-limit";
+import { limitAiRequest } from "@/lib/rate-limit";
 import { segmentEvidence } from "@/lib/segment";
 import {
   MAX_FINDINGS,
@@ -19,7 +19,8 @@ const MAX_BODY_BYTES = 12 * 1024 * 1024;
 const MAX_DIMENSION = 8000;
 
 export async function POST(request: Request) {
-  if (!(await allowRequest("segment", request))) return jsonResponse<ApiError>({ error: RATE_LIMITED }, 429);
+  const limited = await limitAiRequest("segment", request);
+  if (limited) return jsonResponse<ApiError>({ error: limited.error }, limited.status);
   const body = await readJsonBody(request, MAX_BODY_BYTES);
   if (!body.ok) return jsonResponse<ApiError>({ error: body.error }, body.status);
   const input = (body.value ?? {}) as Record<string, unknown>;

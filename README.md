@@ -114,7 +114,7 @@ On a public link, three protections are on:
 
 - **Owner-only evaluation tools.** Batch analysis and the review queue need the owner key; sign in at `/owner`. Visitors can still analyze a photo, review it and save a report. A deployment without `OWNER_KEY` keeps these tools locked rather than open.
 - **Clean measurements.** Visitors' single uploads are left out of the measured results, so the numbers come only from the owner's reviewed batches.
-- **Rate limit.** Each visitor can run 30 photo analyses, 30 evidence runs and 30 voice notes an hour (`ANALYZE_LIMIT_PER_HOUR`), so the link cannot drain the API key. The limit is counted in memory on each server instance, so it is best-effort.
+- **Cost limits.** Each visitor can run 30 photo analyses, 30 evidence runs and 30 voice notes an hour (`ANALYZE_LIMIT_PER_HOUR`). All visitors together get 300 AI calls a day (`AI_DAILY_LIMIT`), and `AI_PAUSED=1` stops AI calls entirely. The counts are kept in memory on each server instance, so they bound cost rather than enforce an exact total; set a spending limit on the API account as well if one is available.
 
 ## Code map
 

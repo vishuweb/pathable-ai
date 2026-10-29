@@ -1,6 +1,6 @@
 import { jsonResponse, readBody } from "@/lib/http";
 import { MissingApiKeyError } from "@/lib/meta";
-import { RATE_LIMITED, allowRequest } from "@/lib/rate-limit";
+import { limitAiRequest } from "@/lib/rate-limit";
 import { TRANSCRIPTION_MODEL, TranscriptionError, transcribeWav } from "@/lib/transcribe";
 import type { ApiError, TranscribeResponse } from "@/lib/types";
 import { MAX_VOICE_NOTE_SECONDS, readWavInfo } from "@/lib/wav";
@@ -13,7 +13,8 @@ const MAX_BODY_BYTES = 4 * 1024 * 1024;
 
 /** Turns a recorded voice note (16-bit PCM WAV) into text for a review field. */
 export async function POST(request: Request) {
-  if (!(await allowRequest("transcribe", request))) return jsonResponse<ApiError>({ error: RATE_LIMITED }, 429);
+  const limited = await limitAiRequest("transcribe", request);
+  if (limited) return jsonResponse<ApiError>({ error: limited.error }, limited.status);
   const body = await readBody(request, MAX_BODY_BYTES);
   if (!body.ok) return jsonResponse<ApiError>({ error: "The recording is too long." }, 413);
   const audio = body.value;

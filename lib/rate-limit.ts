@@ -33,7 +33,36 @@ export async function allowRequest(bucket: string, request: Request): Promise<bo
   return true;
 }
 
-export const RATE_LIMITED = "You have reached this demo's hourly limit. Please try again later.";
+const RATE_LIMITED = "You have reached this demo's hourly limit. Please try again later.";
+
+// A daily cap on all paid AI calls together (every visitor, including the owner), so a public link
+// cannot run up the API bill. AI_PAUSED=1 stops AI calls entirely. Like the hourly limit, the count
+// is kept in memory on each server instance, so it bounds cost rather than enforcing an exact total.
+const DEFAULT_PUBLIC_DAILY_LIMIT = 300;
+const configuredDaily = Number(process.env.AI_DAILY_LIMIT);
+const DAILY_LIMIT =
+  Number.isInteger(configuredDaily) && configuredDaily > 0
+    ? configuredDaily
+    : ownerKeyRequired()
+      ? DEFAULT_PUBLIC_DAILY_LIMIT
+      : undefined;
+const daily = { day: "", used: 0 };
+
+/** For the routes that call the Meta API: a refusal, or undefined when the call may go ahead. */
+export async function limitAiRequest(bucket: string, request: Request): Promise<{ status: number; error: string } | undefined> {
+  if (process.env.AI_PAUSED === "1") {
+    return { status: 503, error: "AI analysis is paused on this demo. Please try again later." };
+  }
+  if (!(await allowRequest(bucket, request))) return { status: 429, error: RATE_LIMITED };
+  if (DAILY_LIMIT === undefined) return undefined;
+  const today = new Date().toISOString().slice(0, 10);
+  if (daily.day !== today) Object.assign(daily, { day: today, used: 0 });
+  if (daily.used >= DAILY_LIMIT) {
+    return { status: 429, error: "This demo has reached today's AI limit. Please try again tomorrow." };
+  }
+  daily.used++;
+  return undefined;
+}
 
 function clientAddress(request: Request): string {
   // Vercel sets x-forwarded-for itself, so the first entry is the real client.
