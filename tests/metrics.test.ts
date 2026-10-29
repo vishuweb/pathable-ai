@@ -95,3 +95,8 @@ test("single uploads are left out once a batch has been reviewed", () => {
   assert.equal(included.length, 3);
   assert.equal(excluded, 1);
 });
+
+test("on a public site, visitors' single uploads never count", () => {
+  const single = reports[3];
+  assert.deepEqual(evaluationReports([single], { publicSite: true }), { included: [], excluded: 1 });
+});

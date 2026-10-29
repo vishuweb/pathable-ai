@@ -29,7 +29,7 @@ Open the app and pick a photo under **No photo handy? Try a sample** to run the 
 Command-line checks:
 
 ```bash
-npm test                                                       # 43 tests; the Meta API is mocked, so they cost nothing
+npm test                                                       # 44 tests; the Meta API is mocked, so they cost nothing
 npm run lint && npm run typecheck                              # ESLint (Next.js rules) and TypeScript
 npm run e2e                                                    # browser test of the whole flow against the mocked API (needs Chrome)
 npm run smoke:spark -- path/to/photo.jpg                       # Muse Spark alone

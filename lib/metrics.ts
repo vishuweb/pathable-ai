@@ -63,12 +63,18 @@ export function computeMetrics(reports: SavedReport[]): DatasetMetrics[] {
 }
 
 /**
- * The reports that count as the evaluation set: photos from a batch (own or web). Single uploads,
- * such as visitors trying a public demo, count only while no batch has been reviewed.
+ * The reports that count as the evaluation set: photos from a batch (own or web). Single uploads
+ * are left out once a batch has been reviewed, and always on a public deployment (`publicSite`),
+ * where they come from visitors trying the demo rather than from the evaluation.
  */
-export function evaluationReports(reports: SavedReport[]): { included: SavedReport[]; excluded: number } {
+export function evaluationReports(
+  reports: SavedReport[],
+  { publicSite = false } = {},
+): { included: SavedReport[]; excluded: number } {
   const batch = reports.filter((r) => r.source);
-  return batch.length ? { included: batch, excluded: reports.length - batch.length } : { included: reports, excluded: 0 };
+  return batch.length || publicSite
+    ? { included: batch, excluded: reports.length - batch.length }
+    : { included: reports, excluded: 0 };
 }
 
 export function datasetOf(report: SavedReport): string {

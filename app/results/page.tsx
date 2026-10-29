@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CATEGORY_INFO } from "@/lib/categories";
 import { ALL_DATASETS, computeMetrics, evaluationReports, rate, type DatasetMetrics, type Rate } from "@/lib/metrics";
+import { ownerKeyRequired } from "@/lib/owner";
 import { drafts, reports } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ const DATASET_LABEL: Record<string, string> = {
 
 export default async function ResultsPage() {
   const [everything, queued] = await Promise.all([reports.list(), drafts.list()]);
-  const { included: saved, excluded } = evaluationReports(everything);
+  const { included: saved, excluded } = evaluationReports(everything, { publicSite: ownerKeyRequired() });
   const metrics = computeMetrics(saved);
   const all = metrics[0];
 

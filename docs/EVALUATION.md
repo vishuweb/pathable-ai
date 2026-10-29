@@ -41,7 +41,7 @@ The photos are kept out of the repository (`data/` is git-ignored); the web phot
 | False-alarm rate | photos with no verified barrier where the AI reported something ÷ photos with no verified barrier |
 | Review time | median seconds from results appearing to the report being saved |
 
-Every rate is shown with a 95% Wilson score interval, which stays honest for small samples and rates near 0% or 100%. Results are split by set (web or own) and by barrier type. Single uploads, such as visitors trying the public demo, are left out once a batch has been reviewed.
+Every rate is shown with a 95% Wilson score interval, which stays honest for small samples and rates near 0% or 100%. Results are split by set (web or own) and by barrier type. Single uploads are left out once a batch has been reviewed, and always on the public deployment, where they come from visitors trying the demo.
 
 ## Threats to validity
 

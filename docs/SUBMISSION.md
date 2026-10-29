@@ -50,7 +50,7 @@ The whole project was created during the hackathon window (Oct 26 – Nov 4, 202
 - Batch analysis, review queue and the measured-results page with Wilson intervals
 - Vercel deployment with private Blob storage, owner key and cost limits
 - Report status with dated history, consent before publishing, privacy page, owner moderation
-- 43 automated tests against a mocked Meta API
+- 44 automated tests against a mocked Meta API
 
 Third-party pieces: Next.js, React, the `openai` SDK (pointed at the Meta Model API), `@meta-sam/parser`, `@vercel/blob`, Zod. Sample and evaluation photos come from Wikimedia Commons under their licences.
 
