@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,9 +21,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to main content
         </a>
         <header className="site-header">
-          <a href="/" className="brand">
+          <Link href="/" className="brand">
             PathAble <span>AI</span>
-          </a>
+          </Link>
+          <nav aria-label="Main">
+            <Link href="/">New report</Link>
+            <Link href="/reports">Saved reports</Link>
+          </nav>
         </header>
         <main id="main">{children}</main>
       </body>

@@ -12,9 +12,18 @@ interface Props {
   selectedId?: string;
   showOverlay: boolean;
   onSelect: (findingId: string) => void;
+  alt?: string;
 }
 
-export function EvidenceViewer({ image, findings, evidence, selectedId, showOverlay, onSelect }: Props) {
+export function EvidenceViewer({
+  image,
+  findings,
+  evidence,
+  selectedId,
+  showOverlay,
+  onSelect,
+  alt = "The uploaded photo being analyzed",
+}: Props) {
   const { width, height } = image;
   const badgeRadius = Math.max(width, height) * 0.018;
   const stroke = Math.max(2, Math.max(width, height) * 0.003);
@@ -40,7 +49,7 @@ export function EvidenceViewer({ image, findings, evidence, selectedId, showOver
   return (
     <div className="viewer-stage" style={{ aspectRatio: `${width} / ${height}` }}>
       {/* eslint-disable-next-line @next/next/no-img-element -- local data URL */}
-      <img src={image.dataUrl} alt="The uploaded photo being analyzed" />
+      <img src={image.dataUrl} alt={alt} />
       {showOverlay && (
         <svg viewBox={`0 0 ${width} ${height}`} aria-hidden="true" className="viewer-overlay">
           {/* Shapes first, then badges, so no outline is painted over another finding's number. */}

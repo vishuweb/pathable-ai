@@ -11,9 +11,11 @@ interface Props {
   evidencePending: boolean;
   selected: boolean;
   onSelect: (findingId: string) => void;
+  /** Review controls, rendered at the end of the card. */
+  children?: React.ReactNode;
 }
 
-export function FindingCard({ finding, index, evidence, evidencePending, selected, onSelect }: Props) {
+export function FindingCard({ finding, index, evidence, evidencePending, selected, onSelect, children }: Props) {
   const color = findingColor(index);
   const headingId = `finding-${finding.id}-title`;
 
@@ -73,6 +75,7 @@ export function FindingCard({ finding, index, evidence, evidencePending, selecte
       >
         Focus this finding on photo
       </button>
+      {children}
     </article>
   );
 }

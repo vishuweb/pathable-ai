@@ -1,8 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toPixelBox } from "@/lib/geometry";
 import { prepareImage, type PreparedImage } from "@/lib/prepare-image";
+import {
+  emptyReview,
+  isReviewComplete,
+  type FindingReview,
+  type MissedIssue,
+  type ReportDraft,
+  type ReportLocation,
+  type SaveReportResponse,
+} from "@/lib/report";
 import type {
   AnalyzeResponse,
   Evidence,
@@ -13,8 +23,12 @@ import type {
 } from "@/lib/types";
 import { EvidenceViewer } from "./EvidenceViewer";
 import { FindingCard } from "./FindingCard";
+import { FindingReviewControls } from "./FindingReviewControls";
+import { LocationField } from "./LocationField";
+import { MissedIssuesEditor } from "./MissedIssuesEditor";
 
 type Phase = "idle" | "preparing" | "analyzing" | "segmenting" | "done" | "error";
+type SaveState = { state: "idle" | "saving" | "error"; error?: string } | { state: "saved"; id: string };
 
 const SAMPLES = [
   { file: "scooter-blocking-sidewalk.jpg", label: "Fallen scooter on a sidewalk" },
@@ -27,29 +41,54 @@ const PHASE_MESSAGE: Partial<Record<Phase, string>> = {
   segmenting: "Locating visual evidence with SAM 3.1…",
 };
 
+const EMPTY_LOCATION: ReportLocation = { label: "" };
+
 export function AuditWorkspace() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [image, setImage] = useState<PreparedImage>();
   const [analysis, setAnalysis] = useState<SceneAnalysis>();
   const [evidence, setEvidence] = useState<Record<string, Evidence>>({});
+  const [models, setModels] = useState<ReportDraft["models"]>();
   const [timings, setTimings] = useState<{ analysisMs?: number; segmentationMs?: number }>({});
   const [error, setError] = useState<string>();
   const [selectedId, setSelectedId] = useState<string>();
   const [showOverlay, setShowOverlay] = useState(true);
+  const [reviews, setReviews] = useState<Record<string, FindingReview>>({});
+  const [missedIssues, setMissedIssues] = useState<MissedIssue[]>([]);
+  const [location, setLocation] = useState<ReportLocation>(EMPTY_LOCATION);
+  const [reviewerNote, setReviewerNote] = useState("");
+  const [save, setSave] = useState<SaveState>({ state: "idle" });
   const runId = useRef(0);
+  const reviewStartedAt = useRef(0);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const resetReview = () => {
+    setReviews({});
+    setMissedIssues([]);
+    setLocation(EMPTY_LOCATION);
+    setReviewerNote("");
+    setSave({ state: "idle" });
+  };
 
   /** Runs the whole pipeline. `source` may be a loader so that fetching a sample also counts as busy. */
   const run = useCallback(async (source: Blob | (() => Promise<Blob>)) => {
     const id = ++runId.current;
     const isStale = () => id !== runId.current;
+    // Review time is measured from the moment results are ready to review.
+    const finish = () => {
+      reviewStartedAt.current = Date.now();
+      setPhase("done");
+    };
 
     setPhase("preparing");
     setImage(undefined);
     setAnalysis(undefined);
     setEvidence({});
+    setModels(undefined);
     setTimings({});
     setError(undefined);
     setSelectedId(undefined);
+    resetReview();
 
     try {
       const file = typeof source === "function" ? await source() : source;
@@ -62,6 +101,7 @@ export function AuditWorkspace() {
       const analyzed = await postJson<AnalyzeResponse>("/api/analyze", { image: prepared.dataUrl });
       if (isStale()) return;
       setAnalysis(analyzed.analysis);
+      setModels({ analysis: analyzed.model });
       setTimings({ analysisMs: analyzed.analysisMs });
 
       const { findings } = analyzed.analysis;
@@ -74,7 +114,7 @@ export function AuditWorkspace() {
       );
       if (!located.length) {
         setEvidence(unlocated);
-        setPhase("done");
+        finish();
         return;
       }
 
@@ -89,6 +129,7 @@ export function AuditWorkspace() {
         const segmented = await postJson<SegmentResponse>("/api/segment", request);
         if (isStale()) return;
         setEvidence({ ...unlocated, ...Object.fromEntries(segmented.evidence.map((e) => [e.findingId, e])) });
+        setModels({ analysis: analyzed.model, segmentation: segmented.model });
         setTimings((t) => ({ ...t, segmentationMs: segmented.segmentationMs }));
       } catch (err) {
         if (isStale()) return;
@@ -104,7 +145,7 @@ export function AuditWorkspace() {
           ),
         });
       }
-      setPhase("done");
+      finish();
     } catch (err) {
       if (isStale()) return;
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -113,10 +154,31 @@ export function AuditWorkspace() {
   }, []);
 
   const busy = phase === "preparing" || phase === "analyzing" || phase === "segmenting";
-  const busyRef = useRef(busy);
+  const findings = analysis?.findings ?? [];
+  const saved = save.state === "saved";
+  const hasUnsavedReview =
+    !saved &&
+    (Object.values(reviews).some((r) => r.decision || r.note) ||
+      missedIssues.length > 0 ||
+      Boolean(location.label || location.latitude !== undefined || reviewerNote));
+
+  // Read inside long-lived listeners without re-registering them.
+  const stateRef = useRef({ busy, hasUnsavedReview });
   useEffect(() => {
-    busyRef.current = busy;
-  }, [busy]);
+    stateRef.current = { busy, hasUnsavedReview };
+  }, [busy, hasUnsavedReview]);
+
+  /** Starts a new analysis unless that would throw away a review the user has not saved. */
+  const startRun = useCallback(
+    (source: Blob | (() => Promise<Blob>)) => {
+      if (stateRef.current.busy) return;
+      if (stateRef.current.hasUnsavedReview && !window.confirm("Discard your unsaved review and analyze a new photo?")) {
+        return;
+      }
+      void run(source);
+    },
+    [run],
+  );
 
   // Handle drops anywhere on the page: without this, dropping a photo outside the drop zone makes
   // the browser navigate to the file and discard the current results.
@@ -125,7 +187,7 @@ export function AuditWorkspace() {
     const onDrop = (event: DragEvent) => {
       event.preventDefault();
       const file = event.dataTransfer?.files?.[0];
-      if (file?.type.startsWith("image/") && !busyRef.current) void run(file);
+      if (file?.type.startsWith("image/")) startRun(file);
     };
     window.addEventListener("dragover", onDragOver);
     window.addEventListener("drop", onDrop);
@@ -133,16 +195,24 @@ export function AuditWorkspace() {
       window.removeEventListener("dragover", onDragOver);
       window.removeEventListener("drop", onDrop);
     };
-  }, [run]);
+  }, [startRun]);
+
+  // Warn before closing or reloading the tab with an unsaved review.
+  useEffect(() => {
+    if (!hasUnsavedReview) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsavedReview]);
 
   const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) void run(file);
+    if (file) startRun(file);
     event.target.value = "";
   };
 
   const loadSample = (fileName: string) =>
-    void run(async () => {
+    startRun(async () => {
       const res = await fetch(`/samples/${fileName}`);
       if (!res.ok) throw new Error("The sample photo could not be loaded. Please try again.");
       return res.blob();
@@ -151,7 +221,51 @@ export function AuditWorkspace() {
   const toggleSelected = (findingId: string) =>
     setSelectedId((current) => (current === findingId ? undefined : findingId));
 
-  const findings = analysis?.findings ?? [];
+  const updateReview = (findingId: string, review: FindingReview) =>
+    setReviews((current) => ({ ...current, [findingId]: review }));
+
+  const reviewedCount = findings.filter((f) => isReviewComplete(reviews[f.id], f.category)).length;
+  const canSave = phase === "done" && reviewedCount === findings.length && save.state !== "saving" && !saved;
+
+  const saveReport = async () => {
+    if (!image || !analysis || !models || !canSave) return;
+    setSave({ state: "saving" });
+    try {
+      const draft: ReportDraft = {
+        image: image.dataUrl,
+        width: image.width,
+        height: image.height,
+        location: location.label.trim() || location.latitude !== undefined ? location : undefined,
+        analysis,
+        evidence: Object.values(evidence),
+        reviews: Object.fromEntries(analysis.findings.map((f) => [f.id, reviews[f.id] ?? emptyReview()])),
+        missedIssues,
+        reviewerNote,
+        models,
+        timings: {
+          analysisMs: timings.analysisMs ?? 0,
+          segmentationMs: timings.segmentationMs,
+          reviewMs: Date.now() - reviewStartedAt.current,
+        },
+      };
+      const { id } = await postJson<SaveReportResponse>("/api/reports", draft);
+      setSave({ state: "saved", id });
+    } catch (err) {
+      setSave({ state: "error", error: err instanceof Error ? err.message : "The report could not be saved." });
+    }
+  };
+
+  const analyzeAnother = () => {
+    runId.current++;
+    setPhase("idle");
+    setImage(undefined);
+    setAnalysis(undefined);
+    setEvidence({});
+    resetReview();
+    window.scrollTo({ top: 0 });
+    fileInput.current?.focus();
+  };
+
   const statusMessage =
     PHASE_MESSAGE[phase] ??
     (phase === "done" && analysis
@@ -168,6 +282,7 @@ export function AuditWorkspace() {
           <label className="button-primary">
             Choose a photo
             <input
+              ref={fileInput}
               type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={onFileChange}
@@ -251,13 +366,81 @@ export function AuditWorkspace() {
                           evidencePending={phase === "segmenting"}
                           selected={selectedId === finding.id}
                           onSelect={toggleSelected}
-                        />
+                        >
+                          {phase === "done" && (
+                            <FindingReviewControls
+                              finding={finding}
+                              review={reviews[finding.id] ?? emptyReview()}
+                              onChange={(review) => updateReview(finding.id, review)}
+                              disabled={saved}
+                            />
+                          )}
+                        </FindingCard>
                       </li>
                     ))}
                   </ol>
                 ) : (
                   <p className="empty-state">{analysis.no_findings_reason}</p>
                 )}
+
+                {phase === "done" && (
+                  <section className="save-panel" aria-labelledby="save-heading">
+                    <h2 id="save-heading">3. Add details and save</h2>
+                    <fieldset className="plain-fieldset" disabled={saved}>
+                      <legend className="visually-hidden">Report details</legend>
+                      <MissedIssuesEditor issues={missedIssues} onChange={setMissedIssues} />
+                      <LocationField value={location} onChange={setLocation} />
+                      <label className="field">
+                        <span>
+                          Overall note <span className="muted">(optional)</span>
+                        </span>
+                        <textarea
+                          rows={3}
+                          maxLength={4000}
+                          value={reviewerNote}
+                          onChange={(e) => setReviewerNote(e.target.value)}
+                        />
+                      </label>
+                    </fieldset>
+
+                    {save.state === "saved" ? (
+                      <div className="save-success" role="status">
+                        <p>
+                          <strong>Report saved.</strong> <Link href={`/reports/${save.id}`}>Open the report</Link> or
+                          see <Link href="/reports">all reports</Link>.
+                        </p>
+                        <button type="button" className="button-secondary" onClick={analyzeAnother}>
+                          Analyze another photo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="save-actions">
+                        <p className="muted" id="save-hint">
+                          {findings.length === 0
+                            ? "No AI findings to review. Add any barriers the AI missed, then save."
+                            : reviewedCount === findings.length
+                              ? `All ${findings.length} findings reviewed.`
+                              : `${reviewedCount} of ${findings.length} findings reviewed. Review each one to save.`}
+                        </p>
+                        <button
+                          type="button"
+                          className="button-primary"
+                          onClick={() => void saveReport()}
+                          disabled={!canSave}
+                          aria-describedby="save-hint"
+                        >
+                          {save.state === "saving" ? "Saving…" : "Save report"}
+                        </button>
+                        {save.state === "error" && (
+                          <p className="error" role="alert">
+                            {save.error}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </section>
+                )}
+
                 <p className="disclaimer">
                   These are AI-generated candidates for human review. They are not an accessibility
                   compliance assessment.
