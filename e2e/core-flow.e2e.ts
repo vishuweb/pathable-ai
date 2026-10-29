@@ -12,6 +12,7 @@ import puppeteer, { type Browser, type Page } from "puppeteer-core";
 import { startMockMeta } from "../tests/mock-meta";
 
 const PORT = 3123;
+const OWNER_KEY = "e2e-owner-key-not-secret";
 const BASE = `http://127.0.0.1:${PORT}`;
 const PHOTO = path.resolve("public/samples/scooter-blocking-sidewalk.jpg");
 const AXE = readFileSync(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
@@ -27,6 +28,7 @@ const mock = await startMockMeta();
 let server: ChildProcess | undefined;
 let browser: Browser | undefined;
 let dataDir = "";
+let savedReportPath = "";
 
 before(async () => {
   if (!CHROME) return;
@@ -37,9 +39,11 @@ before(async () => {
     META_API_BASE_URL: mock.url,
     MODEL_API_KEY: "e2e-test-key",
     DATA_DIR: dataDir,
+    // With an owner key set, the browser is a visitor until it signs in, as on the public site.
+    OWNER_KEY,
     NEXT_TELEMETRY_DISABLED: "1",
   };
-  for (const name of ["OWNER_KEY", "VERCEL", "BLOB_READ_WRITE_TOKEN", "AI_PAUSED", "AI_DAILY_LIMIT"]) delete env[name];
+  for (const name of ["VERCEL", "BLOB_READ_WRITE_TOKEN", "AI_PAUSED", "AI_DAILY_LIMIT", "ANALYZE_LIMIT_PER_HOUR"]) delete env[name];
   server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "-p", String(PORT), "-H", "127.0.0.1"], {
     env,
     stdio: "ignore",
@@ -52,7 +56,7 @@ before(async () => {
   // The dev server compiles each route on first use, which can reload an open page; compile them
   // all up front. These requests are invalid on purpose, so none reaches the (mock) model.
   const missing = "00000000-0000-4000-8000-000000000000";
-  for (const route of ["/", "/reports", `/reports/${missing}`]) await fetch(BASE + route);
+  for (const route of ["/", "/report", "/reports", "/owner", "/batch", `/reports/${missing}`]) await fetch(BASE + route);
   for (const route of ["/api/analyze", "/api/segment", "/api/reports"]) await fetch(BASE + route, { method: "POST", body: "{}" });
   await fetch(`${BASE}/api/reports/${missing}/image`);
   browser = await puppeteer.launch({ executablePath: CHROME, headless: true });
@@ -99,7 +103,7 @@ async function analyzePhoto(): Promise<Page> {
   page.setDefaultNavigationTimeout(180_000);
   page.on("dialog", (d) => void d.accept());
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-  await page.goto(BASE, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/report`, { waitUntil: "networkidle0" });
   const input = await page.$('input[type="file"]');
   await input!.uploadFile(PHOTO);
   return page;
@@ -157,6 +161,7 @@ test("a photo becomes a reviewed, consented, saved report", { skip: !CHROME && "
   await page.waitForSelector(".save-success");
 
   const reportUrl = await page.$eval('.save-success a[href^="/reports/"]', (a) => a.getAttribute("href"));
+  savedReportPath = reportUrl!;
   await page.goto(BASE + reportUrl, { waitUntil: "networkidle0" });
   assert.match(await page.$eval("h1", (h) => h.textContent ?? ""), /1 verified barrier/);
   assert.match(await page.$eval("#status-heading", (h) => h.textContent ?? ""), /Submitted/);
@@ -182,4 +187,44 @@ test("a failed segmentation keeps the findings and says so", { skip: !CHROME && 
   assert.match(evidence, /Segmentation was unavailable/);
   assert.ok(await page.$(".save-panel"), "the finding can still be reviewed");
   await page.close();
+});
+
+test("visitors see the public site; the owner gets the workspace and moderation", { skip: !CHROME && "Chrome not found" }, async () => {
+  assert.ok(savedReportPath, "needs the report saved by the first test");
+  const visitor = await browser!.newPage();
+  visitor.setDefaultNavigationTimeout(180_000);
+  await visitor.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+
+  await visitor.goto(BASE, { waitUntil: "networkidle0" });
+  const nav = await visitor.$$eval('nav[aria-label="Main"] a', (links) => links.map((a) => a.textContent));
+  assert.deepEqual(nav, ["Report a barrier", "Reports", "How it works"], "no owner tools in the public navigation");
+  assert.ok(await visitor.$('.hero a[href="/report"]'), "the home page leads to reporting");
+  assert.deepEqual(await axeViolations(visitor), [], "home page passes WCAG 2.2 AA checks");
+
+  await visitor.goto(`${BASE}/batch`, { waitUntil: "networkidle0" });
+  assert.match(await visitor.$eval("main", (m) => m.textContent ?? ""), /kept for the project owner/);
+  await visitor.goto(BASE + savedReportPath, { waitUntil: "networkidle0" });
+  const visitorText = await visitor.$eval("main", (m) => m.textContent ?? "");
+  assert.ok(!visitorText.includes("Delete report") && !visitorText.includes("Record a status change"), "no moderation for visitors");
+  assert.match(visitorText, /Request removal or a correction/);
+  await visitor.close();
+
+  const owner = await browser!.newPage();
+  owner.setDefaultNavigationTimeout(180_000);
+  owner.on("dialog", (d) => void d.accept());
+  await owner.goto(`${BASE}/owner`, { waitUntil: "networkidle0" });
+  await owner.type('input[name="key"]', OWNER_KEY);
+  await Promise.all([owner.waitForNavigation({ waitUntil: "networkidle0" }), owner.click('button[type="submit"]')]);
+  assert.equal(new URL(owner.url()).pathname, "/owner");
+  const workspace = await owner.$$eval('nav[aria-label="Owner workspace"] a', (links) => links.map((a) => a.textContent));
+  assert.deepEqual(workspace, ["Workspace", "Batch analyze", "Review queue", "Results"]);
+
+  await owner.goto(BASE + savedReportPath, { waitUntil: "networkidle0" });
+  await owner.select(".status-form select", "under_review");
+  await owner.click(".status-form button[type=submit]");
+  await owner.waitForFunction(() => /Under review/.test(document.querySelector("#status-heading")?.textContent ?? ""));
+  const deleteButton = await owner.waitForSelector('xpath/.//button[contains(., "Delete report")]');
+  await Promise.all([owner.waitForNavigation({ waitUntil: "networkidle0" }), deleteButton!.click()]);
+  assert.equal((await fetch(BASE + "/api" + savedReportPath)).status, 404, "the report is gone");
+  await owner.close();
 });

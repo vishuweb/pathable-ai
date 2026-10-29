@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { CATEGORY_INFO } from "@/lib/categories";
 import { ALL_DATASETS, computeMetrics, evaluationReports, rate, type DatasetMetrics, type Rate } from "@/lib/metrics";
 import { ownerKeyRequired } from "@/lib/owner";
@@ -14,6 +13,9 @@ const DATASET_LABEL: Record<string, string> = {
   web: "Web photos",
   single: "Single uploads",
 };
+
+/** Below this many reviewed photos, headline percentages would mislead, so only counts and ranges are shown. */
+const MIN_PHOTOS_FOR_HEADLINES = 20;
 
 export default async function ResultsPage() {
   const [everything, queued] = await Promise.all([reports.list(), drafts.list()]);
@@ -32,31 +34,27 @@ export default async function ResultsPage() {
         )}
       </div>
       <p className="intro">
-        Every number below comes from human review: each AI finding was confirmed, corrected or rejected by a
-        person, who also added any barriers the AI missed. Based on <strong>{saved.length}</strong> reviewed{" "}
+        How often are the AI&apos;s suggestions right? These numbers come from the project owner&apos;s review of
+        batches of photos: every suggestion was confirmed, corrected or rejected, and missed barriers were added.
+        Shared reports from visitors are not counted. Based on <strong>{saved.length}</strong> reviewed{" "}
         {saved.length === 1 ? "photo" : "photos"}.
-        {queued.length > 0 && (
-          <>
-            {" "}
-            <Link href="/review">{queued.length} more waiting in the review queue.</Link>
-          </>
-        )}
-        {excluded > 0 && (
-          <>
-            {" "}
-            {excluded} single {excluded === 1 ? "upload is" : "uploads are"} not counted, because{" "}
-            {excluded === 1 ? "it was" : "they were"} not part of a reviewed batch.
-          </>
-        )}
+        {queued.length > 0 && ` ${queued.length} more ${queued.length === 1 ? "is" : "are"} waiting for review.`}
+        {excluded > 0 &&
+          ` ${excluded} single-photo ${excluded === 1 ? "report is" : "reports are"} not counted, because only reviewed batches are.`}
       </p>
 
       {saved.length === 0 ? (
-        <p className="empty-state">
-          No reviewed photos yet. <Link href="/batch">Analyze a batch</Link> and review it in the{" "}
-          <Link href="/review">review queue</Link>.
-        </p>
+        <p className="empty-state">No photos have been reviewed yet, so there are no results to show.</p>
       ) : (
         <>
+          {saved.length < MIN_PHOTOS_FOR_HEADLINES && (
+            <p className="callout" role="note">
+              Only {saved.length} reviewed {saved.length === 1 ? "photo" : "photos"} so far: too few for meaningful
+              percentages, so no headline figures are shown. The tables give the counts with 95% ranges, which are
+              wide at this size.
+            </p>
+          )}
+          {saved.length >= MIN_PHOTOS_FOR_HEADLINES && (
           <ul className="stat-tiles" aria-label="Headline results for all photos">
             <StatTile label="Precision" hint="AI findings that were real barriers" rate={all.precision} />
             <StatTile label="Recall" hint="Verified barriers the AI found" rate={all.recall} />
@@ -67,6 +65,7 @@ export default async function ResultsPage() {
               <span className="stat-detail">per photo, vs {seconds(all.medianPipelineSeconds)} for the AI</span>
             </li>
           </ul>
+          )}
 
           <MetricsTable metrics={metrics} />
           <CategoryTable metrics={all} />

@@ -1,42 +1,36 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { WorkspaceNav } from "@/components/WorkspaceNav";
 import { isOwner, ownerKeyMissing, ownerKeyRequired } from "@/lib/owner";
+import { drafts, reports } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Owner sign-in · PathAble AI" };
+export const metadata: Metadata = { title: "Owner workspace · PathAble AI" };
 
 export default async function OwnerPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
-  const signedIn = await isOwner();
 
-  return (
-    <section aria-labelledby="owner-title" className="owner-page">
-      <h1 id="owner-title">Owner sign-in</h1>
-      {ownerKeyMissing() ? (
+  if (ownerKeyMissing()) {
+    return (
+      <section aria-labelledby="owner-title">
+        <h1 id="owner-title">Owner workspace</h1>
         <p className="empty-state">
-          This deployment has no owner key yet, so the evaluation tools are locked. Set <code>OWNER_KEY</code> in the
+          This deployment has no owner key yet, so the workspace is locked. Set <code>OWNER_KEY</code> in the
           project&apos;s environment variables and redeploy.
         </p>
-      ) : !ownerKeyRequired() ? (
-        <p className="empty-state">
-          This copy of PathAble AI has no owner key, so every tool is open. <Link href="/batch">Batch analyze</Link>
+      </section>
+    );
+  }
+
+  if (!(await isOwner())) {
+    return (
+      <section aria-labelledby="owner-title" className="owner-page">
+        <h1 id="owner-title">Owner workspace</h1>
+        <p className="intro">
+          The project owner uses this workspace to analyze photos in bulk, review them as evaluation data, and
+          moderate shared reports. Anyone can <Link href="/report">report a barrier</Link> without signing in.
         </p>
-      ) : signedIn ? (
-        <form method="post" action="/api/owner" className="empty-state">
-          <p>
-            You are signed in as the owner. <Link href="/review">Go to the review queue</Link>
-          </p>
-          <input type="hidden" name="action" value="signout" />
-          <button type="submit" className="button-secondary">
-            Sign out
-          </button>
-        </form>
-      ) : (
         <form method="post" action="/api/owner">
-          <p className="intro">
-            Batch analysis and the review queue build this project&apos;s measured results, so they are kept for the
-            project owner. Anyone can analyze a photo and save a report on the <Link href="/">New report</Link> page.
-          </p>
           <label className="field">
             Owner key
             <input
@@ -58,6 +52,56 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
               Sign in
             </button>
           </p>
+        </form>
+      </section>
+    );
+  }
+
+  const [queued, saved] = await Promise.all([drafts.list(), reports.list()]);
+  const tools = [
+    {
+      href: "/batch",
+      title: "Batch analyze",
+      text: "Analyze a folder of your own or web photos; each one joins the review queue.",
+    },
+    {
+      href: "/review",
+      title: "Review queue",
+      text: `${queued.length} ${queued.length === 1 ? "photo is" : "photos are"} waiting. Your reviews become the evaluation labels.`,
+    },
+    {
+      href: "/results",
+      title: "Results",
+      text: "Precision, recall and evidence quality measured from your reviews.",
+    },
+    {
+      href: "/reports",
+      title: "Moderate shared reports",
+      text: `${saved.length} shared ${saved.length === 1 ? "report" : "reports"}. Open one to change its status or delete it.`,
+    },
+  ];
+
+  return (
+    <section aria-labelledby="owner-title">
+      <WorkspaceNav />
+      <h1 id="owner-title">Owner workspace</h1>
+      <p className="intro">Evaluation and moderation tools. Visitors cannot see or use them.</p>
+      <ul className="card-grid">
+        {tools.map((tool) => (
+          <li key={tool.href} className="card">
+            <h2>
+              <Link href={tool.href}>{tool.title}</Link>
+            </h2>
+            <p>{tool.text}</p>
+          </li>
+        ))}
+      </ul>
+      {ownerKeyRequired() && (
+        <form method="post" action="/api/owner" className="signout">
+          <input type="hidden" name="action" value="signout" />
+          <button type="submit" className="button-secondary">
+            Sign out
+          </button>
         </form>
       )}
     </section>

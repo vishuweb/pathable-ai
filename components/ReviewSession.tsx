@@ -234,25 +234,35 @@ export function ReviewSession({
                   </div>
                 ) : (
                   <div className="save-actions">
-                    <label className="consent">
-                      <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-                      <span>
-                        I may share this photo, it does not clearly show anyone&apos;s face or number plate, and I
-                        understand the saved report (photo, findings, notes and location) will be public.{" "}
-                        <a href="/privacy" target="_blank" rel="noopener">
-                          How reports are stored (opens in a new tab)
-                        </a>
-                      </span>
-                    </label>
+                    <div className="share-notice">
+                      <h3>Sharing makes this report public</h3>
+                      <p>Anyone with the link, and anyone browsing Reports, will see:</p>
+                      <ul>
+                        <li>the photo</li>
+                        <li>the AI&apos;s suggestions and your decision on each</li>
+                        <li>your notes, including any dictated text</li>
+                        <li>{location.label.trim() || location.latitude !== undefined ? "the location you added" : "the location, if you add one"}</li>
+                      </ul>
+                      <label className="consent">
+                        <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                        <span>
+                          I understand this will be public, I may share this photo, and it does not clearly show
+                          anyone&apos;s face or number plate.{" "}
+                          <a href="/privacy" target="_blank" rel="noopener">
+                            Privacy and removal (opens in a new tab)
+                          </a>
+                        </span>
+                      </label>
+                    </div>
                     <p className="muted" id="save-hint">
                       {findings.length === 0
-                        ? "No AI findings to review. Add any barriers the AI missed, then save."
+                        ? "No AI findings to review. Add any barriers the AI missed, then share."
                         : allReviewed
                           ? findings.length === 1
                             ? "The finding is reviewed."
                             : `All ${findings.length} findings reviewed.`
                           : `${reviewedCount} of ${findings.length} findings reviewed. Review each one to save.`}
-                      {allReviewed && !consent && " Confirm the sharing statement to save."}
+                      {allReviewed && !consent && " Tick the box above to share."}
                     </p>
                     <button
                       type="button"
@@ -261,7 +271,7 @@ export function ReviewSession({
                       disabled={!canSave}
                       aria-describedby="save-hint"
                     >
-                      {save.state === "saving" ? "Saving…" : "Save report"}
+                      {save.state === "saving" ? "Sharing…" : "Share report publicly"}
                     </button>
                     {save.state === "error" && (
                       <p className="error" role="alert">

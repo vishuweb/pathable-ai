@@ -203,7 +203,7 @@ export function AuditWorkspace() {
           renderSaved={(reportId) => (
             <>
               <p>
-                <strong>Report saved.</strong> <Link href={`/reports/${reportId}`}>Open the report</Link> or see{" "}
+                <strong>Report shared.</strong> <Link href={`/reports/${reportId}`}>Open the report</Link> or see{" "}
                 <Link href="/reports">all reports</Link>.
               </p>
               <button type="button" className="button-secondary" onClick={analyzeAnother}>

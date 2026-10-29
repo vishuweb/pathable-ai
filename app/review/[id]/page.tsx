@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DraftReview } from "@/components/DraftReview";
 import { OwnerOnly } from "@/components/OwnerOnly";
+import { WorkspaceNav } from "@/components/WorkspaceNav";
 import { isOwner } from "@/lib/owner";
 import { drafts } from "@/lib/store";
 
@@ -17,12 +18,15 @@ export default async function DraftReviewPage({ params }: { params: Promise<{ id
   const next = queued.length > 1 ? queued[(index + 1) % queued.length] : undefined;
 
   return (
-    <DraftReview
-      key={id}
-      draft={queued[index]}
-      position={index + 1}
-      total={queued.length}
-      nextId={next?.id}
-    />
+    <>
+      <WorkspaceNav />
+      <DraftReview
+        key={id}
+        draft={queued[index]}
+        position={index + 1}
+        total={queued.length}
+        nextId={next?.id}
+      />
+    </>
   );
 }

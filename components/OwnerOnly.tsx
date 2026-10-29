@@ -11,7 +11,7 @@ export function OwnerOnly({ title }: { title: string }) {
           the project owner.
         </p>
         <p>
-          You can still try the whole flow on one photo: <Link href="/">start a new report</Link>, or see the{" "}
+          You can still try the whole flow on one photo: <Link href="/report">report a barrier</Link>, or see the{" "}
           <Link href="/results">measured results</Link> and <Link href="/reports">saved reports</Link>.
         </p>
         <p className="muted">

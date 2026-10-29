@@ -84,7 +84,7 @@ export default function PrivacyPage() {
       </p>
 
       <p>
-        <Link href="/">Back to a new report</Link>
+        <Link href="/report">Report a barrier</Link>
       </p>
     </article>
   );

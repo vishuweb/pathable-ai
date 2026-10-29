@@ -182,6 +182,12 @@ export function SavedReportView({ report, createdLabel, statusEvents, isOwner }:
         </div>
       </section>
 
+      <p className="removal-request">
+        Are you in this photo, or is something wrong in this report?{" "}
+        <a href={removalRequestUrl(report.id)}>Request removal or a correction</a> (opens a public GitHub issue; please
+        do not include personal details).
+      </p>
+
       <p className="disclaimer">
         Prepared with PathAble AI. Each AI finding was confirmed, corrected or rejected by whoever saved this report;
         nobody else has checked it unless the status above says so. This report documents potential barriers; it is
@@ -257,4 +263,12 @@ function SavedFinding({ finding, index, review, selected, onSelect }: SavedFindi
       </button>
     </article>
   );
+}
+
+function removalRequestUrl(reportId: string): string {
+  const params = new URLSearchParams({
+    title: `Removal or correction request: report ${reportId.slice(0, 8)}`,
+    body: `Report: https://pathable-ai.vercel.app/reports/${reportId}\n\nWhat should be removed or corrected? (Please do not include personal details.)\n`,
+  });
+  return `https://github.com/vishuweb/pathable-ai/issues/new?${params}`;
 }

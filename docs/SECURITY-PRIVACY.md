@@ -15,7 +15,7 @@ This describes what PathAble AI protects against, how, and what it does not yet 
 | Client IP address | Server memory, for rate limiting | Up to an hour, never written to storage |
 | Owner cookie | Owner's browser only (SHA-256 digest of the key, HttpOnly, SameSite=Lax, Secure on HTTPS) | 30 days |
 
-Saved reports are public by design and listed on Saved reports. There are no user accounts, analytics, advertising or tracking.
+Shared reports are public by design and listed on the Reports page; the box shown before sharing lists exactly what becomes public, and every report page has a link to request removal or correction. There are no user accounts, analytics, advertising or tracking.
 
 ## Protections
 

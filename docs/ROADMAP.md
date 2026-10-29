@@ -36,7 +36,11 @@ Make public spaces more accessible through trustworthy accessibility information
 | SAM 3.1 evidence matching, approximate and unavailable fallbacks, shared objects | 5 tests with a mocked SAM stream; live calls during development |
 | Review: confirm, correct, reject, highlight rating, missed barriers, location | Route tests; browser tests; keyboard-only pass |
 | Separation of AI interpretation, visible evidence and verification status | Browser check; end-to-end test |
-| Consent before saving, recorded with the report | Route tests; browser check |
+| Consent before saving, recorded with the report; a box listing exactly what becomes public | Route tests; browser test |
+| Public site separated from the owner workspace (public nav: Report a barrier, Reports, How it works) | Browser test as visitor and as owner |
+| Product home page: who it is for, how it works, why a person checks, what sharing means, current scope | Browser test; axe check |
+| Removal or correction request link on every report | Browser test |
+| Results hide headline percentages below 20 reviewed photos | Manual check |
 | Report status with dated history; notes required for claims; duplicate links | Route tests; browser test of the full workflow |
 | Owner moderation: delete reports, change status; visitors get 403 | Route tests; live check of the 403 responses |
 | Voice notes with Muse Voice Transcribe 1.0 | Mocked route tests; browser test with a simulated microphone; live calls during development |
@@ -64,7 +68,7 @@ Make public spaces more accessible through trustworthy accessibility information
 - **Accounts and roles.** There is one owner key; no user accounts, reviewer or organization roles.
 - **Place profiles and search** (Phase C), **map view** and **routing** (Phase D).
 - **Community features** (Phase E): disputes, following reports, recheck uploads by others.
-- **Visitor-facing abuse reporting.** Removal requests go through GitHub issues.
+- **In-app abuse reporting.** Removal and correction requests go through a pre-filled GitHub issue.
 - **Automatic blurring of faces and number plates.** The app relies on the consent statement.
 - **Audit log for deletions.** Status changes are recorded; deletions leave no trace.
 - **Automatic duplicate detection.** Duplicates are linked by hand.

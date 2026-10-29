@@ -25,18 +25,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             PathAble <span>AI</span>
           </Link>
           <nav aria-label="Main">
-            <Link href="/">New report</Link>
-            <Link href="/batch">Batch analyze</Link>
-            <Link href="/review">Review queue</Link>
-            <Link href="/results">Results</Link>
-            <Link href="/reports">Saved reports</Link>
+            <Link href="/report">Report a barrier</Link>
+            <Link href="/reports">Reports</Link>
+            <Link href="/#how-it-works">How it works</Link>
           </nav>
         </header>
         <main id="main">{children}</main>
         <footer className="site-footer">
-          <Link href="/privacy">Privacy and data</Link>
-          <span aria-hidden="true"> · </span>
-          <span>AI findings are candidates for human review, not compliance assessments.</span>
+          <nav aria-label="Footer" className="footer-links">
+            <Link href="/privacy">Privacy and data</Link>
+            <Link href="/results">Measured results</Link>
+            <Link href="/owner">Owner workspace</Link>
+            <a href="https://github.com/vishuweb/pathable-ai">Source code</a>
+          </nav>
+          <p>AI suggestions are checked by the person who reports them. Reports are not compliance assessments.</p>
         </footer>
       </body>
     </html>

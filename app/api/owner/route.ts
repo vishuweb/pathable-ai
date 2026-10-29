@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   if (!value) return redirect("/owner?error=1");
 
   const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  const response = redirect("/review");
+  const response = redirect("/owner");
   response.headers.append(
     "Set-Cookie",
     `${OWNER_COOKIE}=${value}; Path=/; Max-Age=${OWNER_COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax${secure}`,

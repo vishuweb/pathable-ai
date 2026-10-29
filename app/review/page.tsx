@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { OwnerOnly } from "@/components/OwnerOnly";
+import { WorkspaceNav } from "@/components/WorkspaceNav";
 import { isOwner } from "@/lib/owner";
 import { drafts } from "@/lib/store";
 
@@ -18,6 +19,7 @@ export default async function ReviewQueuePage() {
 
   return (
     <section aria-labelledby="queue-title">
+      <WorkspaceNav />
       <h1 id="queue-title">Review queue</h1>
       {queued.length === 0 ? (
         <p className="empty-state">

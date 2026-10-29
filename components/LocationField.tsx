@@ -73,7 +73,10 @@ export function LocationField({ value, onChange }: Props) {
           </>
         )}
       </div>
-      <p className="muted">Use your current location only if you are standing where the photo was taken.</p>
+      <p className="muted">
+        A location you add is shown publicly with the report. Use your current location only if you are standing where
+        the photo was taken.
+      </p>
       <p className="muted" role="status">
         {status}
       </p>

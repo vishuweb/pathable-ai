@@ -15,14 +15,14 @@ export default async function ReportsPage() {
     <section aria-labelledby="reports-title">
       <div className="page-heading">
         <h1 id="reports-title">Saved reports</h1>
-        <Link className="button-primary" href="/">
-          New report
+        <Link className="button-primary" href="/report">
+          Report a barrier
         </Link>
       </div>
 
       {reports.length === 0 ? (
         <p className="empty-state">
-          No saved reports yet. <Link href="/">Analyze a photo</Link> and save your review to create one.
+          No shared reports yet. <Link href="/report">Report a barrier</Link> to create the first one.
         </p>
       ) : (
         <ul className="report-list">

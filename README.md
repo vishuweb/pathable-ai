@@ -8,7 +8,7 @@ Built for the Meta Global AI Developer Hackathon with the Meta Model API:
 - **SAM 3.1** segments the visual evidence behind each finding.
 - **Muse Voice Transcribe 1.0** turns the reviewer's spoken notes into text.
 
-**Live demo:** https://pathable-ai.vercel.app. Upload a photo of a street, crossing or entrance, or pick one under **No photo handy? Try a sample**.
+**Live demo:** https://pathable-ai.vercel.app. Press **Report a barrier**, then upload a photo of a street, crossing or entrance, or pick one under **No photo handy? Try a sample**.
 
 **Docs:** [Architecture](docs/ARCHITECTURE.md) · [Roadmap and status](docs/ROADMAP.md) · [Evaluation plan](docs/EVALUATION.md) · [Security and privacy](docs/SECURITY-PRIVACY.md) · [Public-beta readiness](docs/BETA-READINESS.md) · [Demo script](docs/DEMO.md) · [Submission checklist](docs/SUBMISSION.md)
 
@@ -24,7 +24,9 @@ npm run dev                  # http://localhost:3000
 
 Health check: `GET /api/health` reports whether the API key is configured.
 
-Open the app and pick a photo under **No photo handy? Try a sample** to run the full pipeline without your own photo.
+Open the app, press **Report a barrier** (`/report`) and pick a photo under **No photo handy? Try a sample** to run the full pipeline without your own photo.
+
+**Site structure.** The public site is the home page (who it is for, how it works, what sharing means), **Report a barrier** (`/report`), **Reports** (`/reports`), **Privacy** and **Measured results**. The evaluation and moderation tools (batch analysis, review queue, status changes, deletion) live in a separate **Owner workspace** (`/owner`), linked from the footer and protected on the server.
 
 Command-line checks:
 
@@ -42,7 +44,7 @@ node scripts/try-analyze.mjs public/samples/e-scooters-warsaw.jpg  # full pipeli
 The automated tests use a mock of the Meta API, so they cost nothing. To confirm the real integration, make a few deliberate calls yourself (each one uses your API quota):
 
 1. `npm run dev`, then open http://localhost:3000/api/health: it should show `"apiKeyConfigured": true`.
-2. Pick a photo under **No photo handy? Try a sample**. Findings should appear in about 10 seconds, then outlines.
+2. Open http://localhost:3000/report and pick a photo under **No photo handy? Try a sample**. Findings should appear in about 10 seconds, then outlines.
 3. Optional, from a terminal: `npm run smoke:spark -- public/samples/e-scooters-warsaw.jpg` (one Muse Spark call), or `npm run smoke:sam -- public/samples/e-scooters-warsaw.jpg "electric scooter"` (one SAM call).
 
 ## How it works
