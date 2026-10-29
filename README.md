@@ -68,7 +68,7 @@ The reviewer can also add barriers the AI missed, attach a location (typed, or t
 
 Every review doubles as an evaluation label. Confirmed, corrected, rejected and missed counts, highlight ratings, and review time are recorded automatically, and they feed the measured results below.
 
-Reports are stored on local disk (`data/reports/`, git-ignored; override the base folder with `DATA_DIR`).
+Reports are stored on local disk (`data/reports/`, git-ignored; override the base folder with `DATA_DIR`), or in Vercel Blob when deployed (see below).
 
 **6. Measured results.** To evaluate on many photos:
 
@@ -87,6 +87,27 @@ Reports are stored on local disk (`data/reports/`, git-ignored; override the bas
 **Accessibility of the app itself:** keyboard operable, skip link, visible focus, screen-reader status updates, colour-blind-safe palette with numbered markers (colour is never the only cue), 44 px touch targets, reduced-motion support, and a mobile-first layout.
 
 Sample photos are from Wikimedia Commons under CC BY-SA 4.0; see [public/samples/CREDITS.md](public/samples/CREDITS.md).
+
+## Deploying
+
+The app runs on Vercel as is. A serverless disk does not persist, so a deployment stores reports and the review queue in a **private Vercel Blob store**.
+
+1. Import the repository in Vercel and add the environment variables:
+   - `MODEL_API_KEY`
+   - `OWNER_KEY`: a long random secret
+2. Create a Blob store (Storage → Blob, access **private**) and connect it to the project. This sets `BLOB_READ_WRITE_TOKEN`, and the app switches from disk to Blob automatically. `GET /api/health` reports which storage is in use.
+3. Optional: copy your local reports and queue to the store:
+
+   ```bash
+   vercel env pull .env.production.local
+   node --env-file=.env.production.local scripts/upload-data.mjs
+   ```
+
+On a public link, three protections are on:
+
+- **Owner-only evaluation tools.** Batch analysis and the review queue need the owner key; sign in at `/owner`. Visitors can still analyze a photo, review it and save a report.
+- **Clean measurements.** Visitors' single uploads are left out of the measured results, so the numbers come only from the owner's reviewed batches.
+- **Rate limit.** Each visitor can make 30 AI requests an hour (`ANALYZE_LIMIT_PER_HOUR`), so the link cannot drain the API key. The limit is counted in memory on each server instance, so it is best-effort.
 
 ## Status
 

@@ -3,6 +3,7 @@ import { AnalysisError, analyzeImage } from "@/lib/analyze";
 import { jsonResponse, readJsonBody } from "@/lib/http";
 import { validateImageDataUrl } from "@/lib/image-input";
 import { ANALYSIS_MODEL, MissingApiKeyError } from "@/lib/meta";
+import { RATE_LIMITED, allowRequest } from "@/lib/rate-limit";
 import type { AnalyzeResponse, ApiError } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ export const maxDuration = 60;
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  if (!(await allowRequest("analyze", request))) return jsonResponse<ApiError>({ error: RATE_LIMITED }, 429);
   const body = await readJsonBody(request, MAX_BODY_BYTES);
   if (!body.ok) return jsonResponse<ApiError>({ error: body.error }, body.status);
   const image = validateImageDataUrl((body.value as { image?: unknown } | null)?.image);

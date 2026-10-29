@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { BatchAnalyzer } from "@/components/BatchAnalyzer";
+import { OwnerOnly } from "@/components/OwnerOnly";
+import { isOwner } from "@/lib/owner";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Batch analyze · PathAble AI" };
 
-export default function BatchPage() {
+export default async function BatchPage() {
+  if (!(await isOwner())) return <OwnerOnly title="Analyze many photos" />;
   return (
     <>
       <section className="intro">

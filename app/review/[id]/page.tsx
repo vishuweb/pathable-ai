@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DraftReview } from "@/components/DraftReview";
+import { OwnerOnly } from "@/components/OwnerOnly";
+import { isOwner } from "@/lib/owner";
 import { drafts } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Review photo · PathAble AI" };
 
 export default async function DraftReviewPage({ params }: { params: Promise<{ id: string }> }) {
+  if (!(await isOwner())) return <OwnerOnly title="Review queue" />;
   const { id } = await params;
   const queued = await drafts.list();
   const index = queued.findIndex((d) => d.id === id);

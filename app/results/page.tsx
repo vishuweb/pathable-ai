@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CATEGORY_INFO } from "@/lib/categories";
-import { ALL_DATASETS, computeMetrics, rate, type DatasetMetrics, type Rate } from "@/lib/metrics";
+import { ALL_DATASETS, computeMetrics, evaluationReports, rate, type DatasetMetrics, type Rate } from "@/lib/metrics";
 import { drafts, reports } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,8 @@ const DATASET_LABEL: Record<string, string> = {
 };
 
 export default async function ResultsPage() {
-  const [saved, queued] = await Promise.all([reports.list(), drafts.list()]);
+  const [everything, queued] = await Promise.all([reports.list(), drafts.list()]);
+  const { included: saved, excluded } = evaluationReports(everything);
   const metrics = computeMetrics(saved);
   const all = metrics[0];
 
@@ -37,6 +38,13 @@ export default async function ResultsPage() {
           <>
             {" "}
             <Link href="/review">{queued.length} more waiting in the review queue.</Link>
+          </>
+        )}
+        {excluded > 0 && (
+          <>
+            {" "}
+            {excluded} single {excluded === 1 ? "upload is" : "uploads are"} not counted, because{" "}
+            {excluded === 1 ? "it was" : "they were"} not part of a reviewed batch.
           </>
         )}
       </p>

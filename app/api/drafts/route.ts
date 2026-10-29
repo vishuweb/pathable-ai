@@ -1,4 +1,5 @@
 import { jsonResponse, readJsonBody } from "@/lib/http";
+import { isOwner } from "@/lib/owner";
 import { sourceKey, type AnalysisDraft, type DraftsSummary, type SaveReportResponse } from "@/lib/report";
 import { parseDraftSubmission } from "@/lib/report-validate";
 import { drafts, reports } from "@/lib/store";
@@ -7,6 +8,7 @@ import type { ApiError } from "@/lib/types";
 export const runtime = "nodejs";
 
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
+const OWNER_ONLY: ApiError = { error: "Only the project owner can change the review queue." };
 
 export async function GET() {
   const [queued, saved] = await Promise.all([drafts.list(), reports.list()]);
@@ -16,6 +18,7 @@ export async function GET() {
 
 /** Adds an analyzed photo to the review queue. */
 export async function POST(request: Request) {
+  if (!(await isOwner())) return jsonResponse<ApiError>(OWNER_ONLY, 403);
   const body = await readJsonBody(request, MAX_BODY_BYTES);
   if (!body.ok) return jsonResponse<ApiError>({ error: body.error }, body.status);
 

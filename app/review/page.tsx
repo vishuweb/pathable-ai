@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { OwnerOnly } from "@/components/OwnerOnly";
+import { isOwner } from "@/lib/owner";
 import { drafts } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Review queue · PathAble AI" };
 
 export default async function ReviewQueuePage() {
+  if (!(await isOwner())) return <OwnerOnly title="Review queue" />;
   const queued = await drafts.list();
   const byDataset = queued.reduce<Record<string, number>>((acc, d) => {
     const key = d.source?.dataset ?? "other";

@@ -1,4 +1,5 @@
 import { jsonResponse, readJsonBody } from "@/lib/http";
+import { isOwner } from "@/lib/owner";
 import type { SaveReportResponse, SavedReport } from "@/lib/report";
 import { parseReportSubmission } from "@/lib/report-validate";
 import { drafts, reports } from "@/lib/store";
@@ -17,6 +18,10 @@ export async function POST(request: Request) {
   if ("error" in submission) return jsonResponse<ApiError>({ error: submission.error }, 400);
 
   const { image, draftId, ...rest } = submission;
+  // Queue reviews and batch sources are evaluation labels, so only the owner may add them.
+  if ((draftId || rest.source) && !(await isOwner())) {
+    return jsonResponse<ApiError>({ error: "Only the project owner can save reviews from the queue." }, 403);
+  }
   const jpeg = draftId
     ? await drafts.getImage(draftId)
     : Buffer.from(image!.slice(image!.indexOf(",") + 1), "base64");
