@@ -8,6 +8,8 @@ Built for the Meta Global AI Developer Hackathon with the Meta Model API:
 - **SAM 3.1** segments the visual evidence behind each finding.
 - **Muse Voice Transcribe 1.0** turns the reviewer's spoken notes into text.
 
+**Live demo:** https://pathable-ai.vercel.app. Click **Try a sample** or upload a photo of a street, crossing or entrance.
+
 ## Quick start
 
 ```bash
@@ -103,7 +105,7 @@ The app runs on Vercel as is. A serverless disk does not persist, so a deploymen
 3. Optional: copy your local reports and queue to the store:
 
    ```bash
-   vercel env pull .env.production.local
+   vercel env pull .env.production.local --environment production
    node --env-file=.env.production.local scripts/upload-data.mjs
    ```
 
@@ -113,6 +115,35 @@ On a public link, three protections are on:
 - **Clean measurements.** Visitors' single uploads are left out of the measured results, so the numbers come only from the owner's reviewed batches.
 - **Rate limit.** Each visitor can run 30 photo analyses, 30 evidence runs and 30 voice notes an hour (`ANALYZE_LIMIT_PER_HOUR`), so the link cannot drain the API key. The limit is counted in memory on each server instance, so it is best-effort.
 
-## Status
+## Code map
 
-Work in progress. Evaluation results on real-world photos, and the known limitations, will be documented here.
+| Path | What it does |
+| --- | --- |
+| `lib/analyze.ts` | Muse Spark prompt, strict JSON schema, and normalization of findings |
+| `lib/segment.ts`, `lib/geometry.ts` | SAM 3.1 calls, mask decoding, and matching masks to findings |
+| `lib/transcribe.ts`, `lib/wav.ts`, `lib/record-voice.ts` | Voice notes: browser recording → WAV → Muse Voice |
+| `lib/pipeline.ts` | The browser-side pipeline shared by single uploads and batch analysis |
+| `lib/report.ts`, `lib/report-validate.ts` | Report and review types, and server-side validation of everything saved |
+| `lib/metrics.ts` | Precision, recall and the other measures, with Wilson intervals |
+| `lib/store.ts` | Storage: local disk or Vercel Blob |
+| `lib/owner.ts`, `lib/rate-limit.ts` | Protections for a public deployment |
+| `components/ReviewSession.tsx` | The review screen: evidence viewer, finding cards, review controls, save |
+| `app/api/*` | Route handlers: analyze, segment, transcribe, reports, drafts, results, health |
+
+## Evaluation
+
+The evaluation set is built from human reviews in the app itself (see *Measured results* above):
+
+- **80 web photos** of streets and entrances from Wikimedia Commons (CC BY / CC BY-SA / public domain). They were hand-picked as 54 likely-barrier and 26 likely-clear scenes, so false alarms are measured as well as hits.
+- **The author's own photos** of local streets, reported separately, because web photos are often taken *because* something is wrong.
+
+The numbers are on the app's **Results** page (`/results`, or `/api/results` as JSON) and will be summarized here once review is complete.
+
+## Limitations
+
+- **One photo, one viewpoint.** A photo cannot show widths, slopes, step heights or surface firmness with any certainty. Findings are candidates for a person to check, not measurements, and never a compliance assessment.
+- **Evidence is approximate.** Muse Spark's boxes are rough, and SAM 3.1 outlines whatever matches the evidence phrase. A mismatch shows as a dashed *approximate* box, and the reviewer rates every highlight, so the error rate is measured rather than hidden.
+- **Evaluation bias.** One reviewer (the author), photos chosen rather than randomly sampled, and a small set. The 95% ranges on the Results page show how wide the uncertainty is.
+- **Privacy.** GPS and other metadata are stripped in the browser before upload, but faces and number plates in a photo are not blurred. Do not upload photos of identifiable people without consent.
+- **Voice notes.** Recognition is tuned for English accessibility terms, and transcripts can repeat a word, so the reviewer edits the text before saving.
+- **Scale.** The rate limit is counted per server instance, and listing reports reads every saved item. That is fine for hundreds of reports, but not for a city-wide service.
