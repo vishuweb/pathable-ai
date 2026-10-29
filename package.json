@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --no-warnings --import ./tests/register.mjs --test tests/*.test.ts",
+    "e2e": "node --experimental-strip-types --no-warnings --import ./tests/register.mjs --test --test-concurrency=1 e2e/*.e2e.ts",
     "smoke:spark": "node --env-file=.env.local scripts/smoke-spark.mjs",
     "smoke:sam": "node --env-file=.env.local scripts/smoke-sam.mjs"
   },
@@ -27,8 +28,10 @@
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "axe-core": "4.14.0",
     "eslint": "9.39.5",
     "eslint-config-next": "15.5.28",
+    "puppeteer-core": "25.14.0",
     "typescript": "^5.9.3"
   },
   "overrides": {

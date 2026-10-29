@@ -11,6 +11,8 @@ const codec: {
 
 export type SamReply =
   | { kind: "objects"; boxes: [number, number, number, number][] }
+  /** Boxes as fractions (0-1) of the uploaded image, whose size is read from the JPEG itself. */
+  | { kind: "relative"; boxes: [number, number, number, number][] }
   | { kind: "incomplete" }
   | { kind: "reset" };
 
@@ -66,15 +68,27 @@ export async function startMockMeta(imageSize: { width: number; height: number }
     }
 
     if (url.endsWith("/responses")) {
-      const phrase: string = JSON.parse(body.toString()).input?.[0]?.content?.[0]?.text ?? "";
+      const content = JSON.parse(body.toString()).input?.[0]?.content ?? [];
+      const phrase: string = content[0]?.text ?? "";
       const reply = replies.sam.get(phrase) ?? { kind: "objects", boxes: [] };
       if (reply.kind === "reset") return req.socket.destroy();
+      const size = jpegSize(content[1]?.image_url) ?? imageSize;
+      const boxes: [number, number, number, number][] =
+        reply.kind === "relative"
+          ? reply.boxes.map(([l, t, r, b]) => [
+              Math.round(l * size.width),
+              Math.round(t * size.height),
+              Math.round(r * size.width),
+              Math.round(b * size.height),
+            ])
+          : reply.kind === "objects"
+            ? reply.boxes
+            : [];
       const lane = { item_id: "msg_1", output_index: 0, content_index: 0 };
       const send = (event: Record<string, unknown>) => res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
-      const text =
-        reply.kind === "objects" && reply.boxes.length
-          ? `<0f>${reply.boxes.map((b, i) => samRecord(i, b, imageSize.width, imageSize.height)).join(",")}\n`
-          : "";
+      const text = boxes.length
+        ? `<0f>${boxes.map((b, i) => samRecord(i, b, size.width, size.height)).join(",")}\n`
+        : "";
       res.writeHead(200, { "content-type": "text/event-stream" });
       send({ type: "response.created", response: { id: "resp_mock", status: "in_progress" } });
       send({ type: "response.output_text.delta", ...lane, delta: text });
@@ -107,4 +121,19 @@ export async function startMockMeta(imageSize: { width: number; height: number }
       server.close();
     },
   };
+}
+
+/** Width and height from a JPEG data URL's frame header, or undefined if it has none. */
+function jpegSize(dataUrl: unknown): { width: number; height: number } | undefined {
+  if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/jpeg;base64,")) return undefined;
+  const bytes = Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
+  for (let i = 2; i + 9 < bytes.length; ) {
+    if (bytes[i] !== 0xff) return undefined;
+    const marker = bytes[i + 1];
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+      return { height: bytes.readUInt16BE(i + 5), width: bytes.readUInt16BE(i + 7) };
+    }
+    i += 2 + bytes.readUInt16BE(i + 2);
+  }
+  return undefined;
 }
