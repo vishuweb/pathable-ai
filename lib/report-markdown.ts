@@ -82,8 +82,9 @@ export function reportToMarkdown(report: SavedReport, reportUrl?: string): strin
   out.push(
     "---",
     "",
-    "_Prepared with PathAble AI (Muse Spark + SAM 3.1). Every AI finding was checked by a human reviewer. " +
-      "This report documents potential barriers; it is not an accessibility compliance assessment._",
+    "_Prepared with PathAble AI (Muse Spark + SAM 3.1). Each AI finding was confirmed, corrected or rejected by " +
+      "whoever saved this report; nobody else has checked it unless the status says so. This report documents " +
+      "potential barriers; it is not an accessibility compliance assessment._",
     "",
   );
   return out.join("\n");

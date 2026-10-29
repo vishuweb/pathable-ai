@@ -183,8 +183,10 @@ export function SavedReportView({ report, createdLabel, statusEvents, isOwner }:
       </section>
 
       <p className="disclaimer">
-        Prepared with PathAble AI. Every AI finding was checked by a human reviewer. This report documents
-        potential barriers; it is not an accessibility compliance assessment.
+        Prepared with PathAble AI. Each AI finding was confirmed, corrected or rejected by whoever saved this report;
+        nobody else has checked it unless the status above says so. This report documents potential barriers; it is
+        not an accessibility compliance assessment, and a photo with no barrier found does not mean a place is
+        accessible.
       </p>
     </article>
   );

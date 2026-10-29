@@ -90,7 +90,7 @@ export function VoiceNoteButton({ label, onText }: Props) {
         report("No speech was heard. Please try again.", true);
       } else {
         onTextRef.current(data.text);
-        report(`Added: “${data.text}”`);
+        report(`Added: “${data.text}” Check and edit it: it may include background speech, and saved notes are public.`);
       }
     } catch (error) {
       report(error instanceof Error ? error.message : "The note could not be transcribed.", true);

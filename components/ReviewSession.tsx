@@ -198,7 +198,10 @@ export function ReviewSession({
                 ))}
               </ol>
             ) : (
-              <p className="empty-state">{analysis.no_findings_reason}</p>
+              <p className="empty-state">
+                {analysis.no_findings_reason} A photo with no barrier found does not mean the place is accessible:
+                the photo may not show everything.
+              </p>
             )}
 
             {ready && (

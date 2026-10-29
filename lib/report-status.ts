@@ -14,7 +14,7 @@ export type ReportStatus = (typeof REPORT_STATUSES)[number];
 export const STATUS_INFO: Record<ReportStatus, { label: string; description: string; needsNote: boolean }> = {
   submitted: {
     label: "Submitted",
-    description: "Saved by the person who reviewed the photo. Nobody else has checked it yet.",
+    description: "Saved with its reviewer's decision on each AI finding. Nobody else has checked it yet.",
     needsNote: false,
   },
   under_review: {

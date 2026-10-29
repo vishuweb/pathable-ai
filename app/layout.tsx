@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "PathAble AI",
   description:
-    "Turn photos of public spaces into evidence-backed, human-verified reports of potential accessibility barriers.",
+    "Document accessibility barriers in public spaces: photo evidence, AI suggestions and your own review, in one shareable report.",
 };
 
 export const viewport: Viewport = {
