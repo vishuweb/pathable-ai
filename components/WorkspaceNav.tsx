@@ -11,12 +11,13 @@ const LINKS = [
 ];
 
 /** Navigation inside the owner workspace, kept apart from the public site navigation. */
-export function WorkspaceNav() {
+export function WorkspaceNav({ reviewerOnly = false }: { reviewerOnly?: boolean }) {
   const pathname = usePathname();
+  const links = reviewerOnly ? LINKS.filter((l) => l.href === "/review" || l.href === "/results") : LINKS;
   return (
-    <nav aria-label="Owner workspace" className="workspace-nav">
-      <span className="workspace-label">Owner workspace</span>
-      {LINKS.map((link) => {
+    <nav aria-label={reviewerOnly ? "Reviewer workspace" : "Owner workspace"} className="workspace-nav">
+      <span className="workspace-label">{reviewerOnly ? "Reviewer workspace" : "Owner workspace"}</span>
+      {links.map((link) => {
         const current = link.href === "/review" ? pathname.startsWith("/review") : pathname === link.href;
         return (
           <Link key={link.href} href={link.href} aria-current={current ? "page" : undefined}>

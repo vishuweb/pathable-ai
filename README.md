@@ -135,6 +135,7 @@ The app runs on Vercel as is. A serverless disk does not persist, so a deploymen
 On a public link, three protections are on:
 
 - **Owner-only evaluation tools.** Batch analysis and the review queue need the owner key; sign in at `/owner`. Visitors can still analyze a photo, review it and save a report. A deployment without `OWNER_KEY` keeps these tools locked rather than open.
+- **Reviewers.** Set `REVIEWER_KEY` to let a helper sign in at `/owner` and work through the review queue (review, save, skip, remove unusable photos) and see results. Reviewers cannot run batch analysis, change report statuses or delete reports; the server enforces this. Queued photos are visible only to the owner and reviewers.
 - **Moderation.** Signed in as owner, a **Delete report** button on each saved report removes it and its photo, for spam or a photo showing an identifiable person.
 - **Clean measurements.** Visitors' single uploads are left out of the measured results, so the numbers come only from the owner's reviewed batches.
 - **Cost limits.** Each visitor can run 30 photo analyses, 30 evidence runs and 30 voice notes an hour (`ANALYZE_LIMIT_PER_HOUR`). All visitors together get 300 AI calls a day (`AI_DAILY_LIMIT`), and `AI_PAUSED=1` stops AI calls entirely. The counts are kept in memory on each server instance, so they bound cost rather than enforce an exact total; set a spending limit on the API account as well if one is available.

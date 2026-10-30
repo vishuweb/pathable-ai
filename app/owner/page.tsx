@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { WorkspaceNav } from "@/components/WorkspaceNav";
-import { isOwner, ownerKeyMissing, ownerKeyRequired } from "@/lib/owner";
+import { canReview, isOwner, ownerKeyMissing, ownerKeyRequired } from "@/lib/owner";
 import { drafts, reports } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -22,17 +22,37 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
     );
   }
 
+  if (!(await isOwner()) && (await canReview())) {
+    const queued = await drafts.list();
+    return (
+      <section aria-labelledby="owner-title">
+        <WorkspaceNav reviewerOnly />
+        <h1 id="owner-title">Reviewer workspace</h1>
+        <p className="intro">
+          You are signed in as a reviewer. {queued.length} {queued.length === 1 ? "photo is" : "photos are"} waiting
+          in the <Link href="/review">review queue</Link>. Follow the labelling guide your project owner gave you.
+        </p>
+        <form method="post" action="/api/owner" className="signout">
+          <input type="hidden" name="action" value="signout" />
+          <button type="submit" className="button-secondary">
+            Sign out
+          </button>
+        </form>
+      </section>
+    );
+  }
+
   if (!(await isOwner())) {
     return (
       <section aria-labelledby="owner-title" className="owner-page">
         <h1 id="owner-title">Owner workspace</h1>
         <p className="intro">
-          The project owner uses this workspace to analyze photos in bulk, review them as evaluation data, and
-          moderate shared reports. Anyone can <Link href="/report">report a barrier</Link> without signing in.
+          The project owner and invited reviewers use this workspace to review photos as evaluation data and moderate
+          shared reports. Anyone can <Link href="/report">report a barrier</Link> without signing in.
         </p>
         <form method="post" action="/api/owner">
           <label className="field">
-            Owner key
+            Owner or reviewer key
             <input
               type="password"
               name="key"

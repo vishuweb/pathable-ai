@@ -15,7 +15,7 @@ export function OwnerOnly({ title }: { title: string }) {
           <Link href="/results">measured results</Link> and <Link href="/reports">saved reports</Link>.
         </p>
         <p className="muted">
-          Project owner? <Link href="/owner">Sign in</Link>
+          Project owner or invited reviewer? <Link href="/owner">Sign in</Link>
         </p>
       </div>
     </section>

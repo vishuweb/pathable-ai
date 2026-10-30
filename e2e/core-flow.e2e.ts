@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -13,6 +13,7 @@ import { startMockMeta } from "../tests/mock-meta";
 
 const PORT = 3123;
 const OWNER_KEY = "e2e-owner-key-not-secret";
+const REVIEWER_KEY = "e2e-reviewer-key-not-secret";
 const BASE = `http://127.0.0.1:${PORT}`;
 const PHOTO = path.resolve("public/samples/scooter-blocking-sidewalk.jpg");
 const AXE = readFileSync(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
@@ -43,6 +44,7 @@ before(async () => {
     DATA_DIR: dataDir,
     // With an owner key set, the browser is a visitor until it signs in, as on the public site.
     OWNER_KEY,
+    REVIEWER_KEY,
     NEXT_TELEMETRY_DISABLED: "1",
   };
   for (const name of ["VERCEL", "BLOB_READ_WRITE_TOKEN", "AI_PAUSED", "AI_DAILY_LIMIT", "ANALYZE_LIMIT_PER_HOUR"]) delete env[name];
@@ -285,6 +287,61 @@ test("a place profile shows recorded and unknown information, and takes a report
 
   await page.goto(`${BASE}/places/node/469782067`, { waitUntil: "networkidle0" });
   assert.match(await page.$eval("#nearby-title + *", (e) => e.textContent ?? ""), /At this place/);
+  await page.close();
+});
+
+test("an invited reviewer can work through the queue, and nothing more", { skip: !CHROME && "Chrome not found" }, async () => {
+  // A queued photo, as batch analysis would leave it.
+  const draftId = "11111111-2222-4333-8444-555555555555";
+  const draft = {
+    id: draftId,
+    createdAt: new Date().toISOString(),
+    width: 1200,
+    height: 1600,
+    analysis: JSON.parse(modelReply([{ ...finding("Scooter on the footpath", {}), id: "q1", located: true }])),
+    evidence: [],
+    models: { analysis: "muse-spark-1.3" },
+    timings: { analysisMs: 1000 },
+    source: { dataset: "web", file: "e2e.jpg" },
+  };
+  await mkdir(path.join(dataDir, "drafts"), { recursive: true });
+  await writeFile(path.join(dataDir, "drafts", `${draftId}.jpg`), readFileSync(PHOTO));
+  await writeFile(path.join(dataDir, "drafts", `${draftId}.json`), JSON.stringify(draft));
+  assert.equal((await fetch(`${BASE}/api/drafts/${draftId}/image`)).status, 403, "visitors cannot see queued photos");
+
+  const page = await browser!.newPage();
+  page.setDefaultTimeout(60_000);
+  page.setDefaultNavigationTimeout(180_000);
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await page.goto(`${BASE}/owner`, { waitUntil: "networkidle0" });
+  await page.type('input[name="key"]', REVIEWER_KEY);
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('button[type="submit"]')]);
+  assert.equal(new URL(page.url()).pathname, "/review", "reviewers land on the queue");
+  const links = await page.$$eval('nav[aria-label="Reviewer workspace"] a', (a) => a.map((x) => x.textContent));
+  assert.deepEqual(links, ["Review queue", "Results"]);
+
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('a[href^="/review/"]')]);
+  await page.waitForSelector(".save-panel");
+  await page.waitForFunction(() => (document.querySelector(".viewer-stage img") as HTMLImageElement | null)?.naturalWidth, {
+    timeout: 30_000,
+  });
+  await (await page.waitForSelector('xpath/.//label[contains(., "Not a barrier")]'))!.click();
+  await page.click(".consent input");
+  await page.click(".save-actions .button-primary");
+  await page.waitForFunction(() => /Nothing is waiting|Review queue/.test(document.querySelector("main")?.textContent ?? ""));
+  assert.equal((await fetch(`${BASE}/api/drafts`).then((r) => r.json())).pending, 0, "the photo left the queue");
+
+  await page.goto(`${BASE}/batch`, { waitUntil: "networkidle0" });
+  assert.match(await page.$eval("main", (m) => m.textContent ?? ""), /kept for the project owner/, "no batch analysis");
+  await page.goto(BASE + savedReportPath, { waitUntil: "networkidle0" });
+  const text = await page.$eval("main", (m) => m.textContent ?? "");
+  assert.ok(!text.includes("Delete report") && !text.includes("Record a status change"), "no moderation");
+  const status = await page.evaluate(async (url) => (await fetch(url, { method: "DELETE" })).status, `/api${savedReportPath}`);
+  assert.equal(status, 403, "the server refuses deletion by a reviewer");
+
+  await page.goto(`${BASE}/owner`, { waitUntil: "networkidle0" });
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('xpath/.//button[contains(., "Sign out")]')]);
+  assert.equal((await page.cookies()).find((c) => c.name === "pathable_owner"), undefined, "signed out");
   await page.close();
 });
 

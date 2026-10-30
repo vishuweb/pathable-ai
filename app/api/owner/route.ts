@@ -1,4 +1,4 @@
-import { OWNER_COOKIE, OWNER_COOKIE_MAX_AGE, ownerToken } from "@/lib/owner";
+import { OWNER_COOKIE, OWNER_COOKIE_MAX_AGE, signInToken } from "@/lib/owner";
 import { allowRequest } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -16,11 +16,12 @@ export async function POST(request: Request) {
 
   if (!(await allowRequest("owner", request))) return redirect("/owner?error=1");
   const key = form?.get("key");
-  const value = typeof key === "string" && key ? ownerToken(key) : undefined;
-  if (!value) return redirect("/owner?error=1");
+  const signedIn = typeof key === "string" && key ? signInToken(key) : undefined;
+  if (!signedIn) return redirect("/owner?error=1");
+  const { role, value } = signedIn;
 
   const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  const response = redirect("/owner");
+  const response = redirect(role === "owner" ? "/owner" : "/review");
   response.headers.append(
     "Set-Cookie",
     `${OWNER_COOKIE}=${value}; Path=/; Max-Age=${OWNER_COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax${secure}`,
