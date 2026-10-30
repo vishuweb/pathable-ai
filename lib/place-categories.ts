@@ -40,6 +40,9 @@ export function categorize(tags: Record<string, string>, name = ""): PlaceCatego
   const t = (key: string, pattern: RegExp) => pattern.test(tags[key] ?? "");
   if (t("amenity", /^library$/) || /\blibrary\b/.test(n)) return "library";
   if (/lecture|auditori|theatre|conference|hall complex/.test(n) || t("amenity", /^conference_centre$/)) return "lecture";
+  // Courts named after a hostel, and staff quarters named "Block A", are sports and residential.
+  if (t("leisure", /^(pitch|sports_centre|stadium|track|playground)$/) || /\bcourt\b|stadium|\bgym/.test(n)) return "sports";
+  if (/quarter|bungalow|residen/.test(n)) return "residential";
   if (t("tourism", /^hostel$/) || /\bhostel\b/.test(n)) return "hostel";
   if (t("amenity", /^(hospital|clinic|doctors|pharmacy|dentist)$/) || /health|hospital|clinic|dispensary/.test(n)) return "health";
   if (t("amenity", /^(restaurant|fast_food|cafe|canteen|food_court)$/) || t("shop", /^(pastry|tea|bakery|convenience)$/) || /canteen|mess|cafe|food|dosa|momos/.test(n))

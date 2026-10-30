@@ -118,6 +118,17 @@ test("known campus places are found, with common variations", () => {
   assert.ok(searchDirectory(campus, "library", "library").every((p) => p.category === "library"));
 });
 
+test("campus places get sensible categories", () => {
+  const category = (name: string) => directory(campus).find((p) => p.name === name)?.category;
+  assert.equal(category("Faculty Quarters Block A"), "residential");
+  assert.equal(category("Basket Ball Court (Amber hostel)"), "sports");
+  assert.equal(category("Topaz Hostel"), "hostel");
+  assert.equal(category("Central Library"), "library");
+  assert.equal(category("New Lecture Hall Complex"), "lecture");
+  assert.equal(category("ISM Health Center"), "health");
+  assert.equal(category("Department of Mechanical Engineering"), "academic");
+});
+
 test("every word must match, so NAC Auditorium does not land on another auditorium", () => {
   assert.deepEqual(searchDirectory(campus, "NAC Auditorium"), []);
   assert.deepEqual(searchDirectory(campus, "National Auditorium of Music"), []);
