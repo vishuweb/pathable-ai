@@ -4,6 +4,7 @@ import { CATEGORY_INFO, LEVEL_LABEL } from "@/lib/categories";
 import { findingColor, findingTextColor } from "@/lib/colors";
 import type { ReviewDecision } from "@/lib/report";
 import type { Evidence, Finding } from "@/lib/types";
+import { NeedChips } from "./NeedChips";
 
 const VERIFICATION_LABEL: Record<ReviewDecision, string> = {
   confirmed: "Confirmed by you",
@@ -48,6 +49,7 @@ export function FindingCard({ finding, index, evidence, evidencePending, selecte
             <span className="visually-hidden">Finding {index + 1}: </span>
             {finding.title}
           </h3>
+          <NeedChips needs={CATEGORY_INFO[finding.category].needs} />
         </div>
       </header>
 

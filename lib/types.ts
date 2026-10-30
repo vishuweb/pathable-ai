@@ -3,6 +3,10 @@ export const ISSUE_CATEGORIES = [
   "obstructed_footpath",
   "damaged_surface",
   "difficult_entrance",
+  "tactile_guidance",
+  "hard_to_detect_obstacle",
+  "crossing_problem",
+  "signage_problem",
   "other",
 ] as const;
 export type IssueCategory = (typeof ISSUE_CATEGORIES)[number];

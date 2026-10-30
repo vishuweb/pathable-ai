@@ -56,7 +56,7 @@ before(async () => {
   // The dev server compiles each route on first use, which can reload an open page; compile them
   // all up front. These requests are invalid on purpose, so none reaches the (mock) model.
   const missing = "00000000-0000-4000-8000-000000000000";
-  for (const route of ["/", "/report", "/reports", "/owner", "/batch", `/reports/${missing}`]) await fetch(BASE + route);
+  for (const route of ["/", "/report", "/reports", "/needs", "/owner", "/batch", `/reports/${missing}`]) await fetch(BASE + route);
   for (const route of ["/api/analyze", "/api/segment", "/api/reports"]) await fetch(BASE + route, { method: "POST", body: "{}" });
   await fetch(`${BASE}/api/reports/${missing}/image`);
   browser = await puppeteer.launch({ executablePath: CHROME, headless: true });
@@ -140,6 +140,8 @@ test("a photo becomes a reviewed, consented, saved report", { skip: !CHROME && "
   assert.match(evidence[0], /SAM 3.1 outlined 1 object matching "electric scooter"/);
   assert.match(evidence[1], /did not point to a specific area/);
   assert.equal(await page.$$eval(".viewer-overlay path", (p) => p.length), 1, "one outline drawn on the photo");
+  const affects = await cardTexts(page, ".need-chips");
+  assert.match(affects[0], /May affect:\s*Mobility\s+Vision/, "an obstructed footpath affects mobility and vision");
   assert.deepEqual(await axeViolations(page), [], "review screen passes WCAG 2.2 AA checks");
 
   const [scooter, surface] = await page.$$(".finding-card");
@@ -189,6 +191,41 @@ test("a failed segmentation keeps the findings and says so", { skip: !CHROME && 
   await page.close();
 });
 
+test("my needs are saved on this device and narrow the community reports", { skip: !CHROME && "Chrome not found" }, async () => {
+  assert.ok(savedReportPath, "needs the report saved by the first test");
+  const page = await browser!.newPage();
+  page.setDefaultNavigationTimeout(180_000);
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await page.goto(`${BASE}/needs`, { waitUntil: "networkidle0" });
+  const check = async (label: string) => (await page.waitForSelector(`xpath/.//label[contains(., "${label}")]`))!.click();
+  await check("Tactile paving and guidance");
+  await check("Visual crossing signals");
+  await page.click(".needs-actions .button-primary");
+  await page.waitForFunction(() => /Saved on this device: 2 needs/.test(document.querySelector('[role="status"]')?.textContent ?? ""));
+  assert.deepEqual(await axeViolations(page), [], "My needs passes WCAG 2.2 AA checks");
+
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForFunction(() => document.querySelectorAll(".need-option input:checked").length === 2);
+
+  // The saved report has a confirmed obstructed footpath: it affects mobility and vision, not hearing.
+  await page.goto(`${BASE}/reports`, { waitUntil: "networkidle0" });
+  const status = () => page.$eval('.report-filter + [role="status"]', (e) => e.textContent ?? "");
+  const useMine = await page.waitForSelector('xpath/.//button[contains(., "Use my needs")]');
+  assert.match(await useMine!.evaluate((b) => b.textContent ?? ""), /Vision, Hearing/);
+  await useMine!.click();
+  assert.match(await status(), /Showing 1 of 1/);
+  await page.click('xpath/.//button[contains(., "Show all")]');
+  await page.click('xpath/.//button[@aria-pressed="false"][normalize-space(.)="Hearing"]');
+  assert.match(await status(), /Showing 0 of 1/);
+  assert.ok(await page.$(".empty-state"), "explains that no report does not mean accessible");
+  assert.deepEqual(await axeViolations(page), [], "filtered list passes WCAG 2.2 AA checks");
+
+  await page.goto(`${BASE}/needs`, { waitUntil: "networkidle0" });
+  await page.click('xpath/.//button[contains(., "Remove all")]');
+  assert.equal(await page.evaluate(() => localStorage.getItem("pathable.needs.v1")), null, "removed from the device");
+  await page.close();
+});
+
 test("visitors see the public site; the owner gets the workspace and moderation", { skip: !CHROME && "Chrome not found" }, async () => {
   assert.ok(savedReportPath, "needs the report saved by the first test");
   const visitor = await browser!.newPage();
@@ -197,7 +234,7 @@ test("visitors see the public site; the owner gets the workspace and moderation"
 
   await visitor.goto(BASE, { waitUntil: "networkidle0" });
   const nav = await visitor.$$eval('nav[aria-label="Main"] a', (links) => links.map((a) => a.textContent));
-  assert.deepEqual(nav, ["Report a barrier", "Reports", "How it works"], "no owner tools in the public navigation");
+  assert.deepEqual(nav, ["Report a barrier", "Community reports", "My needs", "How it works"], "no owner tools in the public navigation");
   assert.ok(await visitor.$('.hero a[href="/report"]'), "the home page leads to reporting");
   assert.deepEqual(await axeViolations(visitor), [], "home page passes WCAG 2.2 AA checks");
 

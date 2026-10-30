@@ -1,4 +1,5 @@
 import { CATEGORY_INFO, LEVEL_LABEL } from "./categories";
+import { NEED_GROUP_INFO } from "./needs";
 import { formatCoordinates } from "./format";
 import type { FindingReview, HighlightRating, SavedReport } from "./report";
 import { STATUS_INFO, currentStatus, statusHistory } from "./report-status";
@@ -37,6 +38,8 @@ export function reportToMarkdown(report: SavedReport, reportUrl?: string): strin
   verified.forEach(({ finding, number, review }, i) => {
     out.push(`### ${i + 1}. ${oneLine(finding.title)}`, "");
     out.push(`- **Category:** ${categoryLine(finding, review)}`);
+    const trueCategory = review?.decision === "corrected" && review.correctedCategory ? review.correctedCategory : finding.category;
+    out.push(`- **May affect:** ${CATEGORY_INFO[trueCategory].needs.map((n) => NEED_GROUP_INFO[n].label.toLowerCase()).join(", ")}`);
     out.push(`- **AI description (confirmed by reviewer):** ${oneLine(finding.observed_condition)}`);
     out.push(`- **Why it may matter:** ${oneLine(finding.why_it_matters)}`);
     out.push(`- **Potential impact:** ${LEVEL_LABEL[finding.potential_impact]}`);

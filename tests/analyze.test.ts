@@ -47,6 +47,9 @@ test("sends the photo with a strict JSON schema and the API key, server-side", a
   assert.equal(body.response_format.type, "json_schema");
   assert.equal(body.response_format.json_schema.strict, true);
   assert.equal(body.messages[1].content[1].image_url.url, IMAGE);
+  const categories = body.response_format.json_schema.schema.properties.findings.items.properties.category.enum;
+  assert.ok(categories.includes("tactile_guidance") && categories.includes("signage_problem"), "multi-need categories");
+  assert.match(body.messages[0].content, /whether a crossing signal is audible/, "the prompt rules out unobservable claims");
 });
 
 test("a well-formed finding passes through unchanged and is located", async () => {

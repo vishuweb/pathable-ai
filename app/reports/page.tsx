@@ -1,60 +1,49 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ReportList, type ReportListItem } from "@/components/ReportList";
 import { formatDateTime } from "@/lib/format";
-import { summarizeReport } from "@/lib/report";
+import { summarizeReport, verifiedNeeds } from "@/lib/report";
 import { STATUS_INFO, currentStatus } from "@/lib/report-status";
 import { reports as reportStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Saved reports · PathAble AI" };
+export const metadata: Metadata = { title: "Community reports · PathAble AI" };
 
 export default async function ReportsPage() {
   const reports = (await reportStore.list()).reverse();
+  const items: ReportListItem[] = reports.map((report) => {
+    const s = summarizeReport(report);
+    const created = formatDateTime(report.createdAt);
+    const status = currentStatus(report).status;
+    return {
+      id: report.id,
+      title: report.location?.label || `Report from ${created}`,
+      createdLabel: created,
+      statusKey: status,
+      statusLabel: STATUS_INFO[status].label,
+      summary: `${s.verified} confirmed ${s.verified === 1 ? "barrier" : "barriers"} · ${s.findings} AI ${s.findings === 1 ? "suggestion" : "suggestions"} (${s.confirmed} confirmed, ${s.corrected} corrected, ${s.rejected} rejected) · ${s.missed} added by the reporter`,
+      needs: verifiedNeeds(report),
+    };
+  });
 
   return (
     <section aria-labelledby="reports-title">
       <div className="page-heading">
-        <h1 id="reports-title">Saved reports</h1>
+        <h1 id="reports-title">Community reports</h1>
         <Link className="button-primary" href="/report">
           Report a barrier
         </Link>
       </div>
-
+      <p className="intro">
+        Barriers people have photographed and checked. Each report shows its status, so you can see whether anyone
+        has looked at it since.
+      </p>
       {reports.length === 0 ? (
         <p className="empty-state">
           No shared reports yet. <Link href="/report">Report a barrier</Link> to create the first one.
         </p>
       ) : (
-        <ul className="report-list">
-          {reports.map((report) => {
-            const s = summarizeReport(report);
-            const created = formatDateTime(report.createdAt);
-            return (
-              <li key={report.id} className="report-item">
-                {/* eslint-disable-next-line @next/next/no-img-element -- served by our own API route */}
-                <img src={`/api/reports/${report.id}/image`} alt="" width={128} height={96} loading="lazy" />
-                <div>
-                  <h2>
-                    <Link href={`/reports/${report.id}`}>{report.location?.label || `Report from ${created}`}</Link>
-                  </h2>
-                  <p className="muted">
-                    {created} · Status:{" "}
-                    <span className={`chip status-${currentStatus(report).status}`}>
-                      {STATUS_INFO[currentStatus(report).status].label}
-                    </span>
-                  </p>
-                  <p>
-                    <strong>
-                      {s.verified} verified {s.verified === 1 ? "barrier" : "barriers"}
-                    </strong>{" "}
-                    · {s.findings} AI {s.findings === 1 ? "finding" : "findings"} ({s.confirmed} confirmed,{" "}
-                    {s.corrected} corrected, {s.rejected} rejected) · {s.missed} missed by AI
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <ReportList items={items} />
       )}
     </section>
   );

@@ -14,6 +14,7 @@ import {
 import type { Finding } from "@/lib/types";
 import { DeleteReportButton } from "./DeleteReportButton";
 import { EvidenceViewer } from "./EvidenceViewer";
+import { NeedChips } from "./NeedChips";
 import { ReportStatusPanel, type LabelledEvent } from "./ReportStatusPanel";
 
 const DECISION_LABEL: Record<ReviewDecision, string> = {
@@ -234,6 +235,12 @@ function SavedFinding({ finding, index, review, selected, onSelect }: SavedFindi
             <span className="visually-hidden">Finding {index + 1}: </span>
             {finding.title}
           </h3>
+          <NeedChips
+            needs={
+              CATEGORY_INFO[review?.decision === "corrected" && review.correctedCategory ? review.correctedCategory : finding.category]
+                .needs
+            }
+          />
         </div>
       </header>
 

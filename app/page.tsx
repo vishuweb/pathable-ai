@@ -2,22 +2,31 @@ import Link from "next/link";
 
 const AUDIENCES = [
   {
-    title: "People who need step-free routes",
-    text: "Wheelchair users, people using walkers or mobility scooters, and anyone for whom a blocked ramp means turning back.",
+    group: "mobility",
+    title: "Moving around",
+    text: "Wheelchair users and people with walkers, crutches or prams: blocked ramps, steps, narrow or broken paths.",
   },
   {
-    title: "Parents, carers and older adults",
-    text: "Prams, shopping trolleys and unsteady footing all depend on a clear, even footpath.",
+    group: "vision",
+    title: "Seeing",
+    text: "Blind and partially sighted people: obstacles a cane can miss, damaged tactile paving, unreadable signs.",
   },
   {
-    title: "Volunteers and advocates",
-    text: "Document problems consistently, with the photo and the reasoning in one place.",
+    group: "hearing",
+    title: "Hearing",
+    text: "Deaf and hard-of-hearing people: information that is only spoken, with no clear written or visual signs.",
   },
   {
-    title: "Maintenance teams",
-    text: "Receive a specific, photographed, person-checked report instead of a vague complaint.",
+    group: "cognitive",
+    title: "Finding the way",
+    text: "People who need clear, predictable routes: confusing diversions and missing landmarks or signs.",
   },
-];
+  {
+    group: "general",
+    title: "Comfort and more",
+    text: "Older adults, carers and people with temporary injuries: uneven surfaces, nowhere to rest.",
+  },
+] as const;
 
 const STEPS = [
   {
@@ -47,23 +56,30 @@ export default function HomePage() {
     <div className="landing">
       <section className="hero" aria-labelledby="hero-title">
         <p className="eyebrow">PathAble AI</p>
-        <h1 id="hero-title">Report accessibility barriers with photo evidence</h1>
+        <h1 id="hero-title">One world. Different needs. More accessible journeys.</h1>
         <p className="hero-lead">
-          A scooter across the footpath, a blocked curb ramp, a broken paving slab: photograph it, let AI point out
-          possible barriers, check each one yourself, and share a clear report that someone can act on.
+          A place that works for one person can stop another. Photograph a barrier, let AI point out what it may mean
+          for people with different needs, check every suggestion yourself, and share evidence someone can act on.
         </p>
         <div className="cta-row">
           <Link className="button-primary button-large" href="/report">
             Report a barrier
           </Link>
           <Link className="button-secondary" href="/reports">
-            See shared reports
+            Community reports
+          </Link>
+          <Link className="button-secondary" href="/needs">
+            Set my needs
           </Link>
         </div>
       </section>
 
       <section aria-labelledby="who-title">
-        <h2 id="who-title">Who it is for</h2>
+        <h2 id="who-title">Built for different needs</h2>
+        <p>
+          Every barrier is tagged with the needs it may affect, so a blind pedestrian and a wheelchair user can each
+          find what matters to them. <Link href="/needs">Choose your needs</Link>; they stay on your device.
+        </p>
         <ul className="card-grid">
           {AUDIENCES.map((a) => (
             <li key={a.title} className="card">
@@ -101,13 +117,20 @@ export default function HomePage() {
         </figure>
       </section>
 
-      <section aria-labelledby="why-title" className="callout">
-        <h2 id="why-title">Why a person checks every finding</h2>
+      <section id="verification" aria-labelledby="why-title" className="callout">
+        <h2 id="why-title">How information is verified</h2>
         <ul>
-          <li>AI can misread a photo, so every suggestion stays &ldquo;unverified&rdquo; until you decide.</li>
-          <li>A photo cannot show widths, slopes or step heights, so a report describes what to check on site.</li>
-          <li>Reports never claim that a place complies with an accessibility standard.</li>
-          <li>A photo with no barrier found does not mean a place is accessible.</li>
+          <li>AI can misread a photo, so every suggestion stays &ldquo;unverified&rdquo; until a person decides.</li>
+          <li>
+            Some things a photo can never show: whether a crossing signal is audible, whether a lift works, or whether
+            tactile paving continues out of shot. PathAble AI does not guess them.
+          </li>
+          <li>A photo cannot measure widths, slopes or step heights, so a report says what to check on site.</li>
+          <li>
+            A shared report starts as &ldquo;Submitted&rdquo;; later steps such as &ldquo;Verified&rdquo; or
+            &ldquo;Resolved&rdquo; are recorded with a date and a reason.
+          </li>
+          <li>Reports never claim compliance, and no barrier found never means &ldquo;accessible&rdquo;.</li>
         </ul>
       </section>
 
@@ -137,7 +160,7 @@ export default function HomePage() {
       <section aria-labelledby="scope-title" className="scope">
         <h2 id="scope-title">What PathAble AI does not do yet</h2>
         <p>
-          It documents barriers in single photos. Searching places, maps, step-free route planning and user accounts
+          It documents barriers in single photos. Searching places, maps, routes suited to your needs and user accounts
           are planned for later and are not available today.
         </p>
       </section>

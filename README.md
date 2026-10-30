@@ -1,6 +1,8 @@
 # PathAble AI
 
-Turn photos of public spaces into **evidence-backed, human-verified reports** of potential accessibility barriers: blocked curb ramps, obstructed footpaths, damaged walking surfaces, and difficult entrances.
+**One world. Different needs. More accessible journeys.** Turn photos of public spaces into **evidence-backed, person-checked reports** of potential accessibility barriers, for people with different needs: moving around (wheelchairs, walkers, prams), seeing, hearing, finding the way, and comfort.
+
+Every barrier category is tagged with the needs it may affect: blocked curb ramps, obstructed footpaths, damaged surfaces, difficult entrances, tactile guidance problems, hard-to-detect obstacles, crossing problems, and signage or wayfinding problems. Visitors can choose their own needs on **My needs** (stored only in their browser, never sent anywhere) and filter community reports by them. Things a photo cannot show, such as whether a signal is audible or a lift works, are never guessed.
 
 Built for the Meta Global AI Developer Hackathon with the Meta Model API:
 

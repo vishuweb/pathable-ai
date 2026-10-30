@@ -1468,3 +1468,98 @@ fieldset:disabled .segment {
     margin: 0;
   }
 }
+
+/* Which access needs a barrier may affect */
+.need-chips {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+}
+
+.need-chips-label {
+  color: var(--muted);
+}
+
+.need-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid #8a94a3;
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 600;
+}
+
+/* My needs */
+.need-options {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.need-option {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.need-option:hover {
+  background: #eef4fb;
+}
+
+.need-option input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+.need-group > p.muted {
+  margin: 0 0 6px;
+}
+
+.needs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* Need filter on the reports list */
+.report-filter {
+  margin: 16px 0 8px;
+}
+
+.filter-label {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-buttons + .filter-buttons {
+  margin-top: 4px;
+}
+
+.filter-button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filter-button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
