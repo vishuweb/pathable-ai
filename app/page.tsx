@@ -65,6 +65,9 @@ export default function HomePage() {
           <Link className="button-primary button-large" href="/report">
             Report a barrier
           </Link>
+          <Link className="button-secondary" href="/places">
+            Explore places
+          </Link>
           <Link className="button-secondary" href="/reports">
             Community reports
           </Link>
@@ -160,8 +163,9 @@ export default function HomePage() {
       <section aria-labelledby="scope-title" className="scope">
         <h2 id="scope-title">What PathAble AI does not do yet</h2>
         <p>
-          It documents barriers in single photos. Searching places, maps, routes suited to your needs and user accounts
-          are planned for later and are not available today.
+          Place pages show what OpenStreetMap contributors have recorded, which is often incomplete and is not verified
+          by PathAble AI. Maps, routes suited to your needs, community verification and user accounts are planned for
+          later and are not available today.
         </p>
       </section>
     </div>

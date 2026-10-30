@@ -42,6 +42,8 @@ interface Props {
   renderSaved: (reportId: string) => React.ReactNode;
   /** Prefix section headings with step numbers (the single-photo page has a step 1 above). */
   numbered?: boolean;
+  /** A place chosen before the photo, e.g. from a place page's "Report a barrier here". */
+  initialLocation?: ReportLocation;
 }
 
 const EMPTY_LOCATION: ReportLocation = { label: "" };
@@ -60,12 +62,13 @@ export function ReviewSession({
   onSaved,
   renderSaved,
   numbered = true,
+  initialLocation = EMPTY_LOCATION,
 }: Props) {
   const [selectedId, setSelectedId] = useState<string>();
   const [showOverlay, setShowOverlay] = useState(true);
   const [reviews, setReviews] = useState<Record<string, FindingReview>>({});
   const [missedIssues, setMissedIssues] = useState<MissedIssue[]>([]);
-  const [location, setLocation] = useState<ReportLocation>(EMPTY_LOCATION);
+  const [location, setLocation] = useState<ReportLocation>(initialLocation);
   const [reviewerNote, setReviewerNote] = useState("");
   const [consent, setConsent] = useState(false);
   const [save, setSave] = useState<SaveState>({ state: "idle" });
@@ -82,7 +85,7 @@ export function ReviewSession({
     !saved &&
     (Object.values(reviews).some((r) => r.decision || r.note) ||
       missedIssues.length > 0 ||
-      Boolean(location.label || location.latitude !== undefined || reviewerNote));
+      Boolean(location !== initialLocation || reviewerNote));
 
   useEffect(() => {
     onDirtyChange?.(dirty);

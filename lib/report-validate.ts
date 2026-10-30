@@ -1,5 +1,6 @@
 import "server-only";
 import { validateImageDataUrl } from "./image-input";
+import { OSM_TYPES } from "./place";
 import {
   HIGHLIGHT_RATINGS,
   REVIEW_DECISIONS,
@@ -223,13 +224,21 @@ function parseMissedIssue(value: unknown): MissedIssue {
 function parseLocation(value: unknown): ReportLocation | undefined {
   const l = record(value, "The location");
   const location: ReportLocation = { label: optionalText(l.label, "The location", 200) };
+  if (l.place != null) {
+    const p = record(l.place, "The place");
+    location.place = {
+      osmType: oneOf(p.osmType, OSM_TYPES, "The place type"),
+      osmId: integer(p.osmId, "The place id", 1, Number.MAX_SAFE_INTEGER),
+      name: text(p.name, "The place name", 200, true),
+    };
+  }
   const hasCoordinates = l.latitude != null || l.longitude != null;
   if (hasCoordinates) {
     location.latitude = number(l.latitude, "Latitude", -90, 90);
     location.longitude = number(l.longitude, "Longitude", -180, 180);
     if (l.accuracyM != null) location.accuracyM = number(l.accuracyM, "Location accuracy", 0, 100_000);
   }
-  return location.label || hasCoordinates ? location : undefined;
+  return location.label || hasCoordinates || location.place ? location : undefined;
 }
 
 function fail(message: string): never {

@@ -1,5 +1,6 @@
 import { CATEGORY_INFO } from "./categories";
 import { NEED_GROUPS, type NeedGroup } from "./needs";
+import type { PlaceRef } from "./place";
 import type { StatusEvent } from "./report-status";
 import type { Evidence, IssueCategory, SceneAnalysis } from "./types";
 
@@ -34,6 +35,8 @@ export interface ReportLocation {
   longitude?: number;
   /** Accuracy radius in meters, as reported by the device. */
   accuracyM?: number;
+  /** The OpenStreetMap place chosen by the reporter; its coordinates are then the place's. */
+  place?: PlaceRef;
 }
 
 /** Where an evaluated photo came from, so results can be reported per dataset (e.g. "own" vs "web"). */

@@ -249,6 +249,22 @@ test("reports: status changes are validated and recorded as dated history", asyn
   assert.match(markdown, /Resolved: Recheck photo shows the ramp is clear\./);
 });
 
+test("reports: a report can be linked to an OpenStreetMap place", async () => {
+  const reviews = { f1: { decision: "rejected" } };
+  const place = { osmType: "node", osmId: 469782067, name: "Charing Cross Station" };
+  const location = { label: "Bus stop H", latitude: 51.5085185, longitude: -0.1254071, place };
+  const saved = await read(await reportsRoute.POST(post(submission(reviews, { location }))));
+  assert.equal(saved.status, 201);
+  const report = await read(
+    await reportRoute.GET(new Request("http://localhost"), { params: Promise.resolve({ id: saved.body.id }) }),
+  );
+  assert.deepEqual(report.body.location.place, place);
+  for (const bad of [{ ...place, osmType: "area" }, { ...place, osmId: -4 }, { ...place, name: "" }]) {
+    const refused = await reportsRoute.POST(post(submission(reviews, { location: { ...location, place: bad } })));
+    assert.equal(refused.status, 400, JSON.stringify(bad));
+  }
+});
+
 test("health: reports configuration without exposing the key", async () => {
   const response = await healthRoute.GET();
   const text = await response.text();

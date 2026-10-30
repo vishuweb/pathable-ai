@@ -21,7 +21,7 @@ Make public spaces more accessible through trustworthy accessibility information
 | --- | --- | --- |
 | A. Core MVP | Photo → findings → evidence → human review → report; failure handling | **Done** |
 | B. Persistent reporting | Stored reports, status and history, deletion, consent, duplicates | **Mostly done** (single owner role; no accounts) |
-| C. Place discovery | Searchable place profiles with step-free, entrance, toilet information | Not started: needs a place data source and verification model |
+| C. Place discovery | Searchable place profiles with step-free, entrance, toilet information | **Started**: OpenStreetMap search and profiles; no verified attributes of our own yet |
 | D. Maps and routing | Map of reports first; routing only with reliable data | Not started; routing deliberately deferred |
 | E. Community verification | Confirm or dispute findings, follow reports, upload rechecks | Not started: needs accounts, moderation and abuse reporting first |
 | F. Organization dashboard | Roles, assignment, remediation evidence, response times | Not started: needs server-side roles and accounts |
@@ -41,6 +41,10 @@ Make public spaces more accessible through trustworthy accessibility information
 | Product home page: who it is for, how it works, why a person checks, what sharing means, current scope | Browser test; axe check |
 | Removal or correction request link on every report | Browser test |
 | Results hide headline percentages below 20 reviewed photos | Manual check |
+| Needs for mobility, vision, hearing, cognitive and other access; chosen on **My needs**, stored only in the browser, editable and removable | Unit tests; browser test |
+| Barrier categories for several needs (tactile guidance, hard-to-detect obstacles, crossings, signage) with "may affect" labels | Unit tests; mocked API test; browser test |
+| Community reports filtered by need and by distance from a place or the visitor's location | Browser test |
+| Reports linked to OpenStreetMap places; place profiles with per-attribute community data, unknowns, staleness and nearby reports | Unit tests with mocked OpenStreetMap; browser test |
 | Report status with dated history; notes required for claims; duplicate links | Route tests; browser test of the full workflow |
 | Owner moderation: delete reports, change status; visitors get 403 | Route tests; live check of the 403 responses |
 | Voice notes with Muse Voice Transcribe 1.0 | Mocked route tests; browser test with a simulated microphone; live calls during development |
@@ -62,11 +66,14 @@ Make public spaces more accessible through trustworthy accessibility information
 | Rate limits and daily cap under real traffic on Vercel | They are per server instance; behaviour across instances is unmeasured |
 | Screen-reader experience | Automated checks pass; a manual pass with NVDA or VoiceOver has not been done |
 | Usefulness of reports to maintenance teams | Feedback from an actual campus or council team |
+| The new barrier categories with the real Muse Spark model | One manual analysis of a photo with tactile paving or signage (automated tests use a mock) |
+| Live place search and profiles against OpenStreetMap | A few manual searches on the live site |
 
 ## 3. Not yet implemented
 
 - **Accounts and roles.** There is one owner key; no user accounts, reviewer or organization roles.
-- **Place profiles and search** (Phase C), **map view** and **routing** (Phase D).
+- **Verified place attributes.** Place pages show OpenStreetMap community data only; PathAble has no inspection workflow of its own yet.
+- **Map view** and **routing** (Phase D). Reports and places are listed, not mapped; routing waits for reliable segment data.
 - **Community features** (Phase E): disputes, following reports, recheck uploads by others.
 - **In-app abuse reporting.** Removal and correction requests go through a pre-filled GitHub issue.
 - **Automatic blurring of faces and number plates.** The app relies on the consent statement.

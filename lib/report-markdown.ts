@@ -1,5 +1,6 @@
 import { CATEGORY_INFO, LEVEL_LABEL } from "./categories";
 import { NEED_GROUP_INFO } from "./needs";
+import { osmUrl } from "./place";
 import { formatCoordinates } from "./format";
 import type { FindingReview, HighlightRating, SavedReport } from "./report";
 import { STATUS_INFO, currentStatus, statusHistory } from "./report-status";
@@ -25,7 +26,12 @@ export function reportToMarkdown(report: SavedReport, reportUrl?: string): strin
   const out: string[] = ["# Accessibility barrier report", ""];
   out.push(`- **Date:** ${report.createdAt.slice(0, 16).replace("T", " ")} UTC`);
   out.push(`- **Status:** ${STATUS_INFO[currentStatus(report).status].label}`);
-  if (report.location?.label) out.push(`- **Location:** ${oneLine(report.location.label)}`);
+  if (report.location?.place) {
+    out.push(`- **Place:** ${oneLine(report.location.place.name)} (OpenStreetMap: ${osmUrl(report.location.place)})`);
+  }
+  if (report.location?.label && report.location.label !== report.location.place?.name) {
+    out.push(`- **Location:** ${oneLine(report.location.label)}`);
+  }
   const coordinates = report.location && formatCoordinates(report.location);
   if (coordinates) out.push(`- **Coordinates:** ${coordinates}`);
   out.push(`- **Report ID:** ${report.id}`);

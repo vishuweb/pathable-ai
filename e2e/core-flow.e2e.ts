@@ -37,6 +37,8 @@ before(async () => {
     ...process.env,
     NEXT_DIST_DIR: ".next-e2e",
     META_API_BASE_URL: mock.url,
+    NOMINATIM_URL: mock.nominatimUrl,
+    OSM_API_URL: mock.osmApiUrl,
     MODEL_API_KEY: "e2e-test-key",
     DATA_DIR: dataDir,
     // With an owner key set, the browser is a visitor until it signs in, as on the public site.
@@ -56,7 +58,11 @@ before(async () => {
   // The dev server compiles each route on first use, which can reload an open page; compile them
   // all up front. These requests are invalid on purpose, so none reaches the (mock) model.
   const missing = "00000000-0000-4000-8000-000000000000";
-  for (const route of ["/", "/report", "/reports", "/needs", "/owner", "/batch", `/reports/${missing}`]) await fetch(BASE + route);
+  for (const route of ["/", "/report", "/reports", "/needs", "/places", "/owner", "/batch", `/reports/${missing}`]) {
+    await fetch(BASE + route);
+  }
+  await fetch(`${BASE}/places/node/1`);
+  await fetch(`${BASE}/api/places?q=warm`);
   for (const route of ["/api/analyze", "/api/segment", "/api/reports"]) await fetch(BASE + route, { method: "POST", body: "{}" });
   await fetch(`${BASE}/api/reports/${missing}/image`);
   browser = await puppeteer.launch({ executablePath: CHROME, headless: true });
@@ -209,7 +215,7 @@ test("my needs are saved on this device and narrow the community reports", { ski
 
   // The saved report has a confirmed obstructed footpath: it affects mobility and vision, not hearing.
   await page.goto(`${BASE}/reports`, { waitUntil: "networkidle0" });
-  const status = () => page.$eval('.report-filter + [role="status"]', (e) => e.textContent ?? "");
+  const status = () => page.$eval(".list-status", (e) => e.textContent ?? "");
   const useMine = await page.waitForSelector('xpath/.//button[contains(., "Use my needs")]');
   assert.match(await useMine!.evaluate((b) => b.textContent ?? ""), /Vision, Hearing/);
   await useMine!.click();
@@ -226,6 +232,62 @@ test("my needs are saved on this device and narrow the community reports", { ski
   await page.close();
 });
 
+test("a place profile shows recorded and unknown information, and takes a report", { skip: !CHROME && "Chrome not found" }, async () => {
+  const place = {
+    osm_type: "node",
+    osm_id: 469782067,
+    lat: "51.5085185",
+    lon: "-0.1254071",
+    name: "Charing Cross Station",
+    display_name: "Charing Cross Station, Strand, London",
+    category: "highway",
+    type: "bus_stop",
+    extratags: { wheelchair: "limited", tactile_paving: "no", public_transport: "platform", highway: "bus_stop" },
+  };
+  mock.replies.placeSearch = { kind: "json", body: [place] };
+  mock.replies.placeLookup = { kind: "json", body: [place] };
+  mock.replies.osmElement = { kind: "json", body: { elements: [{ timestamp: "2023-01-10T09:00:00Z", tags: { bench: "yes" } }] } };
+
+  const page = await browser!.newPage();
+  page.setDefaultTimeout(60_000);
+  page.setDefaultNavigationTimeout(180_000);
+  page.on("dialog", (d) => void d.accept());
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await page.goto(`${BASE}/places`, { waitUntil: "networkidle0" });
+  await page.type('input[type="search"]', "charing cross");
+  await page.click('xpath/.//button[normalize-space(.)="Search"]');
+  const result = await page.waitForSelector('xpath/.//label[contains(., "Charing Cross Station")]');
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), result!.click()]);
+  assert.equal(new URL(page.url()).pathname, "/places/node/469782067");
+
+  const text = await page.$eval("main", (m) => m.innerText);
+  assert.match(text, /Wheelchair access\s+Partly accessible\s+Community data, not verified/);
+  assert.match(text, /Tactile paving\s+None/);
+  assert.match(text, /Seating\s+Seating available/, "tags from the OpenStreetMap API are merged in");
+  assert.match(text, /Ramp\s+Unknown: not recorded/, "missing information is shown as unknown");
+  assert.match(text, /more than 2 years ago, so it may be out of date/);
+  assert.match(text, /never rates a place as accessible overall/);
+  assert.deepEqual(await axeViolations(page), [], "place profile passes WCAG 2.2 AA checks");
+
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('a[href^="/report?osm=node%2F469782067"]')]);
+  assert.match(await page.$eval("main", (m) => m.textContent ?? ""), /Reporting at Charing Cross Station/);
+
+  mock.replies.chat = { kind: "content", content: modelReply([finding("Scooter on the footpath", {})]) };
+  mock.replies.sam.set("electric scooter", { kind: "relative", boxes: [[0.2, 0.4, 0.6, 0.9]] });
+  await (await page.$('input[type="file"]'))!.uploadFile(PHOTO);
+  await page.waitForSelector(".save-panel");
+  await page.waitForFunction(() => !document.querySelector(".evidence-status.status-pending"));
+  assert.match(await page.$eval(".linked-place", (p) => p.textContent ?? ""), /Charing Cross Station/, "the place is pre-filled");
+  await (await page.waitForSelector('xpath/.//label[contains(., "Not a barrier")]'))!.click();
+  await page.click(".consent input");
+  await page.click(".save-actions .button-primary");
+  await page.waitForSelector(".save-success");
+
+  await page.goto(`${BASE}/places/node/469782067`, { waitUntil: "networkidle0" });
+  assert.match(await page.$eval("#nearby-title + *", (e) => e.textContent ?? ""), /At this place/);
+  await page.close();
+});
+
 test("visitors see the public site; the owner gets the workspace and moderation", { skip: !CHROME && "Chrome not found" }, async () => {
   assert.ok(savedReportPath, "needs the report saved by the first test");
   const visitor = await browser!.newPage();
@@ -234,7 +296,11 @@ test("visitors see the public site; the owner gets the workspace and moderation"
 
   await visitor.goto(BASE, { waitUntil: "networkidle0" });
   const nav = await visitor.$$eval('nav[aria-label="Main"] a', (links) => links.map((a) => a.textContent));
-  assert.deepEqual(nav, ["Report a barrier", "Community reports", "My needs", "How it works"], "no owner tools in the public navigation");
+  assert.deepEqual(
+    nav,
+    ["Report a barrier", "Explore places", "Community reports", "My needs", "How it works"],
+    "no owner tools in the public navigation",
+  );
   assert.ok(await visitor.$('.hero a[href="/report"]'), "the home page leads to reporting");
   assert.deepEqual(await axeViolations(visitor), [], "home page passes WCAG 2.2 AA checks");
 

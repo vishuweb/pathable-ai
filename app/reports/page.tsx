@@ -17,12 +17,14 @@ export default async function ReportsPage() {
     const status = currentStatus(report).status;
     return {
       id: report.id,
-      title: report.location?.label || `Report from ${created}`,
+      title: report.location?.place?.name || report.location?.label || `Report from ${created}`,
       createdLabel: created,
       statusKey: status,
       statusLabel: STATUS_INFO[status].label,
       summary: `${s.verified} confirmed ${s.verified === 1 ? "barrier" : "barriers"} · ${s.findings} AI ${s.findings === 1 ? "suggestion" : "suggestions"} (${s.confirmed} confirmed, ${s.corrected} corrected, ${s.rejected} rejected) · ${s.missed} added by the reporter`,
       needs: verifiedNeeds(report),
+      latitude: report.location?.latitude,
+      longitude: report.location?.longitude,
     };
   });
 

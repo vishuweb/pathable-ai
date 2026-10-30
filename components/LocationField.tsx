@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { formatCoordinates } from "@/lib/format";
+import { osmUrl, type PlaceResult } from "@/lib/place";
 import type { ReportLocation } from "@/lib/report";
+import { PlaceSearch } from "./PlaceSearch";
 
 interface Props {
   value: ReportLocation;
@@ -13,6 +15,16 @@ export function LocationField({ value, onChange }: Props) {
   const [status, setStatus] = useState("");
   const [locating, setLocating] = useState(false);
   const coordinates = formatCoordinates(value);
+
+  const choose = (place: PlaceResult) => {
+    onChange({
+      label: value.label || place.name,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      place: { osmType: place.osmType, osmId: place.osmId, name: place.name },
+    });
+    setStatus(`Linked to ${place.name}.`);
+  };
 
   const locate = () => {
     if (!("geolocation" in navigator)) {
@@ -25,7 +37,7 @@ export function LocationField({ value, onChange }: Props) {
       (position) => {
         setLocating(false);
         onChange({
-          ...value,
+          label: value.label,
           latitude: round(position.coords.latitude),
           longitude: round(position.coords.longitude),
           accuracyM: Math.round(position.coords.accuracy),
@@ -49,6 +61,19 @@ export function LocationField({ value, onChange }: Props) {
       <legend>
         Where is this? <span className="muted">(optional)</span>
       </legend>
+      {value.place ? (
+        <p className="linked-place">
+          Place: <strong>{value.place.name}</strong>{" "}
+          <a href={osmUrl(value.place)} target="_blank" rel="noreferrer">
+            (OpenStreetMap, opens in a new tab)
+          </a>{" "}
+          <button type="button" className="button-link" onClick={() => onChange({ label: value.label })}>
+            Remove place
+          </button>
+        </p>
+      ) : (
+        <PlaceSearch label="Find the place" onChoose={choose} />
+      )}
       <label className="field">
         Place description
         <input
@@ -74,8 +99,8 @@ export function LocationField({ value, onChange }: Props) {
         )}
       </div>
       <p className="muted">
-        A location you add is shown publicly with the report. Use your current location only if you are standing where
-        the photo was taken.
+        A location you add is shown publicly with the report. Place search uses OpenStreetMap. Use your current
+        location only if you are standing where the photo was taken.
       </p>
       <p className="muted" role="status">
         {status}

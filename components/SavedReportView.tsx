@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CATEGORY_INFO, LEVEL_LABEL } from "@/lib/categories";
 import { findingColor, findingTextColor } from "@/lib/colors";
 import { formatCoordinates, formatDuration, mapUrl } from "@/lib/format";
+import { placePath } from "@/lib/place";
 import {
   summarizeReport,
   type FindingReview,
@@ -63,7 +64,15 @@ export function SavedReportView({ report, createdLabel, statusEvents, isOwner }:
             <dt>Saved</dt>
             <dd>{createdLabel}</dd>
           </div>
-          {report.location?.label && (
+          {report.location?.place && (
+            <div>
+              <dt>Place</dt>
+              <dd>
+                <a href={placePath(report.location.place)}>{report.location.place.name}</a>
+              </dd>
+            </div>
+          )}
+          {report.location?.label && report.location.label !== report.location.place?.name && (
             <div>
               <dt>Location</dt>
               <dd>{report.location.label}</dd>

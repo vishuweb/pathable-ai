@@ -4,6 +4,8 @@
 
 Every barrier category is tagged with the needs it may affect: blocked curb ramps, obstructed footpaths, damaged surfaces, difficult entrances, tactile guidance problems, hard-to-detect obstacles, crossing problems, and signage or wayfinding problems. Visitors can choose their own needs on **My needs** (stored only in their browser, never sent anywhere) and filter community reports by them. Things a photo cannot show, such as whether a signal is audible or a lift works, are never guessed.
 
+**Places.** Reports can be linked to a real place found through OpenStreetMap, and **Explore places** shows a place's accessibility information as recorded by OpenStreetMap contributors: wheelchair access, steps, ramps, kerbs, tactile paving, audible and vibrating crossing signals, written information, hearing loops, seating and more, each item separately, marked as community data and never as verified. Missing items are shown as unknown, old survey dates are flagged, there is no overall score, and the page lists PathAble reports within 150 m. Place search runs through the server with OpenStreetMap's usage rules (identifying User-Agent, at most one request per second, caching); no key or payment is involved.
+
 Built for the Meta Global AI Developer Hackathon with the Meta Model API:
 
 - **Muse Spark 1.3** reasons about the scene and returns structured findings.
@@ -33,7 +35,7 @@ Open the app, press **Report a barrier** (`/report`) and pick a photo under **No
 Command-line checks:
 
 ```bash
-npm test                                                       # 44 tests; the Meta API is mocked, so they cost nothing
+npm test                                                       # 63 tests; the Meta API is mocked, so they cost nothing
 npm run lint && npm run typecheck                              # ESLint (Next.js rules) and TypeScript
 npm run e2e                                                    # browser test of the whole flow against the mocked API (needs Chrome)
 npm run smoke:spark -- path/to/photo.jpg                       # Muse Spark alone

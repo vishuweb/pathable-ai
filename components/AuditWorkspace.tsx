@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PipelineCancelled, runPipeline } from "@/lib/pipeline";
 import type { PreparedImage } from "@/lib/prepare-image";
-import type { ModelInfo } from "@/lib/report";
+import type { ModelInfo, ReportLocation } from "@/lib/report";
 import type { Evidence, SceneAnalysis } from "@/lib/types";
 import { ReviewSession } from "./ReviewSession";
 
@@ -21,7 +21,7 @@ const PHASE_MESSAGE: Partial<Record<Phase, string>> = {
   segmenting: "Locating visual evidence with SAM 3.1…",
 };
 
-export function AuditWorkspace() {
+export function AuditWorkspace({ initialLocation }: { initialLocation?: ReportLocation }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [image, setImage] = useState<PreparedImage>();
   const [analysis, setAnalysis] = useState<SceneAnalysis>();
@@ -192,6 +192,7 @@ export function AuditWorkspace() {
       {image && (
         <ReviewSession
           key={runKey}
+          initialLocation={initialLocation}
           image={image}
           analysis={analysis}
           evidence={evidence}

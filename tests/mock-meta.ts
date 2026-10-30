@@ -20,6 +20,9 @@ export type ChatReply = { kind: "content"; content: string } | { kind: "status";
 
 export type TranscribeReply = { kind: "json"; body: unknown } | { kind: "status"; status: number };
 
+/** Replies for the OpenStreetMap services (Nominatim search and lookup, and the main API). */
+export type OsmReply = { kind: "json"; body: unknown } | { kind: "status"; status: number };
+
 export interface Captured {
   path: string;
   headers: http.IncomingHttpHeaders;
@@ -39,6 +42,9 @@ export async function startMockMeta(imageSize: { width: number; height: number }
     chat: { kind: "content", content: "{}" } as ChatReply,
     sam: new Map<string, SamReply>(),
     transcribe: { kind: "json", body: { transcript: "", audioDurationMs: 0 } } as TranscribeReply,
+    placeSearch: { kind: "json", body: [] } as OsmReply,
+    placeLookup: { kind: "json", body: [] } as OsmReply,
+    osmElement: { kind: "status", status: 404 } as OsmReply,
   };
   const requests: Captured[] = [];
 
@@ -101,6 +107,18 @@ export async function startMockMeta(imageSize: { width: number; height: number }
       return res.end();
     }
 
+    const osm = url.startsWith("/search?")
+      ? replies.placeSearch
+      : url.startsWith("/lookup?")
+        ? replies.placeLookup
+        : url.startsWith("/api/0.6/")
+          ? replies.osmElement
+          : undefined;
+    if (osm) {
+      res.writeHead(osm.kind === "status" ? osm.status : 200, { "content-type": "application/json" });
+      return res.end(JSON.stringify(osm.kind === "json" ? osm.body : { error: "mock" }));
+    }
+
     if (url.startsWith("/v1/asr/transcribe")) {
       const reply = replies.transcribe;
       res.writeHead(reply.kind === "status" ? reply.status : 200, { "content-type": "application/json" });
@@ -114,6 +132,9 @@ export async function startMockMeta(imageSize: { width: number; height: number }
   const { port } = server.address() as { port: number };
   return {
     url: `http://127.0.0.1:${port}/v1`,
+    /** Base URLs for NOMINATIM_URL and OSM_API_URL. */
+    nominatimUrl: `http://127.0.0.1:${port}`,
+    osmApiUrl: `http://127.0.0.1:${port}/api/0.6`,
     replies,
     requests,
     close: () => {

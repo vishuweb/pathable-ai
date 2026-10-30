@@ -42,6 +42,14 @@ export default function PrivacyPage() {
         </li>
       </ul>
 
+      <h2>Place search</h2>
+      <p>
+        When you search for a place, the words you type are sent from our server to OpenStreetMap&apos;s Nominatim
+        service; your own IP address is not passed on. Place information is OpenStreetMap data, © OpenStreetMap
+        contributors, available under the Open Database License. &ldquo;Near my location&rdquo; on the reports page uses
+        your position only inside your browser and never sends or saves it.
+      </p>
+
       <h2>Voice notes</h2>
       <p>
         A recording is sent to Meta&apos;s Muse Voice Transcribe model and turned into text. PathAble AI does not
