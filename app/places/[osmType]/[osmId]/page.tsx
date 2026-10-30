@@ -7,7 +7,9 @@ import { formatDateTime } from "@/lib/format";
 import { NEED_GROUPS, NEED_GROUP_INFO } from "@/lib/needs";
 import { OSM_TYPES, distanceMeters, formatDistance, osmUrl, type OsmType } from "@/lib/place";
 import { STALE_AFTER_YEARS, isStale, placeAttributes } from "@/lib/place-attributes";
-import { PlaceServiceError, lookupPlace } from "@/lib/places";
+import { directoryRetrieved, findInDirectory } from "@/lib/campus-directory";
+import { PlaceServiceError, lookupPlace, type PlaceDetails } from "@/lib/places";
+import { activeRegion, inRegion } from "@/lib/region";
 import { summarizeReport, verifiedNeeds } from "@/lib/report";
 import { STATUS_INFO, currentStatus } from "@/lib/report-status";
 import { reports } from "@/lib/store";
@@ -37,21 +39,41 @@ export default async function PlacePage({ params }: Params) {
   const ref = parseParams(osmType, osmId);
   if (!ref) notFound();
 
-  let place;
+  const region = activeRegion();
+  const saved = findInDirectory(region, ref.type, ref.id);
+  let place: PlaceDetails | undefined;
+  let offline = false;
   try {
     place = await lookupPlace(ref.type, ref.id);
   } catch (error) {
     if (!(error instanceof PlaceServiceError)) throw error;
+    if (!saved) {
+      return (
+        <section aria-labelledby="place-title">
+          <h1 id="place-title">Place information unavailable</h1>
+          <p className="error" role="alert">
+            {error.message}
+          </p>
+        </section>
+      );
+    }
+    // OpenStreetMap is unreachable: show the saved campus directory copy, and say so.
+    place = saved;
+    offline = true;
+  }
+  if (!place) notFound();
+
+  if (!inRegion(region, place.latitude, place.longitude)) {
     return (
       <section aria-labelledby="place-title">
-        <h1 id="place-title">Place information unavailable</h1>
-        <p className="error" role="alert">
-          {error.message}
+        <h1 id="place-title">{place.name}</h1>
+        <p className="empty-state">
+          This place is outside the {region.name} pilot area, so PathAble AI does not cover it yet.{" "}
+          <Link href="/places">Explore places on campus</Link>.
         </p>
       </section>
     );
   }
-  if (!place) notFound();
 
   const attributes = placeAttributes(place.tags);
   const known = attributes.filter((a) => a.state === "community").length;
@@ -93,6 +115,10 @@ export default async function PlacePage({ params }: Params) {
       </header>
 
       <p className="source-note">
+        <strong>Source: recorded in OpenStreetMap.</strong> Not added by PathAble AI users, and not independently
+        verified.{" "}
+        {offline &&
+          `OpenStreetMap could not be reached just now, so this is the saved ${region.name} directory from ${directoryRetrieved(region)}. `}
         The information below was recorded by{" "}
         <a href={osmUrl(place)} target="_blank" rel="noreferrer">
           OpenStreetMap contributors (opens in a new tab)

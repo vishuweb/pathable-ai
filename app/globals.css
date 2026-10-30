@@ -1681,3 +1681,71 @@ fieldset:disabled .segment {
     grid-template-columns: 16rem 1fr;
   }
 }
+
+/* Explore places: campus map and list */
+.explorer .filter-buttons {
+  margin: 12px 0;
+}
+
+.explorer-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.campus-map {
+  height: 320px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #e9edf2;
+  z-index: 0;
+}
+
+.campus-map-loading {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.place-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.place-list li {
+  display: grid;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.place-list a {
+  font-weight: 600;
+  min-height: 24px;
+}
+
+.place-list .muted {
+  font-size: 0.85rem;
+}
+
+@media (min-width: 900px) {
+  .explorer-layout {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .campus-map {
+    height: 520px;
+    position: sticky;
+    top: 16px;
+  }
+
+  .place-list {
+    max-height: 520px;
+    overflow-y: auto;
+  }
+}

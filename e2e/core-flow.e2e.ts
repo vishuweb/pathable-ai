@@ -63,7 +63,7 @@ before(async () => {
   for (const route of ["/", "/report", "/reports", "/needs", "/places", "/owner", "/batch", `/reports/${missing}`]) {
     await fetch(BASE + route);
   }
-  await fetch(`${BASE}/places/node/1`);
+  await fetch(`${BASE}/places/way/1`);
   await fetch(`${BASE}/api/places?q=warm`);
   for (const route of ["/api/analyze", "/api/segment", "/api/reports"]) await fetch(BASE + route, { method: "POST", body: "{}" });
   await fetch(`${BASE}/api/reports/${missing}/image`);
@@ -234,58 +234,83 @@ test("my needs are saved on this device and narrow the community reports", { ski
   await page.close();
 });
 
-test("a place profile shows recorded and unknown information, and takes a report", { skip: !CHROME && "Chrome not found" }, async () => {
-  const place = {
-    osm_type: "node",
-    osm_id: 469782067,
-    lat: "51.5085185",
-    lon: "-0.1254071",
-    name: "Charing Cross Station",
-    display_name: "Charing Cross Station, Strand, London",
-    category: "highway",
-    type: "bus_stop",
-    extratags: { wheelchair: "limited", tactile_paving: "no", public_transport: "platform", highway: "bus_stop" },
+test("campus places: scoped search, map, profile, and a report at the place", { skip: !CHROME && "Chrome not found" }, async () => {
+  // Central Library, as OpenStreetMap records it (way 517026148), inside the campus boundary.
+  const library = {
+    osm_type: "way",
+    osm_id: 517026148,
+    lat: "23.8158145",
+    lon: "86.4421811",
+    name: "Central Library",
+    display_name: "Central Library, IIT (ISM) Dhanbad, Dhanbad",
+    category: "amenity",
+    type: "library",
+    extratags: { wheelchair: "limited" },
   };
-  mock.replies.placeSearch = { kind: "json", body: [place] };
-  mock.replies.placeLookup = { kind: "json", body: [place] };
+  const madrid = { ...library, osm_id: 24489652, lat: "40.4459", lon: "-3.6774", name: "Auditorio Nacional de Musica" };
+  mock.replies.placeSearch = { kind: "json", body: [madrid] };
+  mock.replies.placeLookup = { kind: "json", body: [library] };
   mock.replies.osmElement = { kind: "json", body: { elements: [{ timestamp: "2023-01-10T09:00:00Z", tags: { bench: "yes" } }] } };
 
   const page = await browser!.newPage();
   page.setDefaultTimeout(60_000);
   page.setDefaultNavigationTimeout(180_000);
   page.on("dialog", (d) => void d.accept());
+  // Tests never load real map tiles from OpenStreetMap's servers.
+  await page.setRequestInterception(true);
+  page.on("request", (r) => void (r.url().includes("tile.openstreetmap.org") ? r.abort() : r.continue()));
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-  await page.goto(`${BASE}/places`, { waitUntil: "networkidle0" });
-  await page.type('input[type="search"]', "charing cross");
-  await page.click('xpath/.//button[normalize-space(.)="Search"]');
-  const result = await page.waitForSelector('xpath/.//label[contains(., "Charing Cross Station")]');
-  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), result!.click()]);
-  assert.equal(new URL(page.url()).pathname, "/places/node/469782067");
 
+  await page.goto(`${BASE}/places`, { waitUntil: "networkidle0" });
+  assert.match(await page.$eval("h1", (h) => h.textContent ?? ""), /IIT \(ISM\) Dhanbad/);
+  await page.waitForSelector(".campus-map path.leaflet-interactive");
+  assert.ok((await page.$$(".place-list li")).length > 50, "the campus directory is listed");
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "no sideways scrolling on a phone");
+
+  const search = async (q: string) => {
+    await page.$eval('form[role="search"] input', (i) => ((i as HTMLInputElement).value = ""));
+    await page.type('form[role="search"] input', q);
+    const before = await page.$eval(".list-status", (e) => e.textContent ?? "");
+    await page.click('form[role="search"] button[type="submit"]');
+    await page.waitForFunction(
+      (previous) => {
+        const status = document.querySelector(".list-status")?.textContent ?? "";
+        return status !== previous && /found within|No matching place/.test(status);
+      },
+      {},
+      before,
+    );
+    return page.$eval(".list-status", (e) => e.textContent ?? "");
+  };
+  assert.equal(await search("NAC Auditorium"), "No matching place found within IIT (ISM) Dhanbad campus.");
+  assert.equal(await page.$(".place-list"), null, "Madrid is never shown");
+  assert.match(await search("central library"), /found within IIT \(ISM\) Dhanbad/);
+  assert.equal(await page.$eval(".place-list li a", (a) => a.textContent), "Central Library");
+  assert.deepEqual(await axeViolations(page), [], "Explore places passes WCAG 2.2 AA checks");
+
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click(".place-list li a")]);
+  assert.equal(new URL(page.url()).pathname, "/places/way/517026148");
   const text = await page.$eval("main", (m) => m.innerText);
+  assert.match(text, /Source: recorded in OpenStreetMap\./);
   assert.match(text, /Wheelchair access\s+Partly accessible\s+Community data, not verified/);
-  assert.match(text, /Tactile paving\s+None/);
-  assert.match(text, /Seating\s+Seating available/, "tags from the OpenStreetMap API are merged in");
   assert.match(text, /Ramp\s+Unknown: not recorded/, "missing information is shown as unknown");
   assert.match(text, /more than 2 years ago, so it may be out of date/);
-  assert.match(text, /never rates a place as accessible overall/);
   assert.deepEqual(await axeViolations(page), [], "place profile passes WCAG 2.2 AA checks");
 
-  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('a[href^="/report?osm=node%2F469782067"]')]);
-  assert.match(await page.$eval("main", (m) => m.textContent ?? ""), /Reporting at Charing Cross Station/);
-
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('a[href^="/report?osm=way%2F517026148"]')]);
+  assert.match(await page.$eval("main", (m) => m.textContent ?? ""), /Reporting at Central Library/);
   mock.replies.chat = { kind: "content", content: modelReply([finding("Scooter on the footpath", {})]) };
   mock.replies.sam.set("electric scooter", { kind: "relative", boxes: [[0.2, 0.4, 0.6, 0.9]] });
   await (await page.$('input[type="file"]'))!.uploadFile(PHOTO);
   await page.waitForSelector(".save-panel");
   await page.waitForFunction(() => !document.querySelector(".evidence-status.status-pending"));
-  assert.match(await page.$eval(".linked-place", (p) => p.textContent ?? ""), /Charing Cross Station/, "the place is pre-filled");
+  assert.match(await page.$eval(".linked-place", (p) => p.textContent ?? ""), /Central Library/, "the place is pre-filled");
   await (await page.waitForSelector('xpath/.//label[contains(., "Not a barrier")]'))!.click();
   await page.click(".consent input");
   await page.click(".save-actions .button-primary");
   await page.waitForSelector(".save-success");
 
-  await page.goto(`${BASE}/places/node/469782067`, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/places/way/517026148`, { waitUntil: "networkidle0" });
   assert.match(await page.$eval("#nearby-title + *", (e) => e.textContent ?? ""), /At this place/);
   await page.close();
 });

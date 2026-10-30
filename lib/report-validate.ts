@@ -1,6 +1,7 @@
 import "server-only";
 import { validateImageDataUrl } from "./image-input";
 import { OSM_TYPES } from "./place";
+import { activeRegion, inRegion } from "./region";
 import {
   HIGHLIGHT_RATINGS,
   REVIEW_DECISIONS,
@@ -236,8 +237,13 @@ function parseLocation(value: unknown): ReportLocation | undefined {
   if (hasCoordinates) {
     location.latitude = number(l.latitude, "Latitude", -90, 90);
     location.longitude = number(l.longitude, "Longitude", -180, 180);
+    const region = activeRegion();
+    if (!inRegion(region, location.latitude, location.longitude)) {
+      fail(`This location is outside the ${region.name} pilot area. Reports are limited to the pilot area for now.`);
+    }
     if (l.accuracyM != null) location.accuracyM = number(l.accuracyM, "Location accuracy", 0, 100_000);
   }
+  if (location.place && !hasCoordinates) fail("A chosen place must include its coordinates.");
   return location.label || hasCoordinates || location.place ? location : undefined;
 }
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuditWorkspace } from "@/components/AuditWorkspace";
 import { OSM_TYPES, placePath } from "@/lib/place";
+import { activeRegion, inRegion } from "@/lib/region";
 import type { ReportLocation } from "@/lib/report";
 
 export const metadata: Metadata = { title: "Report a barrier · PathAble AI" };
@@ -17,7 +18,7 @@ function placeFromQuery(query: Record<string, string | string[] | undefined>): R
   const latitude = Number(query.lat);
   const longitude = Number(query.lon);
   if (!osmType || !Number.isSafeInteger(osmId) || osmId <= 0 || !name) return undefined;
-  if (!(Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180)) return undefined;
+  if (!inRegion(activeRegion(), latitude, longitude)) return undefined;
   return { label: name, latitude, longitude, place: { osmType, osmId, name } };
 }
 

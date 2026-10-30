@@ -1,0 +1,1172 @@
+{
+ "region": "iit-ism-dhanbad",
+ "retrieved": "2026-10-30",
+ "license": "© OpenStreetMap contributors, ODbL",
+ "places": [
+  {
+   "osmType": "node",
+   "osmId": 4640533400,
+   "name": "India Post (IIT ISM)",
+   "latitude": 23.8116363,
+   "longitude": 86.4421556,
+   "tags": {
+    "amenity": "post_office",
+    "name": "India Post (IIT ISM)",
+    "operator": "India Post",
+    "operator:wikidata": "Q3519720"
+   },
+   "lastEdited": "2022-08-12T14:32:20Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9774092691,
+   "name": "State Bank of India",
+   "latitude": 23.8114282,
+   "longitude": 86.4476081,
+   "tags": {
+    "amenity": "atm",
+    "brand": "State Bank of India",
+    "brand:wikidata": "Q1340361",
+    "name": "State Bank of India",
+    "operator": "State Bank of India",
+    "operator:wikidata": "Q1340361",
+    "short_name": "SBI"
+   },
+   "lastEdited": "2022-05-27T04:23:38Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9774092692,
+   "name": "Sahi Darbar",
+   "latitude": 23.8113666,
+   "longitude": 86.4442404,
+   "tags": {
+    "amenity": "restaurant",
+    "name": "Sahi Darbar",
+    "name:sat": "ᱥᱟᱦᱤ ᱫᱚᱨᱵᱟᱨ"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9840883850,
+   "name": "Tasty Bites",
+   "latitude": 23.8111944,
+   "longitude": 86.4440808,
+   "tags": {
+    "amenity": "restaurant",
+    "name": "Tasty Bites"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9840883851,
+   "name": "Aashirwad Enterprises",
+   "latitude": 23.8110157,
+   "longitude": 86.4439092,
+   "tags": {
+    "name": "Aashirwad Enterprises",
+    "shop": "pastry"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9840883852,
+   "name": "Momos Center",
+   "latitude": 23.809685,
+   "longitude": 86.4431391,
+   "tags": {
+    "amenity": "fast_food",
+    "name": "Momos Center",
+    "name:sat": "ᱢᱳᱢᱳᱡᱽ ᱥᱮᱱᱴᱟᱨ"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9840883853,
+   "name": "Shiv Shankar Dosa",
+   "latitude": 23.8092773,
+   "longitude": 86.4428792,
+   "tags": {
+    "amenity": "fast_food",
+    "name": "Shiv Shankar Dosa",
+    "name:sat": "ᱥᱤᱵᱽ ᱥᱚᱝᱠᱚᱨ ᱰᱷᱚᱥᱟ"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9840883870,
+   "name": "Shawarma Street",
+   "latitude": 23.8090902,
+   "longitude": 86.4428168,
+   "tags": {
+    "amenity": "restaurant",
+    "name": "Shawarma Street"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9947071078,
+   "name": "State Bank of India",
+   "latitude": 23.8162661,
+   "longitude": 86.4403631,
+   "tags": {
+    "amenity": "atm",
+    "brand": "State Bank of India",
+    "brand:wikidata": "Q1340361",
+    "name": "State Bank of India",
+    "operator": "State Bank of India",
+    "operator:wikidata": "Q1340361",
+    "short_name": "SBI"
+   },
+   "lastEdited": "2022-08-11T10:05:11Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9947077928,
+   "name": "Amul",
+   "latitude": 23.8163157,
+   "longitude": 86.4402662,
+   "tags": {
+    "name": "Amul",
+    "shop": "yes"
+   },
+   "lastEdited": "2022-08-11T10:08:04Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9947147428,
+   "name": "State Bank of India",
+   "latitude": 23.8090984,
+   "longitude": 86.4433779,
+   "tags": {
+    "amenity": "bank",
+    "brand": "State Bank of India",
+    "brand:wikidata": "Q1340361",
+    "name": "State Bank of India",
+    "short_name": "SBI"
+   },
+   "lastEdited": "2022-08-11T10:36:01Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9949461968,
+   "name": "Hair Salon",
+   "latitude": 23.8164246,
+   "longitude": 86.4403276,
+   "tags": {
+    "name": "Hair Salon",
+    "shop": "hairdresser"
+   },
+   "lastEdited": "2022-08-12T14:24:01Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9949476284,
+   "name": "Ram Dhani Tea Stall",
+   "latitude": 23.8164505,
+   "longitude": 86.4402375,
+   "tags": {
+    "name": "Ram Dhani Tea Stall",
+    "shop": "tea"
+   },
+   "lastEdited": "2022-08-12T14:20:33Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9949516298,
+   "name": "Penman Auditoriam",
+   "latitude": 23.8149833,
+   "longitude": 86.4411156,
+   "tags": {
+    "amenity": "conference_centre",
+    "name": "Penman Auditoriam"
+   },
+   "lastEdited": "2022-08-12T14:41:54Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9949531443,
+   "name": "Ruby Garden",
+   "latitude": 23.8134689,
+   "longitude": 86.4432032,
+   "tags": {
+    "leisure": "garden",
+    "name": "Ruby Garden"
+   },
+   "lastEdited": "2022-08-12T14:36:29Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 9950500643,
+   "name": "Jasper garden",
+   "latitude": 23.8165336,
+   "longitude": 86.4416316,
+   "tags": {
+    "leisure": "garden",
+    "name": "Jasper garden"
+   },
+   "lastEdited": "2022-08-13T06:07:58Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 10932044475,
+   "name": "TECHNOLOGY INNOVATION IN EXPLORATION AND MINING FOUNDATION (TEXMiN)",
+   "latitude": 23.8124726,
+   "longitude": 86.43849,
+   "tags": {
+    "addr:city": "Dhanbad",
+    "addr:housenumber": "i2h Tower (Institute Innovation Hub),",
+    "addr:postcode": "826004",
+    "addr:street": "IIT(ISM) Dhanbad",
+    "name": "TECHNOLOGY INNOVATION IN EXPLORATION AND MINING FOUNDATION (TEXMiN)",
+    "office": "ngo",
+    "opening_hours": "Mo - Fri 09:30 AM - 06:30 PM",
+    "website": "https://texmin.in/"
+   },
+   "lastEdited": "2024-12-05T12:15:18Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 11329154294,
+   "name": "Durga Mandir Dhaiya",
+   "latitude": 23.8183365,
+   "longitude": 86.4369057,
+   "tags": {
+    "addr:city": "Dhanbad",
+    "addr:postcode": "826004",
+    "addr:street": "Mandal Basti, Dhaiya",
+    "amenity": "place_of_worship",
+    "name": "Durga Mandir Dhaiya",
+    "religion": "hindu"
+   },
+   "lastEdited": "2023-11-06T11:59:36Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 12880431583,
+   "name": "Topaz Canteen",
+   "latitude": 23.818061,
+   "longitude": 86.4380564,
+   "tags": {
+    "amenity": "fast_food",
+    "name": "Topaz Canteen",
+    "opening_hours": "Mo-Su 16:00-02:00"
+   },
+   "lastEdited": "2025-06-02T07:32:27Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 12926779708,
+   "name": "Student Palace",
+   "latitude": 23.8093512,
+   "longitude": 86.4426508,
+   "tags": {
+    "name": "Student Palace",
+    "shop": "tobacco"
+   },
+   "lastEdited": "2025-06-20T00:02:20Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 13122825114,
+   "name": "Geological Museum",
+   "latitude": 23.8147092,
+   "longitude": 86.4389736,
+   "tags": {
+    "addr:city": "Dhanbad",
+    "addr:district": "Dhanbad",
+    "addr:postcode": "826004",
+    "full_name": "Geological Museum IIT (ISM) Dhanbad",
+    "museum": "geology",
+    "name": "Geological Museum",
+    "tourism": "museum"
+   },
+   "lastEdited": "2025-12-03T16:23:01Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 13440277530,
+   "name": "KFC",
+   "latitude": 23.815666,
+   "longitude": 86.4424675,
+   "tags": {
+    "amenity": "restaurant",
+    "name": "KFC"
+   },
+   "lastEdited": "2026-01-08T18:03:10Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 14235945954,
+   "name": "Fossilized Tree",
+   "latitude": 23.8137684,
+   "longitude": 86.4412209,
+   "tags": {
+    "access": "yes",
+    "historic": "monument",
+    "name": "Fossilized Tree"
+   },
+   "lastEdited": "2026-09-30T21:50:12Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 14237666695,
+   "name": "CORS IIT Dhanbad",
+   "latitude": 23.8151982,
+   "longitude": 86.4440553,
+   "tags": {
+    "historic": "monument",
+    "name": "CORS IIT Dhanbad"
+   },
+   "lastEdited": "2026-10-01T05:46:28Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 14237785794,
+   "name": "A Block",
+   "latitude": 23.8188628,
+   "longitude": 86.4395581,
+   "tags": {
+    "addr:city": "Dhanbad",
+    "addr:district": "Dhanbad",
+    "addr:postcode": "826004",
+    "internet_access": "yes",
+    "internet_access:fee": "no",
+    "name": "A Block",
+    "tourism": "hostel"
+   },
+   "lastEdited": "2026-10-01T05:43:11Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 14262974497,
+   "name": "Basket Ball Court (Amber hostel)",
+   "latitude": 23.8188243,
+   "longitude": 86.4402978,
+   "tags": {
+    "access": "private",
+    "leisure": "pitch",
+    "name": "Basket Ball Court (Amber hostel)",
+    "sport": "basketball",
+    "surface": "concrete"
+   },
+   "lastEdited": "2026-10-08T04:29:34Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 14262984064,
+   "name": "Gymkhana Ground",
+   "latitude": 23.8176486,
+   "longitude": 86.4389002,
+   "tags": {
+    "access": "private",
+    "leisure": "playground",
+    "name": "Gymkhana Ground",
+    "operator": "IIT(ISM)",
+    "surface": "ground"
+   },
+   "lastEdited": "2026-10-08T04:39:14Z"
+  },
+  {
+   "osmType": "node",
+   "osmId": 14303464345,
+   "name": null,
+   "latitude": 23.8162741,
+   "longitude": 86.4421632,
+   "tags": {
+    "crossing": "library_stair_markings",
+    "crossing:markings": "yes",
+    "highway": "crossing"
+   },
+   "lastEdited": "2026-10-20T15:05:07Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 469458508,
+   "name": "oval garden",
+   "latitude": 23.8139537,
+   "longitude": 86.4412173,
+   "tags": {
+    "landuse": "allotments",
+    "name": "oval garden"
+   },
+   "lastEdited": "2024-12-05T11:56:45Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 469459341,
+   "name": "upper ground",
+   "latitude": 23.8130131,
+   "longitude": 86.4410483,
+   "tags": {
+    "landuse": "recreation_ground",
+    "name": "upper ground",
+    "name:sat": "ᱪᱮᱛᱟᱱ ᱢᱚᱭᱫᱟᱱ"
+   },
+   "lastEdited": "2024-12-06T08:04:29Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 469464202,
+   "name": "Lower Ground",
+   "latitude": 23.8129894,
+   "longitude": 86.4425709,
+   "tags": {
+    "landuse": "recreation_ground",
+    "name": "Lower Ground",
+    "name:sat": "ᱞᱟᱛᱟᱨ ᱢᱚᱭᱫᱟᱱ"
+   },
+   "lastEdited": "2024-12-06T08:04:29Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 469769232,
+   "name": null,
+   "latitude": 23.8167792,
+   "longitude": 86.4399933,
+   "tags": {
+    "leisure": "park"
+   },
+   "lastEdited": "2017-01-28T20:03:16Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026146,
+   "name": "Main Building",
+   "latitude": 23.8145103,
+   "longitude": 86.44122,
+   "tags": {
+    "amenity": "college",
+    "building": "university",
+    "name": "Main Building"
+   },
+   "lastEdited": "2024-12-05T13:04:02Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026147,
+   "name": "Old Library",
+   "latitude": 23.8149917,
+   "longitude": 86.4423075,
+   "tags": {
+    "amenity": "library",
+    "building": "yes",
+    "name": "Old Library"
+   },
+   "lastEdited": "2024-12-05T17:39:33Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026148,
+   "name": "Central Library",
+   "latitude": 23.8158145,
+   "longitude": 86.4421811,
+   "tags": {
+    "amenity": "library",
+    "building": "yes",
+    "internet_access": "yes",
+    "name": "Central Library"
+   },
+   "lastEdited": "2026-01-08T18:01:02Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026150,
+   "name": "Emerald Hostel",
+   "latitude": 23.8176787,
+   "longitude": 86.4397905,
+   "tags": {
+    "building": "yes",
+    "name": "Emerald Hostel",
+    "tourism": "hostel"
+   },
+   "lastEdited": "2024-12-05T17:39:33Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026155,
+   "name": null,
+   "latitude": 23.8176964,
+   "longitude": 86.4376823,
+   "tags": {
+    "leisure": "sports_centre",
+    "sport": "swimming"
+   },
+   "lastEdited": "2017-08-20T12:55:10Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026160,
+   "name": "Student Activity Center",
+   "latitude": 23.8175258,
+   "longitude": 86.4375391,
+   "tags": {
+    "building": "yes",
+    "leisure": "sports_centre",
+    "name": "Student Activity Center"
+   },
+   "lastEdited": "2017-08-20T12:55:10Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026162,
+   "name": null,
+   "latitude": 23.8169573,
+   "longitude": 86.4389015,
+   "tags": {
+    "leisure": "pitch",
+    "sport": "basketball"
+   },
+   "lastEdited": "2017-08-20T12:55:10Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026163,
+   "name": null,
+   "latitude": 23.8167845,
+   "longitude": 86.4388137,
+   "tags": {
+    "leisure": "pitch",
+    "sport": "basketball"
+   },
+   "lastEdited": "2017-08-20T12:55:10Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026164,
+   "name": null,
+   "latitude": 23.816434,
+   "longitude": 86.4389812,
+   "tags": {
+    "leisure": "pitch",
+    "sport": "tennis"
+   },
+   "lastEdited": "2017-08-20T12:55:10Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026177,
+   "name": "New Academic Block",
+   "latitude": 23.8115249,
+   "longitude": 86.4409094,
+   "tags": {
+    "building": "university",
+    "name": "New Academic Block"
+   },
+   "lastEdited": "2024-12-05T11:56:45Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026178,
+   "name": "Department of Computer Scince and Management Studies",
+   "latitude": 23.8120549,
+   "longitude": 86.4406556,
+   "tags": {
+    "building": "university",
+    "building:levels": "5",
+    "name": "Department of Computer Scince and Management Studies"
+   },
+   "lastEdited": "2024-12-05T11:56:45Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026180,
+   "name": "Executive Development Center",
+   "latitude": 23.8121082,
+   "longitude": 86.4415446,
+   "tags": {
+    "building": "university",
+    "name": "Executive Development Center"
+   },
+   "lastEdited": "2024-12-05T11:56:45Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026185,
+   "name": "ISM Health Center",
+   "latitude": 23.8118816,
+   "longitude": 86.4389134,
+   "tags": {
+    "amenity": "hospital",
+    "name": "ISM Health Center"
+   },
+   "lastEdited": "2017-08-20T12:55:11Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026188,
+   "name": "Director's Conference Hall",
+   "latitude": 23.8143714,
+   "longitude": 86.442444,
+   "tags": {
+    "building": "commercial",
+    "name": "Director's Conference Hall"
+   },
+   "lastEdited": "2024-12-05T17:39:33Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026191,
+   "name": "Sapphire Hostel",
+   "latitude": 23.8196128,
+   "longitude": 86.4369884,
+   "tags": {
+    "building": "yes",
+    "name": "Sapphire Hostel",
+    "tourism": "hostel"
+   },
+   "lastEdited": "2024-12-05T17:39:33Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026192,
+   "name": null,
+   "latitude": 23.8189974,
+   "longitude": 86.4367716,
+   "tags": {
+    "leisure": "pitch",
+    "sport": "basketball"
+   },
+   "lastEdited": "2017-08-20T12:55:12Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026196,
+   "name": "Topaz Hostel",
+   "latitude": 23.818789,
+   "longitude": 86.4379793,
+   "tags": {
+    "building": "yes",
+    "name": "Topaz Hostel",
+    "tourism": "hostel"
+   },
+   "lastEdited": "2024-12-05T17:39:33Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026197,
+   "name": "New Lecture Hall Complex",
+   "latitude": 23.8162428,
+   "longitude": 86.439468,
+   "tags": {
+    "building": "university",
+    "name": "New Lecture Hall Complex"
+   },
+   "lastEdited": "2024-12-05T12:15:18Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 517026199,
+   "name": "Opal Hostel",
+   "latitude": 23.8157766,
+   "longitude": 86.4416585,
+   "tags": {
+    "building": "yes",
+    "name": "Opal Hostel",
+    "tourism": "hostel"
+   },
+   "lastEdited": "2024-12-05T12:15:18Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 575553578,
+   "name": "ISM Main Gate Road",
+   "latitude": 23.8101393,
+   "longitude": 86.4425671,
+   "tags": {
+    "highway": "unclassified",
+    "lanes": "2",
+    "maxspeed": "30",
+    "name": "ISM Main Gate Road",
+    "name:sat": "ᱟᱭᱮᱥᱮᱢ ᱢᱩᱞ ᱜᱮᱴ ᱰᱟᱦᱟᱨ",
+    "surface": "asphalt"
+   },
+   "lastEdited": "2026-10-27T03:11:25Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1009232430,
+   "name": "Bungalow",
+   "latitude": 23.8123358,
+   "longitude": 86.4448508,
+   "tags": {
+    "building": "house",
+    "building:levels": "1",
+    "height": "3",
+    "name": "Bungalow"
+   },
+   "lastEdited": "2021-12-05T07:41:34Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1009232431,
+   "name": "Residential Quarters",
+   "latitude": 23.8138881,
+   "longitude": 86.4468347,
+   "tags": {
+    "addr:street": "Teachers' Colony",
+    "building": "yes",
+    "building:levels": "2",
+    "height": "6",
+    "name": "Residential Quarters"
+   },
+   "lastEdited": "2021-12-05T07:41:34Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1009232432,
+   "name": "Residential Quarters",
+   "latitude": 23.813789,
+   "longitude": 86.4472772,
+   "tags": {
+    "addr:street": "Teachers' Colony",
+    "building": "yes",
+    "building:levels": "2",
+    "height": "6",
+    "name": "Residential Quarters"
+   },
+   "lastEdited": "2021-12-05T07:41:34Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1009232433,
+   "name": "Residential Quarters",
+   "latitude": 23.8134099,
+   "longitude": 86.4473774,
+   "tags": {
+    "addr:street": "Teachers' Colony",
+    "building": "yes",
+    "building:levels": "2",
+    "height": "6",
+    "name": "Residential Quarters"
+   },
+   "lastEdited": "2021-12-05T07:41:34Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1009232434,
+   "name": "Residential Quarters",
+   "latitude": 23.8135144,
+   "longitude": 86.4469207,
+   "tags": {
+    "addr:street": "Teachers' Colony",
+    "building": "yes",
+    "building:levels": "2",
+    "height": "6",
+    "name": "Residential Quarters"
+   },
+   "lastEdited": "2021-12-05T07:41:34Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1009232435,
+   "name": "Bungalow",
+   "latitude": 23.8122996,
+   "longitude": 86.4456824,
+   "tags": {
+    "building": "house",
+    "building:levels": "1",
+    "height": "3",
+    "name": "Bungalow"
+   },
+   "lastEdited": "2021-12-05T07:41:34Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1009232436,
+   "name": "Bungalow",
+   "latitude": 23.8122,
+   "longitude": 86.4467508,
+   "tags": {
+    "building": "house",
+    "building:levels": "1",
+    "height": "3",
+    "name": "Bungalow"
+   },
+   "lastEdited": "2021-12-05T07:41:34Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1009232437,
+   "name": "Bungalow",
+   "latitude": 23.8122174,
+   "longitude": 86.4474033,
+   "tags": {
+    "building": "house",
+    "building:levels": "1",
+    "height": "3",
+    "name": "Bungalow"
+   },
+   "lastEdited": "2021-12-05T07:41:34Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1010963506,
+   "name": "Rosalin Girls Hostel",
+   "latitude": 23.8133808,
+   "longitude": 86.4451188,
+   "tags": {
+    "building": "yes",
+    "name": "Rosalin Girls Hostel"
+   },
+   "lastEdited": "2024-12-06T08:04:29Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1010963511,
+   "name": "Department of Humanities and Social Sciences",
+   "latitude": 23.8155438,
+   "longitude": 86.4427831,
+   "tags": {
+    "building": "yes",
+    "name": "Department of Humanities and Social Sciences"
+   },
+   "lastEdited": "2022-08-11T10:11:09Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1072584463,
+   "name": null,
+   "latitude": 23.8113101,
+   "longitude": 86.4461557,
+   "tags": {
+    "amenity": "parking"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1072584464,
+   "name": null,
+   "latitude": 23.8113037,
+   "longitude": 86.4464301,
+   "tags": {
+    "amenity": "parking"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1072584465,
+   "name": null,
+   "latitude": 23.8111234,
+   "longitude": 86.4449302,
+   "tags": {
+    "amenity": "parking"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1072584466,
+   "name": null,
+   "latitude": 23.8113135,
+   "longitude": 86.4455927,
+   "tags": {
+    "amenity": "parking"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1072584467,
+   "name": null,
+   "latitude": 23.8113203,
+   "longitude": 86.4453011,
+   "tags": {
+    "amenity": "parking"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1072584468,
+   "name": null,
+   "latitude": 23.8112978,
+   "longitude": 86.4451315,
+   "tags": {
+    "amenity": "parking"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1072584469,
+   "name": "ISM Complex",
+   "latitude": 23.8089074,
+   "longitude": 86.44329,
+   "tags": {
+    "building": "yes",
+    "name": "ISM Complex"
+   },
+   "lastEdited": "2022-06-23T08:39:52Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1085559594,
+   "name": "Science Block",
+   "latitude": 23.8146426,
+   "longitude": 86.440126,
+   "tags": {
+    "amenity": "college",
+    "building": "yes",
+    "building:levels": "4",
+    "name": "Science Block"
+   },
+   "lastEdited": "2026-10-01T05:42:55Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1085567130,
+   "name": "Department of Mechanical Engineering",
+   "latitude": 23.8131754,
+   "longitude": 86.4392893,
+   "tags": {
+    "building": "yes",
+    "name": "Department of Mechanical Engineering"
+   },
+   "lastEdited": "2024-12-05T11:56:45Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1085568294,
+   "name": "Department of Fuel, Mineral & Metallurgical Engineering",
+   "latitude": 23.8127243,
+   "longitude": 86.439639,
+   "tags": {
+    "building": "yes",
+    "name": "Department of Fuel, Mineral & Metallurgical Engineering"
+   },
+   "lastEdited": "2022-08-11T10:33:09Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1085589800,
+   "name": "Geological Museum",
+   "latitude": 23.8147044,
+   "longitude": 86.4390738,
+   "tags": {
+    "addr:city": "Dhanbad",
+    "addr:district": "Dhanbad",
+    "addr:postcode": "826004",
+    "building": "yes",
+    "building:levels": "1",
+    "full_name": "Geological Museum, IIT (ISM) Dhanbad",
+    "museum": "geology",
+    "name": "Geological Museum",
+    "tourism": "museum"
+   },
+   "lastEdited": "2026-08-21T10:08:39Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1085953524,
+   "name": "Department of Petroleum Engineering",
+   "latitude": 23.8149181,
+   "longitude": 86.4431679,
+   "tags": {
+    "building": "university",
+    "name": "Department of Petroleum Engineering"
+   },
+   "lastEdited": "2022-08-13T06:12:56Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1340482821,
+   "name": "Faculty Quarters Block C",
+   "latitude": 23.8110489,
+   "longitude": 86.4392751,
+   "tags": {
+    "building": "yes",
+    "name": "Faculty Quarters Block C"
+   },
+   "lastEdited": "2024-12-06T08:04:29Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1340482822,
+   "name": "Faculty Quarters Block B",
+   "latitude": 23.8102759,
+   "longitude": 86.439745,
+   "tags": {
+    "building": "yes",
+    "name": "Faculty Quarters Block B"
+   },
+   "lastEdited": "2024-12-06T08:04:29Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1340482823,
+   "name": "Faculty Quarters Block A",
+   "latitude": 23.8102493,
+   "longitude": 86.4388177,
+   "tags": {
+    "building": "yes",
+    "name": "Faculty Quarters Block A"
+   },
+   "lastEdited": "2024-12-06T08:04:29Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1340482826,
+   "name": "Horticulture Building",
+   "latitude": 23.809917,
+   "longitude": 86.442202,
+   "tags": {
+    "building": "yes",
+    "name": "Horticulture Building"
+   },
+   "lastEdited": "2024-12-06T08:04:29Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1340500779,
+   "name": null,
+   "latitude": 23.8165499,
+   "longitude": 86.4386956,
+   "tags": {
+    "leisure": "pitch",
+    "sport": "tennis"
+   },
+   "lastEdited": "2024-12-06T09:11:13Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1340500780,
+   "name": "International EDC",
+   "latitude": 23.8157144,
+   "longitude": 86.4396229,
+   "tags": {
+    "building": "yes",
+    "name": "International EDC"
+   },
+   "lastEdited": "2024-12-06T09:11:13Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1563980832,
+   "name": "Freshpresso",
+   "latitude": 23.8163864,
+   "longitude": 86.4417753,
+   "tags": {
+    "amenity": "cafe",
+    "building": "yes",
+    "name": "Freshpresso"
+   },
+   "lastEdited": "2026-10-01T05:42:55Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1563981099,
+   "name": "natural featues",
+   "latitude": 23.8143078,
+   "longitude": 86.4431376,
+   "tags": {
+    "name": "natural featues",
+    "natural": "grassland"
+   },
+   "lastEdited": "2026-10-01T05:46:32Z"
+  },
+  {
+   "osmType": "way",
+   "osmId": 1570089815,
+   "name": null,
+   "latitude": 23.8161997,
+   "longitude": 86.4421657,
+   "tags": {
+    "highway": "steps",
+    "incline": "up"
+   },
+   "lastEdited": "2026-10-20T15:05:07Z"
+  },
+  {
+   "osmType": "relation",
+   "osmId": 18374271,
+   "name": "Diamond Hostel",
+   "latitude": 23.8157556,
+   "longitude": 86.440489,
+   "tags": {
+    "building": "yes",
+    "name": "Diamond Hostel",
+    "tourism": "hostel",
+    "type": "multipolygon"
+   },
+   "lastEdited": "2024-12-05T12:15:18Z"
+  },
+  {
+   "osmType": "relation",
+   "osmId": 18374272,
+   "name": "Golden Jubilee Lecture Theatre",
+   "latitude": 23.8140723,
+   "longitude": 86.4399161,
+   "tags": {
+    "amenity": "college",
+    "building": "yes",
+    "name": "Golden Jubilee Lecture Theatre",
+    "type": "multipolygon"
+   },
+   "lastEdited": "2024-12-05T13:04:02Z"
+  },
+  {
+   "osmType": "relation",
+   "osmId": 18375277,
+   "name": "Aquamarine Hostel",
+   "latitude": 23.8191202,
+   "longitude": 86.4357452,
+   "tags": {
+    "building": "yes",
+    "name": "Aquamarine Hostel",
+    "type": "multipolygon"
+   },
+   "lastEdited": "2024-12-05T17:39:33Z"
+  },
+  {
+   "osmType": "relation",
+   "osmId": 18375278,
+   "name": "Amber Hostel",
+   "latitude": 23.8190041,
+   "longitude": 86.4400059,
+   "tags": {
+    "building": "yes",
+    "name": "Amber Hostel",
+    "type": "multipolygon"
+   },
+   "lastEdited": "2026-10-08T04:29:34Z"
+  },
+  {
+   "osmType": "relation",
+   "osmId": 18375279,
+   "name": "Jasper Hostel",
+   "latitude": 23.8170591,
+   "longitude": 86.4409357,
+   "tags": {
+    "building": "yes",
+    "name": "Jasper Hostel",
+    "tourism": "hostel",
+    "type": "multipolygon"
+   },
+   "lastEdited": "2024-12-05T17:39:33Z"
+  },
+  {
+   "osmType": "relation",
+   "osmId": 18377271,
+   "name": "Rosaline Girl's Hostel",
+   "latitude": 23.8134612,
+   "longitude": 86.4459342,
+   "tags": {
+    "building": "yes",
+    "guest_house": "student_accommodation",
+    "name": "Rosaline Girl's Hostel",
+    "tourism": "hostel",
+    "type": "multipolygon"
+   },
+   "lastEdited": "2026-01-11T14:26:21Z"
+  }
+ ]
+}

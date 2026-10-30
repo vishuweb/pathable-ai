@@ -1,4 +1,5 @@
-// Places: reading OpenStreetMap tags, and the server's use of Nominatim and the OSM API (mocked).
+// Places: reading OpenStreetMap tags, the campus boundary and directory, and the server's use of
+// Nominatim and the OSM API (mocked).
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { distanceMeters, formatDistance } from "../lib/place";
@@ -9,6 +10,8 @@ const mock = await startMockMeta();
 Object.assign(process.env, { NOMINATIM_URL: mock.nominatimUrl, OSM_API_URL: mock.osmApiUrl });
 for (const name of ["OWNER_KEY", "VERCEL", "ANALYZE_LIMIT_PER_HOUR"]) delete process.env[name];
 const { PlaceServiceError, lookupPlace, searchPlaces } = await import("../lib/places");
+const { activeRegion, inRegion } = await import("../lib/region");
+const { directory, normalize, searchDirectory } = await import("../lib/campus-directory");
 const placesRoute = await import("../app/api/places/route");
 after(mock.close);
 
@@ -64,91 +67,146 @@ test("survey dates mark old information as possibly out of date", () => {
 });
 
 test("distances", () => {
-  const charingCross = { latitude: 51.5085, longitude: -0.1254 };
-  const trafalgar = { latitude: 51.508, longitude: -0.1281 };
-  const d = distanceMeters(charingCross, trafalgar);
-  assert.ok(d > 150 && d < 250, String(d));
+  const library = { latitude: 23.8145, longitude: 86.4412 };
+  const postOffice = { latitude: 23.8116, longitude: 86.4422 };
+  const d = distanceMeters(library, postOffice);
+  assert.ok(d > 250 && d < 400, String(d));
   assert.equal(formatDistance(184), "180 m");
   assert.equal(formatDistance(1530), "1.5 km");
 });
 
-const nominatimPlace = {
+const campus = activeRegion();
+const names = (results: { name: string }[]) => results.map((r) => r.name);
+
+// Real coordinates: the campus post office, Madrid's National Auditorium of Music, Dhanbad railway station.
+const POST_OFFICE = { lat: 23.8116363, lon: 86.4421556 };
+const MADRID = { lat: 40.4459, lon: -3.6774 };
+const DHANBAD_STATION = { lat: 23.7915, lon: 86.4273 };
+
+test("the campus is the active region, with OpenStreetMap's real boundary", () => {
+  assert.equal(campus.id, "iit-ism-dhanbad");
+  assert.equal(campus.source.osm, "way/133882752");
+  assert.ok(campus.boundary.length > 50);
+  assert.deepEqual(campus.boundary[0], campus.boundary.at(-1), "the ring is closed");
+});
+
+test("point-in-polygon: on campus inside, the rest of the world outside", () => {
+  assert.equal(inRegion(campus, POST_OFFICE.lat, POST_OFFICE.lon), true);
+  assert.equal(inRegion(campus, MADRID.lat, MADRID.lon), false);
+  assert.equal(inRegion(campus, DHANBAD_STATION.lat, DHANBAD_STATION.lon), false, "nearby in town is still outside");
+  assert.equal(inRegion(campus, Number.NaN, 86.44), false);
+});
+
+test("every directory place lies inside the campus", () => {
+  const all = directory(campus);
+  assert.ok(all.length > 50);
+  assert.ok(all.every((p) => inRegion(campus, p.latitude, p.longitude)));
+});
+
+test("names are compared without case, accents or punctuation", () => {
+  assert.equal(normalize("Rosaline Girl's  Hostel"), "rosaline girls hostel");
+  assert.equal(normalize("Fuel, Mineral & Metallurgical"), "fuel mineral and metallurgical");
+});
+
+test("known campus places are found, with common variations", () => {
+  assert.equal(searchDirectory(campus, "central library")[0]?.name, "Central Library");
+  assert.equal(searchDirectory(campus, "CENTRAL LIBRARY")[0]?.name, "Central Library");
+  assert.equal(searchDirectory(campus, "nlhc")[0]?.name, "New Lecture Hall Complex", "initials");
+  assert.equal(searchDirectory(campus, "penman auditorium")[0]?.name, "Penman Auditoriam", "small misspellings");
+  assert.deepEqual(names(searchDirectory(campus, "jasp")), ["Jasper garden", "Jasper Hostel"], "prefixes");
+  assert.ok(names(searchDirectory(campus, "hostel")).includes("Topaz Hostel"));
+  assert.ok(searchDirectory(campus, "library", "library").every((p) => p.category === "library"));
+});
+
+test("every word must match, so NAC Auditorium does not land on another auditorium", () => {
+  assert.deepEqual(searchDirectory(campus, "NAC Auditorium"), []);
+  assert.deepEqual(searchDirectory(campus, "National Auditorium of Music"), []);
+});
+
+const madridAuditorium = {
+  osm_type: "way",
+  osm_id: 24489652,
+  lat: String(MADRID.lat),
+  lon: String(MADRID.lon),
+  name: "Auditorio Nacional de Musica",
+  display_name: "Auditorio Nacional de Musica, Madrid, Spain",
+  category: "amenity",
+  type: "theatre",
+};
+const campusPostOffice = {
   osm_type: "node",
-  osm_id: 469782067,
-  lat: "51.5085185",
-  lon: "-0.1254071",
-  name: "Charing Cross Station",
-  display_name: "Charing Cross Station, Strand, London",
-  category: "highway",
-  type: "bus_stop",
-  extratags: { wheelchair: "limited", tactile_paving: "no" },
+  osm_id: 4640533400,
+  lat: String(POST_OFFICE.lat),
+  lon: String(POST_OFFICE.lon),
+  name: "India Post (IIT ISM)",
+  display_name: "India Post (IIT ISM), ISM Main Gate Road, Dhanbad",
+  category: "amenity",
+  type: "post_office",
 };
 
-test("search identifies the app to OpenStreetMap and returns clean results", async () => {
-  mock.replies.placeSearch = { kind: "json", body: [nominatimPlace, { osm_type: "bogus", osm_id: 1 }] };
-  const results = await searchPlaces("charing cross");
-  assert.deepEqual(results, [
-    {
-      osmType: "node",
-      osmId: 469782067,
-      name: "Charing Cross Station",
-      displayName: "Charing Cross Station, Strand, London",
-      latitude: 51.5085185,
-      longitude: -0.1254071,
-      kind: "highway / bus_stop",
-    },
-  ]);
+test("NAC Auditorium never returns Madrid, even if the geocoder does", async () => {
+  mock.replies.placeSearch = { kind: "json", body: [madridAuditorium] };
+  assert.deepEqual(await searchPlaces(campus, "NAC Auditorium"), []);
   const request = mock.requests.at(-1)!;
+  const params = new URL(`http://x${request.path}`).searchParams;
+  assert.equal(params.get("bounded"), "1", "the geocoder is held to the campus box");
+  assert.equal(params.get("viewbox"), `${campus.bbox.minLon},${campus.bbox.maxLat},${campus.bbox.maxLon},${campus.bbox.minLat}`);
+  assert.equal(params.get("q"), "NAC Auditorium", "the query is not padded with the campus name");
   assert.match(String(request.headers["user-agent"]), /^PathAbleAI\/.+github\.com\/vishuweb\/pathable-ai/);
-  assert.match(request.path, /^\/search\?format=jsonv2&q=charing\+cross&limit=8$/);
 });
 
-test("repeated searches are served from the cache", async () => {
-  const before = mock.requests.length;
-  await searchPlaces("charing cross");
-  assert.equal(mock.requests.length, before);
+test("geocoder results are kept only when inside the campus polygon", async () => {
+  mock.replies.placeSearch = { kind: "json", body: [madridAuditorium, campusPostOffice] };
+  assert.deepEqual(names(await searchPlaces(campus, "post office near gate")), ["India Post (IIT ISM)"]);
 });
 
-test("identical requests in flight share one call", async () => {
+test("the directory answers first and its results are not duplicated", async () => {
+  mock.replies.placeSearch = { kind: "json", body: [] };
+  const results = await searchPlaces(campus, "central library");
+  assert.equal(results[0].name, "Central Library");
+  assert.equal(new Set(results.map((r) => `${r.osmType}${r.osmId}`)).size, results.length);
+});
+
+test("a geocoder failure still returns directory results, and fails clearly when there are none", async () => {
+  mock.replies.placeSearch = { kind: "status", status: 503 };
+  assert.equal((await searchPlaces(campus, "central library"))[0].name, "Central Library");
+  await assert.rejects(searchPlaces(campus, "zzqx nothing here"), PlaceServiceError);
+});
+
+test("repeated searches are cached, and identical requests share one call", async () => {
   mock.replies.placeSearch = { kind: "json", body: [] };
   const before = mock.requests.length;
-  await Promise.all([searchPlaces("same words"), searchPlaces("same words"), searchPlaces("same words")]);
+  await Promise.all([searchPlaces(campus, "same words"), searchPlaces(campus, "same words"), searchPlaces(campus, "same words")]);
+  await searchPlaces(campus, "same words");
   assert.equal(mock.requests.length - before, 1);
 });
 
 test("calls are spaced at least a second apart", async () => {
   mock.replies.placeSearch = { kind: "json", body: [] };
   const started = Date.now();
-  await Promise.all([searchPlaces("first query"), searchPlaces("second query")]);
+  await Promise.all([searchPlaces(campus, "first query"), searchPlaces(campus, "second query")]);
   assert.ok(Date.now() - started >= 950, "the second call waited");
 });
 
 test("lookup merges tags and the last edit date", async () => {
-  mock.replies.placeLookup = { kind: "json", body: [nominatimPlace] };
-  mock.replies.osmElement = {
-    kind: "json",
-    body: { elements: [{ timestamp: "2024-02-01T10:00:00Z", tags: { wheelchair: "limited", bench: "yes" } }] },
-  };
-  const place = await lookupPlace("node", 469782067);
+  mock.replies.placeLookup = { kind: "json", body: [{ ...campusPostOffice, extratags: { wheelchair: "limited" } }] };
+  mock.replies.osmElement = { kind: "json", body: { elements: [{ timestamp: "2024-02-01T10:00:00Z", tags: { bench: "yes" } }] } };
+  const place = await lookupPlace("node", 4640533400);
   assert.equal(place?.lastEdited, "2024-02-01T10:00:00Z");
-  assert.deepEqual(place?.tags, { wheelchair: "limited", tactile_paving: "no", bench: "yes" });
-});
-
-test("a missing place is undefined; a failing service is a clear error", async () => {
+  assert.deepEqual(place?.tags, { wheelchair: "limited", bench: "yes" });
   mock.replies.placeLookup = { kind: "json", body: [] };
   assert.equal(await lookupPlace("way", 1), undefined);
-  mock.replies.placeSearch = { kind: "status", status: 503 };
-  await assert.rejects(searchPlaces("service down"), PlaceServiceError);
 });
 
-test("the search route validates the query", async () => {
+test("the search route validates the query and returns nothing from outside the campus", async () => {
   const get = (q: string) => placesRoute.GET(new Request(`http://localhost/api/places?q=${encodeURIComponent(q)}`));
-  assert.equal((await get("ab")).status, 400);
+  assert.equal((await get("a")).status, 400);
   assert.equal((await get("x".repeat(121))).status, 400);
-  mock.replies.placeSearch = { kind: "json", body: [nominatimPlace] };
-  const ok = await get("charing cross station");
-  assert.equal(ok.status, 200);
-  assert.equal((await ok.json()).places[0].name, "Charing Cross Station");
-  mock.replies.placeSearch = { kind: "status", status: 500 };
-  assert.equal((await get("another place")).status, 503);
+  mock.replies.placeSearch = { kind: "json", body: [madridAuditorium] };
+  const none = await get("NAC Auditorium");
+  assert.equal(none.status, 200);
+  assert.deepEqual((await none.json()).places, [], "Madrid is filtered out");
+  const ok = await (await get("topaz")).json();
+  assert.equal(ok.region.name, "IIT (ISM) Dhanbad");
+  assert.ok(ok.places.some((p: { name: string }) => p.name === "Topaz Hostel"));
 });

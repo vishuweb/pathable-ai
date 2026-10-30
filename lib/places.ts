@@ -1,5 +1,8 @@
 import "server-only";
+import { searchDirectory } from "./campus-directory";
 import { OSM_TYPES, type OsmType, type PlaceResult } from "./place";
+import type { PlaceCategory } from "./place-categories";
+import { inRegion, type Region } from "./region";
 
 // OpenStreetMap's free services: Nominatim for search and lookup, the main API for edit dates.
 // Their usage policies ask for an identifying User-Agent, at most one request per second and
@@ -85,11 +88,37 @@ function toPlace(p: NominatimPlace): PlaceResult | undefined {
   };
 }
 
-/** Places matching a search, best first. */
-export async function searchPlaces(query: string): Promise<PlaceResult[]> {
-  const params = new URLSearchParams({ format: "jsonv2", q: query, limit: "8" });
-  const results = await osmJson<NominatimPlace[]>(`${NOMINATIM_URL}/search?${params}`);
-  return (Array.isArray(results) ? results : []).flatMap((p) => toPlace(p) ?? []);
+const MAX_RESULTS = 12;
+
+/**
+ * Places in the region matching a search, best first. The saved campus directory answers first;
+ * Nominatim is asked only to fill gaps, restricted to the region's bounding box, and every result
+ * is checked against the boundary polygon. Nothing outside the region is ever returned.
+ */
+export async function searchPlaces(region: Region, query: string, category?: PlaceCategory): Promise<PlaceResult[]> {
+  const fromDirectory = searchDirectory(region, query, category);
+  if (fromDirectory.length >= 5 || category) return fromDirectory.slice(0, MAX_RESULTS);
+
+  const { bbox } = region;
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    q: query,
+    limit: "10",
+    viewbox: `${bbox.minLon},${bbox.maxLat},${bbox.maxLon},${bbox.minLat}`,
+    bounded: "1",
+  });
+  let extra: PlaceResult[] = [];
+  try {
+    const results = await osmJson<NominatimPlace[]>(`${NOMINATIM_URL}/search?${params}`);
+    extra = (Array.isArray(results) ? results : [])
+      .flatMap((p) => toPlace(p) ?? [])
+      .filter((p) => inRegion(region, p.latitude, p.longitude))
+      .filter((p) => !fromDirectory.some((d) => d.osmType === p.osmType && d.osmId === p.osmId));
+  } catch (error) {
+    // The directory still answers; only fail when there is nothing to show at all.
+    if (!fromDirectory.length) throw error;
+  }
+  return [...fromDirectory, ...extra].slice(0, MAX_RESULTS);
 }
 
 export interface PlaceDetails extends PlaceResult {

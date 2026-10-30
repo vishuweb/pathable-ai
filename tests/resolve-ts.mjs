@@ -19,3 +19,13 @@ export async function resolve(specifier, context, next) {
   }
   return next(specifier, context);
 }
+
+// Next.js imports JSON without an import attribute; plain Node requires one, so serve JSON as a module.
+export async function load(url, context, next) {
+  if (url.startsWith("file:") && url.endsWith(".json")) {
+    const { readFile } = await import("node:fs/promises");
+    const source = await readFile(fileURLToPath(url), "utf8");
+    return { format: "module", source: `export default ${source};`, shortCircuit: true };
+  }
+  return next(url, context);
+}

@@ -44,6 +44,7 @@ Make public spaces more accessible through trustworthy accessibility information
 | Needs for mobility, vision, hearing, cognitive and other access; chosen on **My needs**, stored only in the browser, editable and removable | Unit tests; browser test |
 | Barrier categories for several needs (tactile guidance, hard-to-detect obstacles, crossings, signage) with "may affect" labels | Unit tests; mocked API test; browser test |
 | Community reports filtered by need and by distance from a place or the visitor's location | Browser test |
+| IIT (ISM) Dhanbad as the configured pilot region: real OSM boundary, point-in-polygon enforcement in search, place pages and report validation; campus directory with fuzzy and initials search; campus map with boundary | Unit tests (including "NAC Auditorium" never returning Madrid); browser test |
 | Reports linked to OpenStreetMap places; place profiles with per-attribute community data, unknowns, staleness and nearby reports | Unit tests with mocked OpenStreetMap; browser test |
 | Report status with dated history; notes required for claims; duplicate links | Route tests; browser test of the full workflow |
 | Owner moderation: delete reports, change status; visitors get 403 | Route tests; live check of the 403 responses |
@@ -72,6 +73,8 @@ Make public spaces more accessible through trustworthy accessibility information
 ## 3. Not yet implemented
 
 - **Accounts and roles.** There is one owner key; no user accounts, reviewer or organization roles.
+- **Places added by PathAble users.** Only OpenStreetMap places exist today; campus places missing from OSM (for example "NAC Auditorium") cannot be added in the app yet. The data model keeps a place's source so user-added and verified places can be introduced later.
+- **Campus accessibility data.** None of the 89 campus places in OpenStreetMap carries accessibility tags yet, so their attributes all show as unknown until reports or surveys add evidence.
 - **Verified place attributes.** Place pages show OpenStreetMap community data only; PathAble has no inspection workflow of its own yet.
 - **Map view** and **routing** (Phase D). Reports and places are listed, not mapped; routing waits for reliable segment data.
 - **Community features** (Phase E): disputes, following reports, recheck uploads by others.

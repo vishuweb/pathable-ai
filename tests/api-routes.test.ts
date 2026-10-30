@@ -249,10 +249,10 @@ test("reports: status changes are validated and recorded as dated history", asyn
   assert.match(markdown, /Resolved: Recheck photo shows the ramp is clear\./);
 });
 
-test("reports: a report can be linked to an OpenStreetMap place", async () => {
+test("reports: a report can be linked to a campus place, and never to one outside", async () => {
   const reviews = { f1: { decision: "rejected" } };
-  const place = { osmType: "node", osmId: 469782067, name: "Charing Cross Station" };
-  const location = { label: "Bus stop H", latitude: 51.5085185, longitude: -0.1254071, place };
+  const place = { osmType: "way", osmId: 517026148, name: "Central Library" };
+  const location = { label: "Library entrance", latitude: 23.8158145, longitude: 86.4421811, place };
   const saved = await read(await reportsRoute.POST(post(submission(reviews, { location }))));
   assert.equal(saved.status, 201);
   const report = await read(
@@ -263,6 +263,15 @@ test("reports: a report can be linked to an OpenStreetMap place", async () => {
     const refused = await reportsRoute.POST(post(submission(reviews, { location: { ...location, place: bad } })));
     assert.equal(refused.status, 400, JSON.stringify(bad));
   }
+  const madrid = await read(
+    await reportsRoute.POST(post(submission(reviews, { location: { label: "Madrid", latitude: 40.4459, longitude: -3.6774 } }))),
+  );
+  assert.deepEqual(madrid, {
+    status: 400,
+    body: { error: "This location is outside the IIT (ISM) Dhanbad pilot area. Reports are limited to the pilot area for now." },
+  });
+  const placeWithoutCoordinates = await reportsRoute.POST(post(submission(reviews, { location: { label: "x", place } })));
+  assert.equal(placeWithoutCoordinates.status, 400, "a place must carry coordinates so they can be checked");
 });
 
 test("health: reports configuration without exposing the key", async () => {

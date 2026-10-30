@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatCoordinates } from "@/lib/format";
 import { osmUrl, type PlaceResult } from "@/lib/place";
+import { activeRegion, inRegion } from "@/lib/region";
 import type { ReportLocation } from "@/lib/report";
 import { PlaceSearch } from "./PlaceSearch";
 
@@ -36,6 +37,11 @@ export function LocationField({ value, onChange }: Props) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocating(false);
+        const region = activeRegion();
+        if (!inRegion(region, position.coords.latitude, position.coords.longitude)) {
+          setStatus(`You seem to be outside the ${region.name} campus, so your location was not added. Search for the campus place instead.`);
+          return;
+        }
         onChange({
           label: value.label,
           latitude: round(position.coords.latitude),
@@ -99,8 +105,9 @@ export function LocationField({ value, onChange }: Props) {
         )}
       </div>
       <p className="muted">
-        A location you add is shown publicly with the report. Place search uses OpenStreetMap. Use your current
-        location only if you are standing where the photo was taken.
+        Reports are limited to the {activeRegion().name} campus for now. A location you add is shown publicly with the
+        report. Place search uses OpenStreetMap. Use your current location only if you are standing where the photo was
+        taken.
       </p>
       <p className="muted" role="status">
         {status}

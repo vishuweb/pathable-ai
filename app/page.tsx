@@ -55,7 +55,7 @@ export default function HomePage() {
   return (
     <div className="landing">
       <section className="hero" aria-labelledby="hero-title">
-        <p className="eyebrow">PathAble AI</p>
+        <p className="eyebrow">PathAble AI · Pilot at IIT (ISM) Dhanbad</p>
         <h1 id="hero-title">One world. Different needs. More accessible journeys.</h1>
         <p className="hero-lead">
           A place that works for one person can stop another. Photograph a barrier, let AI point out what it may mean
@@ -163,7 +163,8 @@ export default function HomePage() {
       <section aria-labelledby="scope-title" className="scope">
         <h2 id="scope-title">What PathAble AI does not do yet</h2>
         <p>
-          Place pages show what OpenStreetMap contributors have recorded, which is often incomplete and is not verified
+          It currently works on the IIT (ISM) Dhanbad campus only: place search and reports are limited to the campus
+          boundary. Place pages show what OpenStreetMap contributors have recorded, which is often incomplete and is not verified
           by PathAble AI. Maps, routes suited to your needs, community verification and user accounts are planned for
           later and are not available today.
         </p>
