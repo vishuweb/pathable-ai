@@ -1,5 +1,6 @@
 import { CATEGORY_INFO } from "./categories";
 import { NEED_GROUPS, type NeedGroup } from "./needs";
+import type { PlaceArea } from "./observations";
 import type { PlaceRef } from "./place";
 import type { StatusEvent } from "./report-status";
 import type { Evidence, IssueCategory, SceneAnalysis } from "./types";
@@ -83,6 +84,10 @@ export interface ReportSubmission extends Omit<AnalysisResult, "timings"> {
   reviews: Record<string, FindingReview>;
   missedIssues: MissedIssue[];
   reviewerNote: string;
+  /** The part of the place the barrier is in (an entrance, a path, a crossing...). */
+  area?: PlaceArea;
+  /** The day the reporter saw it (YYYY-MM-DD). */
+  observedOn?: string;
   /** The person confirmed they may share the photo and that the report will be public. */
   consent: true;
   /** reviewMs: wall-clock time from results appearing to the report being saved. */

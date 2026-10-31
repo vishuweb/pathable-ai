@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CATEGORY_INFO, LEVEL_LABEL } from "@/lib/categories";
 import { findingColor, findingTextColor } from "@/lib/colors";
 import { formatCoordinates, formatDuration, mapUrl } from "@/lib/format";
+import { AREA_LABEL } from "@/lib/observations";
 import { placePath } from "@/lib/place";
 import {
   summarizeReport,
@@ -64,6 +65,18 @@ export function SavedReportView({ report, createdLabel, statusEvents, isOwner }:
             <dt>Saved</dt>
             <dd>{createdLabel}</dd>
           </div>
+          {report.area && (
+            <div>
+              <dt>Affected area</dt>
+              <dd>{AREA_LABEL[report.area]}</dd>
+            </div>
+          )}
+          {report.observedOn && (
+            <div>
+              <dt>Seen on</dt>
+              <dd>{report.observedOn}</dd>
+            </div>
+          )}
           {report.location?.place && (
             <div>
               <dt>Place</dt>

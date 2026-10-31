@@ -45,6 +45,7 @@ export const NEEDS: Need[] = [
   { id: "gentle_slopes", group: "mobility", label: "Warnings about steep slopes" },
   { id: "accessible_entrance", group: "mobility", label: "Accessible entrances" },
   { id: "accessible_toilet_mobility", group: "mobility", label: "Wheelchair-accessible toilets" },
+  { id: "parking_dropoff", group: "mobility", label: "Accessible parking and drop-off points" },
 
   { id: "tactile_paving", group: "vision", label: "Tactile paving and guidance" },
   { id: "detectable_obstacles", group: "vision", label: "Obstacles a cane can detect" },
@@ -61,14 +62,16 @@ export const NEEDS: Need[] = [
   { id: "vibration_alerts", group: "hearing", label: "Vibrating alerts where available" },
 
   { id: "simple_directions", group: "cognitive", label: "Simple, predictable directions" },
-  { id: "clear_signage", group: "cognitive", label: "Clear signs and landmarks" },
+  { id: "clear_signage", group: "cognitive", label: "Simple, clear signs" },
+  { id: "landmarks", group: "cognitive", label: "Recognisable landmarks" },
   { id: "less_complex_routes", group: "cognitive", label: "Less complicated routes" },
   { id: "plain_instructions", group: "cognitive", label: "Instructions in plain language" },
   { id: "warn_confusing_transitions", group: "cognitive", label: "Warnings about confusing changes of route" },
 
-  { id: "seating", group: "general", label: "Places to sit and rest" },
+  { id: "seating", group: "general", label: "Seating" },
+  { id: "rest_areas", group: "general", label: "Rest areas" },
   { id: "accessible_toilets", group: "general", label: "Accessible public toilets" },
-  { id: "environment", group: "general", label: "Lighting, noise and weather shelter" },
+  { id: "environment", group: "general", label: "Weather shelter" },
 ];
 
 const NEED_IDS = new Set(NEEDS.map((n) => n.id));
@@ -98,6 +101,11 @@ export function parsePreferences(raw: string | null): NeedPreferences {
   } catch {
     return EMPTY_PREFERENCES;
   }
+}
+
+/** Every need in the groups given; used for quick, coarse choices such as "Visual". */
+export function needsOfGroups(groups: NeedGroup[]): string[] {
+  return NEEDS.filter((n) => groups.includes(n.group)).map((n) => n.id);
 }
 
 /** The groups a person's chosen needs belong to. */

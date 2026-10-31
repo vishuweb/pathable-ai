@@ -1,5 +1,6 @@
 import "server-only";
 import { validateImageDataUrl } from "./image-input";
+import { PLACE_AREAS } from "./observations";
 import { OSM_TYPES } from "./place";
 import { activeRegion, inRegion } from "./region";
 import {
@@ -51,6 +52,8 @@ export function parseReportSubmission(value: unknown): ReportSubmission | { erro
       reviews: parseReviews(body.reviews, result.analysis.findings),
       missedIssues: list(body.missedIssues ?? [], "missed issues", MAX_MISSED).map(parseMissedIssue),
       reviewerNote: optionalText(body.reviewerNote, "The reviewer note", 4000),
+      area: optionalOneOf(body.area, PLACE_AREAS, "The affected area"),
+      observedOn: parseObservedOn(body.observedOn),
       consent: true,
       timings: { ...result.timings, reviewMs: number(timings.reviewMs, "reviewMs", 0, 7 * 24 * 3_600_000) },
     };
@@ -294,4 +297,14 @@ function oneOf<T extends string>(value: unknown, allowed: readonly T[], what: st
 
 function optionalOneOf<T extends string>(value: unknown, allowed: readonly T[], what: string): T | undefined {
   return value == null ? undefined : oneOf(value, allowed, what);
+}
+
+/** An optional day (YYYY-MM-DD) the reporter saw the barrier; never in the future. */
+function parseObservedOn(value: unknown): string | undefined {
+  if (value == null || value === "") return undefined;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
+    fail("The observation date is not valid.");
+  }
+  if (Date.parse(`${value}T00:00:00Z`) > Date.now() + 24 * 60 * 60 * 1000) fail("The observation date cannot be in the future.");
+  return value;
 }

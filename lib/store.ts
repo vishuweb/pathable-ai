@@ -2,6 +2,7 @@ import "server-only";
 import { del, get, list, put } from "@vercel/blob";
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { Observation } from "./observations";
 import type { AnalysisDraft, SavedReport } from "./report";
 
 // One JSON file and one JPEG per item. Local disk by default; Vercel Blob when a blob token is
@@ -145,6 +146,7 @@ function collection<T extends Item>(name: string) {
 
 export const reports = collection<SavedReport>("reports");
 export const drafts = collection<AnalysisDraft>("drafts");
+export const observations = collection<Observation>("observations");
 
 function isNotFound(error: unknown): boolean {
   return (error as NodeJS.ErrnoException)?.code === "ENOENT";

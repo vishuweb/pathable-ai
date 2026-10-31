@@ -234,8 +234,7 @@ test("my needs are saved on this device and narrow the community reports", { ski
   await page.close();
 });
 
-test("campus places: scoped search, map, profile, and a report at the place", { skip: !CHROME && "Chrome not found" }, async () => {
-  // Central Library, as OpenStreetMap records it (way 517026148), inside the campus boundary.
+test("campus places: search stays on campus, the map shows the boundary, and a profile opens", { skip: !CHROME && "Chrome not found" }, async () => {
   const library = {
     osm_type: "way",
     osm_id: 517026148,
@@ -264,7 +263,10 @@ test("campus places: scoped search, map, profile, and a report at the place", { 
   await page.goto(`${BASE}/places`, { waitUntil: "networkidle0" });
   assert.match(await page.$eval("h1", (h) => h.textContent ?? ""), /IIT \(ISM\) Dhanbad/);
   await page.waitForSelector(".campus-map path.leaflet-interactive");
-  assert.ok((await page.$$(".place-list li")).length > 50, "the campus directory is listed");
+  const listed = await page.$$eval(".place-list li a", (a) => a.map((x) => x.textContent ?? ""));
+  assert.ok(listed.length > 50, "the campus directory is listed");
+  assert.equal(new Set(listed).size, listed.length, "no two entries have the same name");
+  assert.ok(!listed.some((n) => /^Unnamed/.test(n)), "unnamed fragments are not listed");
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "no sideways scrolling on a phone");
 
   const search = async (q: string) => {
@@ -287,31 +289,154 @@ test("campus places: scoped search, map, profile, and a report at the place", { 
   assert.match(await search("central library"), /found within IIT \(ISM\) Dhanbad/);
   assert.equal(await page.$eval(".place-list li a", (a) => a.textContent), "Central Library");
   assert.deepEqual(await axeViolations(page), [], "Explore places passes WCAG 2.2 AA checks");
+  await page.close();
+});
 
+// The four user journeys, on a real campus place (Central Library, OpenStreetMap way 517026148).
+const LIBRARY_PATH = "/places/way/517026148";
+const library = {
+  osm_type: "way",
+  osm_id: 517026148,
+  lat: "23.8158145",
+  lon: "86.4421811",
+  name: "Central Library",
+  display_name: "Central Library, IIT (ISM) Dhanbad, Dhanbad",
+  category: "amenity",
+  type: "library",
+  extratags: { wheelchair: "limited" },
+};
+
+async function openAs(needs: string[]): Promise<Page> {
+  mock.replies.placeSearch = { kind: "json", body: [] };
+  mock.replies.placeLookup = { kind: "json", body: [library] };
+  mock.replies.osmElement = { kind: "json", body: { elements: [{ timestamp: "2023-01-10T09:00:00Z", tags: { bench: "yes" } }] } };
+  const page = await browser!.newPage();
+  page.setDefaultTimeout(60_000);
+  page.setDefaultNavigationTimeout(180_000);
+  page.on("dialog", (d) => void d.accept());
+  await page.setRequestInterception(true);
+  page.on("request", (r) => void (r.url().includes("tile.openstreetmap.org") ? r.abort() : r.continue()));
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await page.goto(BASE, { waitUntil: "networkidle0" });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "networkidle0" });
+  for (const need of needs) {
+    await (await page.waitForSelector(`xpath/.//div[contains(@class,"need-group-chips")]//button[contains(., "${need}")]`))!.click();
+  }
+  await page.waitForFunction((n) => document.querySelectorAll(".need-group-chips [aria-pressed=true]").length === n, {}, needs.length);
+  return page;
+}
+
+async function openLibraryFromHome(page: Page): Promise<string> {
+  // The home page search leads to the place, as a visitor would do it.
+  await page.type("#destination", "Central Library");
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('.destination-search button[type="submit"]')]);
+  assert.equal(new URL(page.url()).pathname, "/places");
+  await page.waitForFunction(() => /found within/.test(document.querySelector(".list-status")?.textContent ?? ""));
   await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click(".place-list li a")]);
-  assert.equal(new URL(page.url()).pathname, "/places/way/517026148");
-  const text = await page.$eval("main", (m) => m.innerText);
-  assert.match(text, /Source: recorded in OpenStreetMap\./);
-  assert.match(text, /Wheelchair access\s+Partly accessible\s+Community data, not verified/);
-  assert.match(text, /Ramp\s+Unknown: not recorded/, "missing information is shown as unknown");
-  assert.match(text, /more than 2 years ago, so it may be out of date/);
-  assert.deepEqual(await axeViolations(page), [], "place profile passes WCAG 2.2 AA checks");
+  assert.equal(new URL(page.url()).pathname, LIBRARY_PATH);
+  return page.$eval("main", (m) => (m as HTMLElement).innerText);
+}
 
-  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('a[href^="/report?osm=way%2F517026148"]')]);
-  assert.match(await page.$eval("main", (m) => m.textContent ?? ""), /Reporting at Central Library/);
-  mock.replies.chat = { kind: "content", content: modelReply([finding("Scooter on the footpath", {})]) };
+const section = (text: string, from: string, to: string) => text.slice(text.indexOf(from), text.indexOf(to));
+
+test("journey 1, mobility: step-free, ramp, lift, entrance and toilet information, with unknowns named", { skip: !CHROME && "Chrome not found" }, async () => {
+  const page = await openAs(["Mobility"]);
+  const text = await openLibraryFromHome(page);
+  const overview = section(text, "Your accessibility overview", "What is known");
+  assert.match(overview, /For your needs: Mobility/);
+  assert.match(overview, /Wheelchair access\s+Recorded in OpenStreetMap · Outdated\s+Partly accessible/, "recorded, with its source and a stale warning");
+  for (const unknown of ["Steps at the entrance or way in", "Ramp", "Lift", "Wheelchair-accessible toilet", "Accessible parking or drop-off"]) {
+    assert.match(overview, new RegExp(`${unknown}\\s+Unknown\\s+Unknown\\. Nobody has recorded this yet\\.`), `${unknown} is unknown`);
+  }
+  assert.match(overview, /1 of 8 details for your needs are recorded; 7 are unknown\./);
+  assert.ok(!/Tactile paving|Hearing loop/.test(overview), "other needs do not crowd the overview");
+  assert.match(text, /A place is never called accessible because some details are\s+recorded\./);
+  const unknown = section(text, "What is still unknown", "Recent reports here");
+  assert.match(unknown, /could matter to your visit/);
+  assert.match(unknown, /Ramp/);
+  assert.deepEqual(await axeViolations(page), [], "profile passes WCAG 2.2 AA checks");
+  await page.close();
+});
+
+test("journey 2, visual: tactile, obstacle, lighting and wayfinding information, with unknowns named", { skip: !CHROME && "Chrome not found" }, async () => {
+  const page = await openAs(["Visual"]);
+  await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+  const overview = section(await page.$eval("main", (m) => (m as HTMLElement).innerText), "Your accessibility overview", "What is known");
+  assert.match(overview, /For your needs: Vision/);
+  for (const label of ["Tactile paving", "Obstacles a cane may miss on the way in", "Lighting", "High-contrast or audio guidance signs"]) {
+    assert.match(overview, new RegExp(`${label}\\s+Unknown`), `${label} is unknown, not assumed`);
+  }
+  assert.ok(!/Wheelchair access|Hearing loop/.test(overview), "only visual details lead");
+  await page.close();
+});
+
+test("journey 3, hearing: visual alerts and communication facilities, with no assumptions", { skip: !CHROME && "Chrome not found" }, async () => {
+  const page = await openAs(["Hearing"]);
+  await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+  const text = await page.$eval("main", (m) => (m as HTMLElement).innerText);
+  const overview = section(text, "Your accessibility overview", "What is known");
+  assert.match(overview, /For your needs: Hearing/);
+  assert.match(overview, /Visual emergency alarms and written notices\s+Unknown/);
+  assert.match(overview, /Hearing loop\s+Unknown/);
+  assert.match(overview, /0 of \d+ details for your needs are recorded/);
+  assert.ok(!/photo/i.test(overview), "nothing here is inferred from a photograph");
+  await page.close();
+});
+
+test("journey 4, contribution: observe a feature, report a barrier at the place, and follow it", { skip: !CHROME && "Chrome not found" }, async () => {
+  const page = await openAs(["Mobility"]);
+  await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+
+  // Start from an unknown: "Add what you saw: Ramp" jumps to the form with Ramp chosen.
+  await (await page.waitForSelector('xpath/.//ul[contains(@class,"features")]//li[.//strong[normalize-space(.)="Ramp"]]//button'))!.click();
+  assert.equal(await page.$eval(".observation-form select", (s) => (s as HTMLSelectElement).value), "ramp");
+  assert.equal(await page.evaluate(() => document.activeElement?.id), "contribute-heading", "focus moves to the form");
+
+  await (await page.waitForSelector('xpath/.//label[contains(., "There, but blocked")]'))!.click();
+  await page.type(".observation-form textarea", "A bike rack stands in front of the ramp.");
+  const submit = await page.waitForSelector('xpath/.//button[contains(., "Share observation publicly")]');
+  assert.equal(await submit!.evaluate((b) => (b as HTMLButtonElement).disabled), true, "needs the sharing confirmation");
+  await page.click(".observation-form .consent input");
+  await submit!.click();
+  await page.waitForFunction(() => /Thank you/.test(document.querySelector(".observation-form p[role=status]")?.textContent ?? ""));
+  await page.waitForFunction(() => /Community reported/.test(document.querySelector(".features")?.textContent ?? ""));
+  const overview = await page.$eval(".overview", (o) => (o as HTMLElement).innerText);
+  assert.match(overview, /Ramp\s+Community reported\s+There, but blocked · An entrance · observed \d{4}-\d{2}-\d{2}/);
+  const known = await page.$eval("#known-title ~ .features", (e) => (e as HTMLElement).innerText);
+  assert.match(known, /Community reported: There, but blocked.*“A bike rack stands in front of the ramp\.”/s);
+
+  // Report a barrier with a photo, pre-filled with this place.
+  mock.replies.chat = { kind: "content", content: modelReply([finding("Bike rack blocks the ramp", {})]) };
   mock.replies.sam.set("electric scooter", { kind: "relative", boxes: [[0.2, 0.4, 0.6, 0.9]] });
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('header a[href^="/report?osm=way%2F517026148"]')]);
+  assert.match(await page.$eval("main", (m) => m.textContent ?? ""), /Reporting at Central Library/);
   await (await page.$('input[type="file"]'))!.uploadFile(PHOTO);
   await page.waitForSelector(".save-panel");
   await page.waitForFunction(() => !document.querySelector(".evidence-status.status-pending"));
-  assert.match(await page.$eval(".linked-place", (p) => p.textContent ?? ""), /Central Library/, "the place is pre-filled");
-  await (await page.waitForSelector('xpath/.//label[contains(., "Not a barrier")]'))!.click();
+  await (await page.waitForSelector('xpath/.//label[contains(., "Yes, real barrier")]'))!.click();
+  await (await page.waitForSelector('xpath/.//fieldset[legend[contains(., "Does the highlight")]]//label[normalize-space(.)="Yes"]'))!.click();
+  await page.select('xpath/.//label[contains(., "Which part of the place")]//select', "steps_ramp");
   await page.click(".consent input");
   await page.click(".save-actions .button-primary");
   await page.waitForSelector(".save-success");
+  const reportPath = await page.$eval('.save-success a[href^="/reports/"]', (a) => a.getAttribute("href"));
 
-  await page.goto(`${BASE}/places/way/517026148`, { waitUntil: "networkidle0" });
-  assert.match(await page.$eval("#nearby-title + *", (e) => e.textContent ?? ""), /At this place/);
+  // It now shows on the place page, with its status, and in the community list with its location.
+  await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+  const reports = await page.$eval("#reports-title", (h) => (h.parentElement as HTMLElement).innerText);
+  assert.match(reports, /At this place/);
+  assert.match(reports, /Status:\s*Submitted/);
+  assert.match(reports, /Confirmed by the person who reported it\. Nobody else has checked it yet\./);
+  await page.goto(`${BASE}/reports`, { waitUntil: "networkidle0" });
+  const list = await page.$eval(".report-list", (l) => (l as HTMLElement).innerText);
+  assert.match(list, /At Central Library/);
+  assert.match(list, /Steps, a ramp or a lift/);
+  await page.goto(BASE + reportPath!, { waitUntil: "networkidle0" });
+  const detail = await page.$eval("main", (m) => (m as HTMLElement).innerText);
+  assert.match(detail, /Affected area\s+Steps, a ramp or a lift/);
+  assert.match(detail, /Status: Submitted/);
+  assert.deepEqual(await axeViolations(page), [], "report passes WCAG 2.2 AA checks");
   await page.close();
 });
 
@@ -383,7 +508,9 @@ test("visitors see the public site; the owner gets the workspace and moderation"
     ["Report a barrier", "Explore places", "Community reports", "My needs", "How it works"],
     "no owner tools in the public navigation",
   );
-  assert.ok(await visitor.$('.hero a[href="/report"]'), "the home page leads to reporting");
+  assert.ok(await visitor.$('.action-grid a[href="/report"]'), "the home page leads to reporting");
+  assert.ok(await visitor.$('.action-grid a[href="/places"]'), "the home page leads to checking a place");
+  assert.equal(await visitor.$eval("h1", (h) => h.textContent), "Explore your campus with confidence.");
   assert.deepEqual(await axeViolations(visitor), [], "home page passes WCAG 2.2 AA checks");
 
   await visitor.goto(`${BASE}/batch`, { waitUntil: "networkidle0" });

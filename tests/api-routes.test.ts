@@ -21,6 +21,8 @@ const reportsRoute = await import("../app/api/reports/route");
 const reportRoute = await import("../app/api/reports/[id]/route");
 const markdownRoute = await import("../app/api/reports/[id]/markdown/route");
 const healthRoute = await import("../app/api/health/route");
+const observationsRoute = await import("../app/api/observations/route");
+const observationRoute = await import("../app/api/observations/[id]/route");
 
 after(async () => {
   mock.close();
@@ -272,6 +274,68 @@ test("reports: a report can be linked to a campus place, and never to one outsid
   });
   const placeWithoutCoordinates = await reportsRoute.POST(post(submission(reviews, { location: { label: "x", place } })));
   assert.equal(placeWithoutCoordinates.status, 400, "a place must carry coordinates so they can be checked");
+});
+
+test("reports: the affected area and the day it was seen are kept, and bad ones refused", async () => {
+  const reviews = { f1: { decision: "rejected" } };
+  const saved = await read(await reportsRoute.POST(post(submission(reviews, { area: "entrance", observedOn: "2026-10-30" }))));
+  assert.equal(saved.status, 201);
+  const report = await read(
+    await reportRoute.GET(new Request("http://localhost"), { params: Promise.resolve({ id: saved.body.id }) }),
+  );
+  assert.equal(report.body.area, "entrance");
+  assert.equal(report.body.observedOn, "2026-10-30");
+  const markdown = await (await markdownRoute.GET(new Request("http://localhost"), { params: Promise.resolve({ id: saved.body.id }) })).text();
+  assert.match(markdown, /Affected area:\*\* An entrance/);
+  assert.match(markdown, /Seen on:\*\* 2026-10-30/);
+  for (const bad of [{ area: "roof" }, { observedOn: "2099-01-01" }, { observedOn: "soon" }]) {
+    assert.equal((await reportsRoute.POST(post(submission(reviews, bad)))).status, 400, JSON.stringify(bad));
+  }
+});
+
+const observation = (change: Record<string, unknown> = {}) => ({
+  place: { osmType: "way", osmId: 517026148, name: "Central Library" },
+  latitude: 23.8158145,
+  longitude: 86.4421811,
+  featureId: "ramp",
+  finding: "blocked",
+  area: "entrance",
+  note: "A bike rack stands in front of the ramp.",
+  observedOn: "2026-10-30",
+  consent: true,
+  ...change,
+});
+
+test("observations: saved as community reported, listed for the place, then verified by the owner with a reason", async () => {
+  const refused = await read(await observationsRoute.POST(post(observation({ consent: false }))));
+  assert.equal(refused.status, 400);
+  const outside = await read(await observationsRoute.POST(post(observation({ latitude: 40.4459, longitude: -3.6774 }))));
+  assert.match(outside.body.error, /outside the IIT \(ISM\) Dhanbad pilot area/);
+
+  const photo = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2Q==";
+  const saved = await read(await observationsRoute.POST(post(observation({ photo }))));
+  assert.equal(saved.status, 201);
+  const id: string = saved.body.id;
+
+  const listed = await read(await observationsRoute.GET(new Request("http://localhost/api/observations?osmType=way&osmId=517026148")));
+  assert.equal(listed.body.observations.length >= 1, true);
+  const mine = listed.body.observations.find((o: { id: string }) => o.id === id);
+  assert.equal(mine.hasPhoto, true);
+  assert.deepEqual(mine.statusHistory.map((e: { status: string }) => e.status), ["community"]);
+  const elsewhere = await read(await observationsRoute.GET(new Request("http://localhost/api/observations?osmType=way&osmId=1")));
+  assert.equal(elsewhere.body.observations.length, 0, "observations belong to their place");
+
+  const params = { params: Promise.resolve({ id }) };
+  const patch = (body: unknown) => observationRoute.PATCH(new Request("http://localhost", { method: "PATCH", body: JSON.stringify(body) }), params);
+  assert.equal((await patch({ status: "verified" })).status, 400, "verifying needs a reason");
+  assert.equal((await patch({ status: "verified", note: "Site visit, 31 Oct 2026" })).status, 200);
+  const after = await read(await observationsRoute.GET(new Request("http://localhost/api/observations?osmType=way&osmId=517026148")));
+  const verified = after.body.observations.find((o: { id: string }) => o.id === id);
+  assert.deepEqual(verified.statusHistory.map((e: { status: string }) => e.status), ["community", "verified"]);
+  assert.equal(verified.statusHistory[1].note, "Site visit, 31 Oct 2026");
+
+  assert.equal((await observationRoute.DELETE(new Request("http://localhost"), params)).status, 204);
+  assert.equal((await observationRoute.DELETE(new Request("http://localhost"), params)).status, 404);
 });
 
 test("health: reports configuration without exposing the key", async () => {

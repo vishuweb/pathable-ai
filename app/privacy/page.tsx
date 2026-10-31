@@ -42,6 +42,14 @@ export default function PrivacyPage() {
         </li>
       </ul>
 
+      <h2>Observations about places</h2>
+      <p>
+        On a place page you can record what you saw about one feature, such as a ramp or a lift, with an optional photo and
+        a description. It is <strong>public</strong> from the moment you share it, shown as &ldquo;community reported&rdquo;,
+        and kept with the day you saw it and when you agreed to share it. Only the project owner can mark it
+        &ldquo;independently verified&rdquo; (with a recorded reason) or remove it. Ask for removal as described below.
+      </p>
+
       <h2>Place search</h2>
       <p>
         When you search for a place, the words you type are sent from our server to OpenStreetMap&apos;s Nominatim

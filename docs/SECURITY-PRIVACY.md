@@ -12,6 +12,7 @@ This describes what PathAble AI protects against, how, and what it does not yet 
 | Location | Only if typed or "Use my current location" is pressed | With the report |
 | Voice recording | Server, then Meta Model API (transcription) | Never stored; only the text kept in a note |
 | Consent time, status history | Saved with the report | With the report |
+| Observation about a place feature (feature, finding, area, description, day seen, optional photo, consent time) | Server storage, public on the place page | Until the owner deletes it |
 | Client IP address | Server memory, for rate limiting | Up to an hour, never written to storage |
 | Owner cookie | Owner's browser only (SHA-256 digest of the key, HttpOnly, SameSite=Lax, Secure on HTTPS) | 30 days |
 

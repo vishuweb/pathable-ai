@@ -172,7 +172,7 @@ const RULES: Rule[] = [
   {
     id: "seating",
     group: "general",
-    needIds: ["seating"],
+    needIds: ["seating", "rest_areas"],
     label: "Seating",
     keys: ["bench"],
     read: yesNo("Seating available", "No seating"),
@@ -193,7 +193,65 @@ const RULES: Rule[] = [
     keys: ["toilets"],
     read: yesNo("Available", "Not available"),
   },
+  {
+    id: "parking_dropoff",
+    group: "mobility",
+    needIds: ["parking_dropoff"],
+    label: "Accessible parking or drop-off",
+    keys: ["capacity:disabled"],
+    read: (v) => (v === "0" || v === "no" ? "No accessible spaces" : v === "yes" ? "Accessible spaces available" : `${v} accessible spaces`),
+  },
+  // OpenStreetMap has no reliable tags for the features below, so they are known only from
+  // observations people contribute; until then they are unknown.
+  {
+    id: "obstacles",
+    group: "vision",
+    needIds: ["detectable_obstacles"],
+    label: "Obstacles a cane may miss on the way in",
+    keys: [],
+    read: (v) => v,
+  },
+  {
+    id: "contrast_signs",
+    group: "vision",
+    needIds: ["high_contrast_signs", "audio_guidance"],
+    label: "High-contrast or audio guidance signs",
+    keys: [],
+    read: (v) => v,
+  },
+  {
+    id: "visual_alarms",
+    group: "hearing",
+    needIds: ["visual_alarms", "text_information"],
+    label: "Visual emergency alarms and written notices",
+    keys: [],
+    read: (v) => v,
+  },
+  {
+    id: "signage",
+    group: "cognitive",
+    needIds: ["clear_signage", "simple_directions", "plain_instructions"],
+    label: "Clear signs and directions",
+    keys: [],
+    read: (v) => v,
+  },
+  {
+    id: "landmarks",
+    group: "cognitive",
+    needIds: ["landmarks", "less_complex_routes", "warn_confusing_transitions"],
+    label: "Recognisable landmarks and a simple way in",
+    keys: [],
+    read: (v) => v,
+  },
 ];
+
+/** Every feature a place profile can describe, with its label, group and the needs it serves. */
+export const PLACE_FEATURES = RULES.map(({ id, group, needIds, label, appliesTo }) => ({ id, group, needIds, label, crossingOnly: appliesTo === isCrossing }));
+
+/** True for features OpenStreetMap can hold; the rest come only from contributed observations. */
+export function osmCanRecord(featureId: string): boolean {
+  return (RULES.find((r) => r.id === featureId)?.keys.length ?? 0) > 0;
+}
 
 /** The accessibility attributes of a place, known and unknown, in a stable order. */
 export function placeAttributes(tags: Record<string, string>): PlaceAttribute[] {

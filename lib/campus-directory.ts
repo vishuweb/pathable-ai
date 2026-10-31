@@ -1,5 +1,5 @@
 import "server-only";
-import type { PlaceResult } from "./place";
+import { distanceMeters, type PlaceResult } from "./place";
 import { PLACE_CATEGORY_LABEL, categorize, type PlaceCategory } from "./place-categories";
 import { inRegion, type Region } from "./region";
 import iitIsmDhanbadPlaces from "./regions/iit-ism-dhanbad.places.json";
@@ -48,12 +48,15 @@ function labelFor(tags: Record<string, string>, name: string | null): string {
   return UNNAMED[kind] ?? (tags.entrance ? "Entrance" : "Unnamed place");
 }
 
-const cache = new Map<string, DirectoryPlace[]>();
+const cache = new Map<string, { all: DirectoryPlace[]; listed: DirectoryPlace[] }>();
 
-/** Every directory place for the region, checked against its boundary. */
-export function directory(region: Region): DirectoryPlace[] {
-  const hit = cache.get(region.id);
-  if (hit) return hit;
+/** The same real-world place often appears twice (a point and a building outline); keep the richer one. */
+const DUPLICATE_METERS = 60;
+/** How close a landmark must be to describe where a generic name such as "Parking" is. */
+const LANDMARK_METERS = 250;
+const NEVER_LANDMARKS = /^(unnamed place|parking|bungalow|residential quarters|toilets|crossing|steps|entrance|bench|atm|lift)$/i;
+
+function build(region: Region): { all: DirectoryPlace[]; listed: DirectoryPlace[] } {
   const file = FILES[region.id];
   const places = (file?.places ?? [])
     .filter((p) => inRegion(region, p.latitude, p.longitude))
@@ -74,8 +77,55 @@ export function directory(region: Region): DirectoryPlace[] {
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
-  cache.set(region.id, places);
-  return places;
+
+  // Collapse duplicates: same name, same kind, very close together. Prefer the outline (way or
+  // relation) and the one with more tags.
+  const richness = (p: DirectoryPlace) => Object.keys(p.tags).length + (p.osmType === "node" ? 0 : 5);
+  const kept: DirectoryPlace[] = [];
+  for (const place of [...places].sort((a, b) => richness(b) - richness(a))) {
+    const twin = kept.find(
+      (k) => normalize(k.name) === normalize(place.name) && k.category === place.category && distanceMeters(k, place) < DUPLICATE_METERS,
+    );
+    if (!twin) kept.push(place);
+  }
+
+  // Tell repeated generic names apart by the nearest landmark, e.g. "Parking near Lower Ground".
+  const counts = new Map<string, number>();
+  for (const p of kept) counts.set(normalize(p.name), (counts.get(normalize(p.name)) ?? 0) + 1);
+  const landmarks = kept.filter((p) => !NEVER_LANDMARKS.test(p.name) && (counts.get(normalize(p.name)) ?? 0) === 1);
+  const unnamed = new Set(kept.filter((p) => p.name === "Unnamed place").map((p) => `${p.osmType}${p.osmId}`));
+  const described = kept
+    .map((p) => {
+      if ((counts.get(normalize(p.name)) ?? 0) < 2) return p;
+      const near = landmarks
+        .map((l) => ({ l, d: distanceMeters(l, p) }))
+        .filter((x) => x.d < LANDMARK_METERS)
+        .sort((a, b) => a.d - b.d)[0];
+      return near ? { ...p, name: `${p.name} near ${near.l.name}`, displayName: `${p.name} near ${near.l.name}, ${region.name}` } : p;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Names that still collide get "(1 of 2)" so two list entries are never identical.
+  const same = new Map<string, number>();
+  for (const p of described) same.set(normalize(p.name), (same.get(normalize(p.name)) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  const all = described.map((p) => {
+    const total = same.get(normalize(p.name)) ?? 1;
+    if (total < 2) return p;
+    const index = (seen.get(normalize(p.name)) ?? 0) + 1;
+    seen.set(normalize(p.name), index);
+    return { ...p, name: `${p.name} (${index} of ${total})`, displayName: `${p.displayName} (${index} of ${total})` };
+  });
+
+  // Unnamed fragments stay reachable by link but are not listed or searched.
+  return { all, listed: all.filter((p) => !unnamed.has(`${p.osmType}${p.osmId}`)) };
+}
+
+/** Places worth listing for the region: named, de-duplicated, inside its boundary. */
+export function directory(region: Region): DirectoryPlace[] {
+  let hit = cache.get(region.id);
+  if (!hit) cache.set(region.id, (hit = build(region)));
+  return hit.listed;
 }
 
 export function directoryRetrieved(region: Region): string | undefined {
@@ -145,6 +195,8 @@ export function searchDirectory(region: Region, query: string, category?: PlaceC
     .map((x) => x.p);
 }
 
+/** Any recorded place by its OpenStreetMap id, including ones that are not listed. */
 export function findInDirectory(region: Region, osmType: string, osmId: number): DirectoryPlace | undefined {
-  return directory(region).find((p) => p.osmType === osmType && p.osmId === osmId);
+  directory(region);
+  return cache.get(region.id)?.all.find((p) => p.osmType === osmType && p.osmId === osmId);
 }

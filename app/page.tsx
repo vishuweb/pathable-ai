@@ -1,173 +1,158 @@
 import Link from "next/link";
+import { NeedGroupChips } from "@/components/NeedGroupChips";
+import { directory } from "@/lib/campus-directory";
+import { placePath } from "@/lib/place";
+import { activeRegion } from "@/lib/region";
 
-const AUDIENCES = [
+const ACTIONS = [
   {
-    group: "mobility",
-    title: "Moving around",
-    text: "Wheelchair users and people with walkers, crutches or prams: blocked ramps, steps, narrow or broken paths.",
+    href: "/places",
+    title: "Check a place",
+    text: "See what is known, and unknown, before you visit.",
+    icon: "M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z M12 12.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
   },
   {
-    group: "vision",
-    title: "Seeing",
-    text: "Blind and partially sighted people: obstacles a cane can miss, damaged tactile paving, unreadable signs.",
+    href: "/reports",
+    title: "Find a barrier",
+    text: "See problems people have reported around campus.",
+    icon: "M12 3 2 20h20L12 3z M12 10v4 M12 17h.01",
   },
   {
-    group: "hearing",
-    title: "Hearing",
-    text: "Deaf and hard-of-hearing people: information that is only spoken, with no clear written or visual signs.",
+    href: "/report",
+    title: "Report an issue",
+    text: "Share a barrier with photo evidence.",
+    icon: "M4 8h3l2-3h6l2 3h3v11H4z M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
   },
   {
-    group: "cognitive",
-    title: "Finding the way",
-    text: "People who need clear, predictable routes: confusing diversions and missing landmarks or signs.",
-  },
-  {
-    group: "general",
-    title: "Comfort and more",
-    text: "Older adults, carers and people with temporary injuries: uneven surfaces, nowhere to rest.",
-  },
-] as const;
-
-const STEPS = [
-  {
-    title: "Take a photo",
-    text: "Of a footpath, curb ramp, crossing or entrance. Your phone's location and camera details are removed before upload.",
-  },
-  {
-    title: "AI suggests possible barriers",
-    text: "Meta's Muse Spark model lists what it sees, why it may matter, and what the photo cannot show. These are suggestions, not conclusions.",
-  },
-  {
-    title: "The evidence is outlined",
-    text: "Meta's SAM 3.1 model outlines the object behind each suggestion. When it cannot, you see an approximate box and a warning instead.",
-  },
-  {
-    title: "You decide",
-    text: "Confirm, correct or reject every suggestion, add anything the AI missed, and type or dictate a note.",
-  },
-  {
-    title: "Share the report",
-    text: "It gets a public page and a downloadable maintenance request, with a status that records what happens next.",
+    href: "/places",
+    title: "Improve campus access",
+    text: "Add accessibility information that is still missing.",
+    icon: "M12 5v14 M5 12h14",
   },
 ];
 
+// Real campus places from the OpenStreetMap directory, used as examples.
+const EXAMPLES = [
+  "Central Library",
+  "New Lecture Hall Complex",
+  "Golden Jubilee Lecture Theatre",
+  "ISM Health Center",
+  "Main Building",
+  "Student Activity Center",
+];
+
 export default function HomePage() {
+  const region = activeRegion();
+  const places = directory(region);
+  const examples = EXAMPLES.flatMap((name) => places.find((p) => p.name === name) ?? []);
+  const suggestions = [
+    ...new Set(places.filter((p) => !/^(unnamed|parking|bungalow|residential quarters)/i.test(p.name)).map((p) => p.name)),
+  ];
+
   return (
-    <div className="landing">
-      <section className="hero" aria-labelledby="hero-title">
-        <p className="eyebrow">PathAble AI · Pilot at IIT (ISM) Dhanbad</p>
-        <h1 id="hero-title">One world. Different needs. More accessible journeys.</h1>
-        <p className="hero-lead">
-          A place that works for one person can stop another. Photograph a barrier, let AI point out what it may mean
-          for people with different needs, check every suggestion yourself, and share evidence someone can act on.
-        </p>
-        <div className="cta-row">
-          <Link className="button-primary button-large" href="/report">
-            Report a barrier
-          </Link>
-          <Link className="button-secondary" href="/places">
-            Explore places
-          </Link>
-          <Link className="button-secondary" href="/reports">
-            Community reports
-          </Link>
-          <Link className="button-secondary" href="/needs">
-            Set my needs
-          </Link>
-        </div>
+    <div className="home">
+      <section className="home-hero" aria-labelledby="home-title">
+        <h1 id="home-title">Explore your campus with confidence.</h1>
+        <p className="hero-lead">Find accessibility information about the places you need to visit at {region.name}.</p>
+
+        <form action="/places" method="get" role="search" className="destination-search">
+          <label htmlFor="destination">Where do you want to go?</label>
+          <div className="destination-row">
+            <input
+              id="destination"
+              name="q"
+              type="search"
+              list="campus-places"
+              autoComplete="off"
+              placeholder="Search Central Library, NLHC, a hostel…"
+            />
+            <button type="submit" className="button-primary">
+              Search
+            </button>
+          </div>
+          <datalist id="campus-places">
+            {suggestions.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+        </form>
+
+        <NeedGroupChips />
       </section>
 
-      <section aria-labelledby="who-title">
-        <h2 id="who-title">Built for different needs</h2>
-        <p>
-          Every barrier is tagged with the needs it may affect, so a blind pedestrian and a wheelchair user can each
-          find what matters to them. <Link href="/needs">Choose your needs</Link>; they stay on your device.
-        </p>
-        <ul className="card-grid">
-          {AUDIENCES.map((a) => (
-            <li key={a.title} className="card">
-              <h3>{a.title}</h3>
-              <p>{a.text}</p>
+      <section aria-labelledby="actions-title">
+        <h2 id="actions-title">What would you like to do?</h2>
+        <ul className="action-grid">
+          {ACTIONS.map((a) => (
+            <li key={a.title}>
+              <Link href={a.href} className="action-card">
+                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                  <path d={a.icon} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="action-title">{a.title}</span>
+                <span className="action-text">{a.text}</span>
+              </Link>
             </li>
           ))}
         </ul>
       </section>
 
-      <section id="how-it-works" aria-labelledby="how-title">
+      <section aria-labelledby="popular-title">
+        <h2 id="popular-title">Popular places on campus</h2>
+        <ul className="chip-links">
+          {examples.map((p) => (
+            <li key={p.name}>
+              <Link href={placePath(p)}>{p.name}</Link>
+            </li>
+          ))}
+          <li>
+            <Link href="/places?category=hostel">Hostels</Link>
+          </li>
+          <li>
+            <Link href="/places?category=food">Canteens and food</Link>
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="trust-title" className="trust">
+        <h2 id="trust-title">How to read the information</h2>
+        <ul>
+          <li>
+            Every detail shows where it came from: <strong>OpenStreetMap</strong>, a <strong>visitor&apos;s report</strong>, or{" "}
+            <strong>independently verified</strong>.
+          </li>
+          <li>
+            Missing details are shown as <strong>Unknown</strong>, never as accessible. There is no overall score.
+          </li>
+          <li>
+            AI only suggests barriers in photos; a person always decides. <Link href="/#how">How it works</Link>
+          </li>
+        </ul>
+        <p className="muted">
+          Pilot area: {region.fullName}. Routes are not planned yet. <Link href="/privacy">Privacy</Link>
+        </p>
+      </section>
+
+      <section id="how" aria-labelledby="how-title" className="how">
         <h2 id="how-title">How it works</h2>
         <ol className="steps">
-          {STEPS.map((s) => (
-            <li key={s.title}>
-              <h3>{s.title}</h3>
-              <p>{s.text}</p>
-            </li>
-          ))}
+          <li>
+            <h3>Find a place</h3>
+            <p>Search the campus directory, built from OpenStreetMap inside the campus boundary.</p>
+          </li>
+          <li>
+            <h3>Check what matters to you</h3>
+            <p>Your needs come first on each place page, with the source and date of every detail.</p>
+          </li>
+          <li>
+            <h3>See what is unknown</h3>
+            <p>Missing information that could affect your visit is listed, so you can plan or ask ahead.</p>
+          </li>
+          <li>
+            <h3>Add what you see</h3>
+            <p>Record a feature you checked, or report a barrier with a photo; AI suggests, you decide.</p>
+          </li>
         </ol>
-        <figure className="example">
-          {/* eslint-disable-next-line @next/next/no-img-element -- a static sample photo */}
-          <img
-            src="/samples/scooter-blocking-sidewalk.jpg"
-            alt="A fallen electric scooter lying across a concrete sidewalk next to a utility pole."
-            width={1280}
-            height={1707}
-            loading="lazy"
-          />
-          <figcaption>
-            Example photo: a fallen scooter on a sidewalk. You can try the whole process with it on the{" "}
-            <Link href="/report">report page</Link>, under &ldquo;No photo handy?&rdquo;. Photo: City Dweller 2, Wikimedia
-            Commons, CC BY-SA 4.0.
-          </figcaption>
-        </figure>
-      </section>
-
-      <section id="verification" aria-labelledby="why-title" className="callout">
-        <h2 id="why-title">How information is verified</h2>
-        <ul>
-          <li>AI can misread a photo, so every suggestion stays &ldquo;unverified&rdquo; until a person decides.</li>
-          <li>
-            Some things a photo can never show: whether a crossing signal is audible, whether a lift works, or whether
-            tactile paving continues out of shot. PathAble AI does not guess them.
-          </li>
-          <li>A photo cannot measure widths, slopes or step heights, so a report says what to check on site.</li>
-          <li>
-            A shared report starts as &ldquo;Submitted&rdquo;; later steps such as &ldquo;Verified&rdquo; or
-            &ldquo;Resolved&rdquo; are recorded with a date and a reason.
-          </li>
-          <li>Reports never claim compliance, and no barrier found never means &ldquo;accessible&rdquo;.</li>
-        </ul>
-      </section>
-
-      <section aria-labelledby="share-title">
-        <h2 id="share-title">What happens when you share a report</h2>
-        <ul className="plain-list">
-          <li>
-            <strong>It is public.</strong> Anyone can see the photo, the suggestions, your decisions and notes, and the
-            location if you added one. You confirm this before saving.
-          </li>
-          <li>
-            <strong>It starts as &ldquo;Submitted&rdquo;.</strong> Later changes, such as &ldquo;Verified&rdquo; or
-            &ldquo;Resolved&rdquo;, are recorded with a date and the reason, so a report is never shown as fixed
-            without one.
-          </li>
-          <li>
-            <strong>It can be removed.</strong> Ask for removal or correction at any time; see{" "}
-            <Link href="/privacy">privacy and data</Link>.
-          </li>
-        </ul>
-        <p>
-          How accurate are the suggestions? The project measures that from reviewed photos on the{" "}
-          <Link href="/results">measured results</Link> page.
-        </p>
-      </section>
-
-      <section aria-labelledby="scope-title" className="scope">
-        <h2 id="scope-title">What PathAble AI does not do yet</h2>
-        <p>
-          It currently works on the IIT (ISM) Dhanbad campus only: place search and reports are limited to the campus
-          boundary. Place pages show what OpenStreetMap contributors have recorded, which is often incomplete and is not verified
-          by PathAble AI. Maps, routes suited to your needs, community verification and user accounts are planned for
-          later and are not available today.
-        </p>
       </section>
     </div>
   );

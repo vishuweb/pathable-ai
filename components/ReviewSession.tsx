@@ -18,6 +18,7 @@ import type { Evidence, SceneAnalysis } from "@/lib/types";
 import { EvidenceViewer } from "./EvidenceViewer";
 import { FindingCard } from "./FindingCard";
 import { FindingReviewControls } from "./FindingReviewControls";
+import { AREA_LABEL, PLACE_AREAS, type PlaceArea } from "@/lib/observations";
 import { LocationField } from "./LocationField";
 import { MissedIssuesEditor } from "./MissedIssuesEditor";
 import { VoiceNoteButton, appendDictation } from "./VoiceNoteButton";
@@ -48,6 +49,9 @@ interface Props {
 
 const EMPTY_LOCATION: ReportLocation = { label: "" };
 
+/** Today in the browser's own calendar, as YYYY-MM-DD. */
+const todayLocal = () => new Date().toLocaleDateString("en-CA");
+
 export function ReviewSession({
   image,
   analysis,
@@ -70,6 +74,8 @@ export function ReviewSession({
   const [missedIssues, setMissedIssues] = useState<MissedIssue[]>([]);
   const [location, setLocation] = useState<ReportLocation>(initialLocation);
   const [reviewerNote, setReviewerNote] = useState("");
+  const [area, setArea] = useState<PlaceArea | "">("");
+  const [observedOn, setObservedOn] = useState("");
   const [consent, setConsent] = useState(false);
   const [save, setSave] = useState<SaveState>({ state: "idle" });
   const reviewStartedAt = useRef(0);
@@ -85,7 +91,7 @@ export function ReviewSession({
     !saved &&
     (Object.values(reviews).some((r) => r.decision || r.note) ||
       missedIssues.length > 0 ||
-      Boolean(location !== initialLocation || reviewerNote));
+      Boolean(location !== initialLocation || reviewerNote || area || observedOn));
 
   useEffect(() => {
     onDirtyChange?.(dirty);
@@ -121,6 +127,8 @@ export function ReviewSession({
         reviews: Object.fromEntries(analysis.findings.map((f) => [f.id, reviews[f.id] ?? emptyReview()])),
         missedIssues,
         reviewerNote,
+        area: area || undefined,
+        observedOn: observedOn || undefined,
         consent: true,
         models,
         timings: {
@@ -214,6 +222,31 @@ export function ReviewSession({
                   <legend className="visually-hidden">Report details</legend>
                   <MissedIssuesEditor issues={missedIssues} onChange={setMissedIssues} />
                   <LocationField value={location} onChange={setLocation} />
+                  <fieldset className="field-group">
+                    <legend>
+                      About the barrier <span className="muted">(optional)</span>
+                    </legend>
+                    <label className="field">
+                      Which part of the place?
+                      <select value={area} onChange={(e) => setArea(e.target.value as PlaceArea | "")}>
+                        <option value="">Not sure or not listed</option>
+                        {PLACE_AREAS.map((a) => (
+                          <option key={a} value={a}>
+                            {AREA_LABEL[a]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      When did you see it?
+                      <input
+                        type="date"
+                        value={observedOn}
+                        max={todayLocal()}
+                        onChange={(e) => setObservedOn(e.target.value)}
+                      />
+                    </label>
+                  </fieldset>
                   <label className="field">
                     <span>
                       Overall note <span className="muted">(optional)</span>

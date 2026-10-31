@@ -18,6 +18,10 @@ export interface ReportListItem {
   statusLabel: string;
   statusKey: string;
   summary: string;
+  /** Plain statement of how precisely the report is located. */
+  locationLabel: string;
+  placeHref?: string;
+  area?: string;
   /** Needs affected by barriers a person confirmed, corrected or added; AI-only suggestions do not count. */
   needs: NeedGroup[];
   latitude?: number;
@@ -153,6 +157,16 @@ export function ReportList({ items }: { items: ReportListItem[] }) {
                 <p className="muted">
                   {distance !== undefined && <strong>{formatDistance(distance)} away · </strong>}
                   {item.createdLabel} · Status: <span className={`chip status-${item.statusKey}`}>{item.statusLabel}</span>
+                </p>
+                <p>
+                  <strong>{item.locationLabel}</strong>
+                  {item.placeHref && (
+                    <>
+                      {" "}
+                      <Link href={item.placeHref}>(place page)</Link>
+                    </>
+                  )}
+                  {item.area && <> · {item.area}</>}
                 </p>
                 <p>{item.summary}</p>
                 <NeedChips needs={item.needs} label="Confirmed barriers affect" />

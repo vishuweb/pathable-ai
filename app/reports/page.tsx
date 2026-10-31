@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ReportList, type ReportListItem } from "@/components/ReportList";
 import { formatDateTime } from "@/lib/format";
+import { AREA_LABEL } from "@/lib/observations";
+import { placePath } from "@/lib/place";
 import { summarizeReport, verifiedNeeds } from "@/lib/report";
 import { STATUS_INFO, currentStatus } from "@/lib/report-status";
 import { reports as reportStore } from "@/lib/store";
@@ -18,10 +20,19 @@ export default async function ReportsPage() {
     return {
       id: report.id,
       title: report.location?.place?.name || report.location?.label || `Report from ${created}`,
+      placeHref: report.location?.place ? placePath(report.location.place) : undefined,
+      locationLabel: report.location?.place
+        ? `At ${report.location.place.name}`
+        : report.location?.latitude !== undefined
+          ? "Location on campus map, no named place"
+          : report.location?.label
+            ? `Described as “${report.location.label}”, no map location`
+            : "No location given",
+      area: report.area ? AREA_LABEL[report.area] : undefined,
       createdLabel: created,
       statusKey: status,
       statusLabel: STATUS_INFO[status].label,
-      summary: `${s.verified} confirmed ${s.verified === 1 ? "barrier" : "barriers"} · ${s.findings} AI ${s.findings === 1 ? "suggestion" : "suggestions"} (${s.confirmed} confirmed, ${s.corrected} corrected, ${s.rejected} rejected) · ${s.missed} added by the reporter`,
+      summary: `${s.verified} ${s.verified === 1 ? "barrier" : "barriers"} confirmed by the reporter${s.missed ? `, including ${s.missed} they added` : ""}`,
       needs: verifiedNeeds(report),
       latitude: report.location?.latitude,
       longitude: report.location?.longitude,

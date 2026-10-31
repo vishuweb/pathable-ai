@@ -45,6 +45,10 @@ Make public spaces more accessible through trustworthy accessibility information
 | Barrier categories for several needs (tactile guidance, hard-to-detect obstacles, crossings, signage) with "may affect" labels | Unit tests; mocked API test; browser test |
 | Community reports filtered by need and by distance from a place or the visitor's location | Browser test |
 | IIT (ISM) Dhanbad as the configured pilot region: real OSM boundary, point-in-polygon enforcement in search, place pages and report validation; campus directory with fuzzy and initials search; campus map with boundary | Unit tests (including "NAC Auditorium" never returning Madrid); browser test |
+| Task-based home page; needs-first place profiles (overview, known with source and date, unknown, recent reports, contribute); fixed provenance labels | Browser tests for the four journeys (mobility, visual, hearing, contribution); axe checks |
+| Observations: visitors record a feature's state at a place, public as community reported; owner verifies with a reason or deletes | Route and unit tests; browser journey 4 |
+| Reports carry the affected area and the day seen; community list states how precisely each is located | Route tests; browser journey 4 |
+| Campus directory de-duplicated, unnamed fragments hidden, repeated names disambiguated | Unit and browser tests |
 | Reports linked to OpenStreetMap places; place profiles with per-attribute community data, unknowns, staleness and nearby reports | Unit tests with mocked OpenStreetMap; browser test |
 | Report status with dated history; notes required for claims; duplicate links | Route tests; browser test of the full workflow |
 | Owner moderation: delete reports, change status; visitors get 403 | Route tests; live check of the 403 responses |
@@ -73,6 +77,8 @@ Make public spaces more accessible through trustworthy accessibility information
 ## 3. Not yet implemented
 
 - **Accounts and roles.** There is one owner key; no user accounts, reviewer or organization roles.
+- **Independent verification workflow beyond the owner.** Only the project owner can mark an observation verified; there are no other verifier roles, disputes or duplicate merging.
+- **Per-entrance or per-path places.** Observations name a part of a place (entrance, path, crossing...) but entrances and paths are not separate place records yet.
 - **Places added by PathAble users.** Only OpenStreetMap places exist today; campus places missing from OSM (for example "NAC Auditorium") cannot be added in the app yet. The data model keeps a place's source so user-added and verified places can be introduced later.
 - **Campus accessibility data.** None of the 89 campus places in OpenStreetMap carries accessibility tags yet, so their attributes all show as unknown until reports or surveys add evidence.
 - **Verified place attributes.** Place pages show OpenStreetMap community data only; PathAble has no inspection workflow of its own yet.

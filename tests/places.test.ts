@@ -103,6 +103,14 @@ test("every directory place lies inside the campus", () => {
   assert.ok(all.every((p) => inRegion(campus, p.latitude, p.longitude)));
 });
 
+test("the directory has no duplicates, no unnamed fragments, and distinct names for repeated places", () => {
+  const listed = directory(campus);
+  assert.ok(listed.every((p) => p.name !== "Unnamed place" && !/^Unnamed place/.test(p.name)));
+  assert.equal(new Set(listed.map((p) => normalize(p.name))).size, listed.length, "no two list entries share a name");
+  assert.equal(listed.filter((p) => p.name === "Geological Museum").length, 1, "a point and an outline of one museum are one place");
+  assert.ok(listed.some((p) => /^Parking near /.test(p.name)), "generic names say where they are");
+});
+
 test("names are compared without case, accents or punctuation", () => {
   assert.equal(normalize("Rosaline Girl's  Hostel"), "rosaline girls hostel");
   assert.equal(normalize("Fuel, Mineral & Metallurgical"), "fuel mineral and metallurgical");
