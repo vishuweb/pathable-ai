@@ -7,7 +7,7 @@ import { PLACE_CATEGORIES } from "@/lib/place-categories";
 import { PLACE_FEATURES } from "@/lib/place-attributes";
 import { featureStatuses } from "@/lib/place-profile";
 import { activeRegion } from "@/lib/region";
-import { observations } from "@/lib/store";
+import { publicObservations } from "@/lib/moderation-store";
 import type { Provenance } from "@/lib/provenance";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function PlacesPage({ searchParams }: { searchParams: Searc
   const query = await searchParams;
   const region = activeRegion();
   const list = directory(region);
-  const all = await observations.list();
+  const all = await publicObservations();
 
   const places = list.map((p) => ({
     osmType: p.osmType,

@@ -126,6 +126,38 @@ async function axeViolations(page: Page): Promise<string[]> {
   });
 }
 
+/** A fresh browser page signed in as the project owner. */
+async function ownerPage(): Promise<Page> {
+  // Its own browser context, so the owner's cookie never reaches the "visitor" pages.
+  const context = await browser!.createBrowserContext();
+  const owner = await context.newPage();
+  owner.once("close", () => void context.close().catch(() => undefined));
+  owner.setDefaultTimeout(60_000);
+  owner.setDefaultNavigationTimeout(180_000);
+  owner.on("dialog", (d) => void d.accept());
+  await owner.setViewport({ width: 1100, height: 900 });
+  await owner.goto(`${BASE}/owner`, { waitUntil: "networkidle0" });
+  await owner.type('input[name="key"]', OWNER_KEY);
+  await Promise.all([owner.waitForNavigation({ waitUntil: "networkidle0" }), owner.click('button[type="submit"]')]);
+  return owner;
+}
+
+/** Approves everything waiting on the owner's Approvals page, and says how many items that was. */
+async function approveAll(): Promise<number> {
+  const owner = await ownerPage();
+  await owner.goto(`${BASE}/owner/moderation`, { waitUntil: "networkidle0" });
+  let approved = 0;
+  for (;;) {
+    const buttons = await owner.$$('xpath/.//button[contains(., "Approve")]');
+    if (!buttons.length) break;
+    await buttons[0].click();
+    await owner.waitForFunction((n) => document.querySelectorAll(".report-item").length < n, {}, buttons.length);
+    approved++;
+  }
+  await owner.close();
+  return approved;
+}
+
 const cardTexts = (page: Page, selector: string) =>
   page.$$eval(`.finding-card ${selector}`, (els) => els.map((e) => (e.textContent ?? "").trim()));
 
@@ -167,12 +199,25 @@ test("a photo becomes a reviewed, consented, saved report", { skip: !CHROME && "
   assert.equal(await saveDisabled(), true, "saving needs the sharing confirmation");
   await page.click(".consent input");
   assert.equal(await saveDisabled(), false);
+  const posted = page.waitForResponse((r) => r.url().endsWith("/api/reports") && r.request().method() === "POST");
   await page.click(".save-actions .button-primary");
+  const { id, moderation } = (await (await posted).json()) as { id: string; moderation: string };
+  assert.equal(moderation, "pending", "a visitor's report waits for approval");
   await page.waitForSelector(".save-success");
+  const message = await page.$eval(".save-success", (e) => e.textContent ?? "");
+  assert.match(message, /Report received\. It is not public yet/);
+  assert.equal(await page.$('.save-success a[href^="/reports/"]'), null, "no link to a page that would not open");
 
-  const reportUrl = await page.$eval('.save-success a[href^="/reports/"]', (a) => a.getAttribute("href"));
-  savedReportPath = reportUrl!;
-  await page.goto(BASE + reportUrl, { waitUntil: "networkidle0" });
+  savedReportPath = `/reports/${id}`;
+  assert.equal((await fetch(`${BASE}/api/reports/${id}`)).status, 404, "its data is hidden");
+  assert.equal((await fetch(`${BASE}/api/reports/${id}/image`)).status, 404, "its photo is hidden");
+  assert.equal((await fetch(BASE + savedReportPath)).status, 404, "its page is hidden");
+  const listing = await (await fetch(`${BASE}/reports`)).text();
+  assert.ok(!listing.includes(`href="/reports/${id}"`), "and it is not listed");
+
+  assert.equal(await approveAll(), 1, "the owner approves it from the Approvals page");
+  assert.equal((await fetch(`${BASE}/api/reports/${id}`)).status, 200, "now public");
+  await page.goto(BASE + savedReportPath, { waitUntil: "networkidle0" });
   assert.match(await page.$eval("h1", (h) => h.textContent ?? ""), /1 verified barrier/);
   assert.match(await page.$eval("#status-heading", (h) => h.textContent ?? ""), /Submitted/);
   assert.deepEqual(await axeViolations(page), [], "saved report passes WCAG 2.2 AA checks");
@@ -400,6 +445,11 @@ test("journey 4, contribution: observe a feature, report a barrier at the place,
   await page.click(".observation-form .consent input");
   await submit!.click();
   await page.waitForFunction(() => /Thank you/.test(document.querySelector(".observation-form p[role=status]")?.textContent ?? ""));
+  assert.match(await page.$eval(".observation-form p[role=status]", (e) => e.textContent ?? ""), /waiting for the project owner's approval/);
+  await new Promise((r) => setTimeout(r, 1000));
+  assert.ok(!/Community reported/.test(await page.$eval(".features", (e) => e.textContent ?? "")), "not shown while pending");
+  assert.equal(await approveAll(), 1, "the owner approves the observation");
+  await page.reload({ waitUntil: "networkidle0" });
   await page.waitForFunction(() => /Community reported/.test(document.querySelector(".features")?.textContent ?? ""));
   const overview = await page.$eval(".overview", (o) => (o as HTMLElement).innerText);
   assert.match(overview, /Ramp\s+Community reported\s+There, but blocked · An entrance · observed \d{4}-\d{2}-\d{2}/);
@@ -418,9 +468,16 @@ test("journey 4, contribution: observe a feature, report a barrier at the place,
   await (await page.waitForSelector('xpath/.//fieldset[legend[contains(., "Does the highlight")]]//label[normalize-space(.)="Yes"]'))!.click();
   await page.select('xpath/.//label[contains(., "Which part of the place")]//select', "steps_ramp");
   await page.click(".consent input");
+  const posted = page.waitForResponse((r) => r.url().endsWith("/api/reports") && r.request().method() === "POST");
   await page.click(".save-actions .button-primary");
+  const { id: reportId } = (await (await posted).json()) as { id: string };
   await page.waitForSelector(".save-success");
-  const reportPath = await page.$eval('.save-success a[href^="/reports/"]', (a) => a.getAttribute("href"));
+  const reportPath = `/reports/${reportId}`;
+
+  // Pending: not on the place page or in the community list until the owner approves it.
+  await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+  assert.match(await page.$eval("#reports-title", (h) => (h.parentElement as HTMLElement).innerText), /No barrier has been reported/);
+  assert.equal(await approveAll(), 1, "the owner approves the report");
 
   // It now shows on the place page, with its status, and in the community list with its location.
   await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
@@ -457,7 +514,8 @@ test("an invited reviewer can work through the queue, and nothing more", { skip:
   await mkdir(path.join(dataDir, "drafts"), { recursive: true });
   await writeFile(path.join(dataDir, "drafts", `${draftId}.jpg`), readFileSync(PHOTO));
   await writeFile(path.join(dataDir, "drafts", `${draftId}.json`), JSON.stringify(draft));
-  assert.equal((await fetch(`${BASE}/api/drafts/${draftId}/image`)).status, 403, "visitors cannot see queued photos");
+  assert.equal((await fetch(`${BASE}/api/drafts/${draftId}/image`)).status, 401, "visitors cannot see queued photos");
+  assert.equal((await fetch(`${BASE}/api/drafts`)).status, 401, "or the queue summary");
 
   const page = await browser!.newPage();
   page.setDefaultTimeout(60_000);
@@ -477,9 +535,12 @@ test("an invited reviewer can work through the queue, and nothing more", { skip:
   });
   await (await page.waitForSelector('xpath/.//label[contains(., "Not a barrier")]'))!.click();
   await page.click(".consent input");
+  const saved = page.waitForResponse((r) => r.url().endsWith("/api/reports") && r.request().method() === "POST");
   await page.click(".save-actions .button-primary");
-  await page.waitForFunction(() => /Nothing is waiting|Review queue/.test(document.querySelector("main")?.textContent ?? ""));
-  assert.equal((await fetch(`${BASE}/api/drafts`).then((r) => r.json())).pending, 0, "the photo left the queue");
+  assert.equal((await saved).status(), 201, "the reviewer's report is saved");
+  await page.goto(`${BASE}/review`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => /Nothing is waiting/.test(document.querySelector("main")?.textContent ?? ""));
+  assert.match(await page.$eval("main", (m) => m.textContent ?? ""), /Nothing is waiting for review/, "the photo left the queue");
 
   await page.goto(`${BASE}/batch`, { waitUntil: "networkidle0" });
   assert.match(await page.$eval("main", (m) => m.textContent ?? ""), /kept for the project owner/, "no batch analysis");
@@ -521,15 +582,10 @@ test("visitors see the public site; the owner gets the workspace and moderation"
   assert.match(visitorText, /Request removal or a correction/);
   await visitor.close();
 
-  const owner = await browser!.newPage();
-  owner.setDefaultNavigationTimeout(180_000);
-  owner.on("dialog", (d) => void d.accept());
-  await owner.goto(`${BASE}/owner`, { waitUntil: "networkidle0" });
-  await owner.type('input[name="key"]', OWNER_KEY);
-  await Promise.all([owner.waitForNavigation({ waitUntil: "networkidle0" }), owner.click('button[type="submit"]')]);
+  const owner = await ownerPage();
   assert.equal(new URL(owner.url()).pathname, "/owner");
   const workspace = await owner.$$eval('nav[aria-label="Owner workspace"] a', (links) => links.map((a) => a.textContent));
-  assert.deepEqual(workspace, ["Workspace", "Batch analyze", "Review queue", "Results"]);
+  assert.deepEqual(workspace, ["Workspace", "Batch analyze", "Review queue", "Approvals", "Results"]);
 
   await owner.goto(BASE + savedReportPath, { waitUntil: "networkidle0" });
   await owner.select(".status-form select", "under_review");

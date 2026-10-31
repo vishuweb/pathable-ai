@@ -1,6 +1,7 @@
 import { jsonResponse } from "@/lib/http";
+import { visibleReport } from "@/lib/moderation-store";
+import { roleOf } from "@/lib/owner";
 import { reportToMarkdown } from "@/lib/report-markdown";
-import { reports } from "@/lib/store";
 import type { ApiError } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -8,7 +9,7 @@ export const runtime = "nodejs";
 /** The report as a Markdown maintenance request. */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const report = await reports.get(id);
+  const report = await visibleReport(id, roleOf(request) === "owner");
   if (!report) return jsonResponse<ApiError>({ error: "Report not found." }, 404);
   const reportUrl = new URL(`/reports/${id}`, request.url).toString();
   return new Response(reportToMarkdown(report, reportUrl), {

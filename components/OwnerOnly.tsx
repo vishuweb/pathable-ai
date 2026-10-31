@@ -1,10 +1,18 @@
 import Link from "next/link";
+import { sessionProblem } from "@/lib/owner";
 
 /** Shown instead of an evaluation tool to visitors of a public deployment. */
-export function OwnerOnly({ title }: { title: string }) {
+export async function OwnerOnly({ title }: { title: string }) {
+  const problem = await sessionProblem();
   return (
     <section aria-labelledby="owner-only-title">
       <h1 id="owner-only-title">{title}</h1>
+      {(problem === "expired" || problem === "invalid") && (
+        <p className="error" role="alert">
+          {problem === "expired" ? "Your session has expired." : "Your session is not valid."} Please{" "}
+          <Link href="/owner">sign in again</Link>.
+        </p>
+      )}
       <div className="empty-state">
         <p>
           This tool builds the project&apos;s measured results from the owner&apos;s own reviews, so it is kept for

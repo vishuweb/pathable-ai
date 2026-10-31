@@ -6,7 +6,7 @@ This describes what PathAble AI protects against, how, and what it does not yet 
 
 | Data | Where it goes | Kept |
 | --- | --- | --- |
-| Photo (re-encoded in the browser: ≤1600 px JPEG, EXIF/GPS removed) | Server, then Meta Model API (analysis, segmentation) | Only if a report is saved |
+| Photo (re-encoded in the browser, then again on the server: JPEG, EXIF/GPS and all other metadata removed) | Server, then Meta Model API (analysis, segmentation) | Only if a report is saved |
 | AI findings and outlines | Browser; saved with the report | With the report |
 | Review decisions, notes, missed barriers | Saved with the report | With the report |
 | Location | Only if typed or "Use my current location" is pressed | With the report |
@@ -14,9 +14,9 @@ This describes what PathAble AI protects against, how, and what it does not yet 
 | Consent time, status history | Saved with the report | With the report |
 | Observation about a place feature (feature, finding, area, description, day seen, optional photo, consent time) | Server storage, public on the place page | Until the owner deletes it |
 | Client IP address | Server memory, for rate limiting | Up to an hour, never written to storage |
-| Owner cookie | Owner's browser only (SHA-256 digest of the key, HttpOnly, SameSite=Lax, Secure on HTTPS) | 30 days |
+| Owner or reviewer session cookie | Browser only (signed with the key, role and expiry, HttpOnly, SameSite=Lax, Secure on HTTPS) | 7 days, enforced on the server |
 
-Shared reports are public by design and listed on the Reports page; the box shown before sharing lists exactly what becomes public, and every report page has a link to request removal or correction. There are no user accounts, analytics, advertising or tracking.
+Shared reports and observations start as **pending**: only the owner can see them until the owner approves them, and only approved items are public. Reports saved by the owner or a signed-in reviewer are approved at once. Public items are listed on the Reports page; the box shown before sharing lists exactly what becomes public, and every report page has a link to request removal or correction. There are no user accounts, analytics, advertising or tracking.
 
 ## Protections
 
@@ -36,14 +36,19 @@ Shared reports are public by design and listed on the Reports page; the box show
 - Batch analysis, the review queue, status changes and deletion require the owner key, checked on the server for every request; hidden buttons are not relied on.
 - A Vercel deployment without `OWNER_KEY` keeps these tools locked.
 - Owner sign-in attempts are rate-limited.
+- Sessions are signed, carry a role and an expiry, and are checked on every request. Invalid or expired sessions get 401 (and the cookie is cleared), a wrong role gets 403, and a server with no keys set answers 503 instead of opening up. Only local development with no keys at all acts as the owner.
+- The review queue (`GET /api/drafts`, queued photos) is limited to the owner and reviewers.
 
 **Abuse and cost**
-- Per-visitor hourly limits on analysis, segmentation and transcription.
+- Per-visitor hourly limits on analysis, segmentation, transcription, and on submitting reports and observations (`SUBMISSION_LIMIT_PER_HOUR`), plus a daily cap on public submissions.
+- A cap on submissions waiting for approval (`MAX_PENDING_SUBMISSIONS`), counted from storage, so a flood cannot grow storage without bound.
 - A daily cap on all AI calls (`AI_DAILY_LIMIT`, default 300 on a deployment) and a pause switch (`AI_PAUSED=1`).
 - No automatic retries of model calls; every call has a deadline inside the 60-second route limit.
 
 **Privacy by design**
-- Metadata, including GPS, is stripped before upload; location is never added automatically.
+- Metadata, including GPS, is stripped in the browser and again on the server before any photo is stored; location is never added automatically.
+- Photos are served `private, no-store`, so deleting or rejecting an item stops it being served at once.
+- Observation places and coordinates must match the campus directory; the stored name and position are the directory's own.
 - Consent is required before a report is saved and published, and its time is recorded.
 - No facial recognition or identification of individuals.
 - The owner can delete any report; the [privacy page](../app/privacy/page.tsx) explains how to request removal.
@@ -51,13 +56,15 @@ Shared reports are public by design and listed on the Reports page; the box show
 ## Known limitations
 
 - **Single owner.** One shared key; no individual accounts, roles or per-person audit trail.
-- **In-memory limits.** Rate limits and the daily cap are counted per server instance, so they bound cost rather than enforce an exact total.
+- **In-memory limits.** Per-visitor limits and daily caps are counted per server instance, so they slow abuse rather than enforce an exact total. The pending-approval cap is counted from storage and is the firm bound.
 - **No automatic blurring.** Faces and number plates are not detected or blurred; the app relies on the consent statement and owner moderation.
 - **Deletion leaves no audit record**, and removal requests go through public GitHub issues.
 - **Server logs** may include error details from the Meta API (never the API key or photos); Vercel keeps them under its own retention.
 - **Third-party processing.** Photos and recordings sent to the Meta Model API are handled under Meta's terms; this project does not control that retention.
 - **No CSRF tokens.** Owner actions rely on the SameSite=Lax cookie and JSON requests; this is adequate for a single-owner demo but should be revisited with accounts.
-- **Public listing.** Every saved report is public; there is no private-report option.
+- **Public listing.** Every approved report is public; there is no private-report option.
+- **Manual moderation only.** Approval is a human check; nothing screens uploads automatically.
+- **Dev toolchain advisory.** `npm audit` reports a moderate minimatch advisory in the ESLint dev tooling; it is not part of the deployed app.
 
 ## Reporting a security problem
 

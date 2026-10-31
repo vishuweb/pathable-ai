@@ -201,12 +201,20 @@ export function AuditWorkspace({ initialLocation }: { initialLocation?: ReportLo
           models={models}
           timings={timings}
           onDirtyChange={setHasUnsavedReview}
-          renderSaved={(reportId) => (
+          renderSaved={(reportId, pending) => (
             <>
-              <p>
-                <strong>Report shared.</strong> <Link href={`/reports/${reportId}`}>Open the report</Link> or see{" "}
-                <Link href="/reports">all reports</Link>.
-              </p>
+              {pending ? (
+                <p>
+                  <strong>Report received.</strong> It is not public yet: the project owner checks every new report
+                  before it appears on <Link href="/reports">Community reports</Link>. Nothing you sent is shown to
+                  anyone until then.
+                </p>
+              ) : (
+                <p>
+                  <strong>Report shared.</strong> <Link href={`/reports/${reportId}`}>Open the report</Link> or see{" "}
+                  <Link href="/reports">all reports</Link>.
+                </p>
+              )}
               <button type="button" className="button-secondary" onClick={analyzeAnother}>
                 Analyze another photo
               </button>

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { WorkspaceNav } from "@/components/WorkspaceNav";
-import { canReview, isOwner, ownerKeyMissing, ownerKeyRequired } from "@/lib/owner";
+import { canReview, isOwner, ownerKeyMissing, ownerKeyRequired, sessionProblem } from "@/lib/owner";
+import { countPending } from "@/lib/moderation-store";
 import { drafts, reports } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +48,8 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
       <section aria-labelledby="owner-title" className="owner-page">
         <h1 id="owner-title">Owner workspace</h1>
         <p className="intro">
+          {(await sessionProblem()) === "expired" && "Your session has expired. Sign in again. "}
+          {(await sessionProblem()) === "invalid" && "Your session is not valid. Sign in again. "}
           The project owner and invited reviewers use this workspace to review photos as evaluation data and moderate
           shared reports. Anyone can <Link href="/report">report a barrier</Link> without signing in.
         </p>
@@ -77,8 +80,13 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
     );
   }
 
-  const [queued, saved] = await Promise.all([drafts.list(), reports.list()]);
+  const [queued, saved, pending] = await Promise.all([drafts.list(), reports.list(), countPending()]);
   const tools = [
+    {
+      href: "/owner/moderation",
+      title: "Approvals",
+      text: `${pending} ${pending === 1 ? "submission is" : "submissions are"} waiting. Nothing a visitor sends is public until you approve it.`,
+    },
     {
       href: "/batch",
       title: "Batch analyze",

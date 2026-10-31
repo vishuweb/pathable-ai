@@ -30,6 +30,8 @@ interface Props {
   reportHref: string;
   sourceNote: string;
   isOwner?: boolean;
+  /** Observations can be added only to places in the campus directory. */
+  canContribute?: boolean;
 }
 
 function Provenance({ value, outdated }: { value: Provenance; outdated?: boolean }) {
@@ -69,7 +71,7 @@ function FeatureRow({ feature, onAdd }: { feature: FeatureStatus; onAdd: (id: st
 const KEY_FEATURES = ["wheelchair", "steps", "ramp", "lift", "toilets_wheelchair", "tactile_paving", "hearing_loop", "signage"];
 
 /** A place's accessibility profile, ordered around the visitor's own needs. */
-export function PlaceProfileView({ place, features, reports, reportHref, sourceNote, isOwner }: Props) {
+export function PlaceProfileView({ place, features, reports, reportHref, sourceNote, isOwner, canContribute = true }: Props) {
   const { preferences, loaded } = usePreferences();
   const [featureId, setFeatureId] = useState(features[0]?.id ?? "");
   const chosen = preferences.needs;
@@ -298,15 +300,22 @@ export function PlaceProfileView({ place, features, reports, reportHref, sourceN
         <h2 id="contribute-heading" tabIndex={-1}>
           Help improve this place
         </h2>
-        <ObservationForm
-          place={{ osmType: place.osmType, osmId: place.osmId, name: place.name }}
-          latitude={place.latitude}
-          longitude={place.longitude}
-          features={features.map((f) => ({ id: f.id, label: f.label }))}
-          featureId={featureId}
-          onFeatureChange={setFeatureId}
-          reportHref={reportHref}
-        />
+        {canContribute ? (
+          <ObservationForm
+            place={{ osmType: place.osmType, osmId: place.osmId, name: place.name }}
+            latitude={place.latitude}
+            longitude={place.longitude}
+            features={features.map((f) => ({ id: f.id, label: f.label }))}
+            featureId={featureId}
+            onFeatureChange={setFeatureId}
+            reportHref={reportHref}
+          />
+        ) : (
+          <p className="muted">
+            Observations can only be added to places in the campus directory. You can still{" "}
+            <Link href={reportHref}>report a barrier here with a photo</Link>.
+          </p>
+        )}
       </section>
     </div>
   );

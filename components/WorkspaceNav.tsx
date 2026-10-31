@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/owner", label: "Workspace" },
   { href: "/batch", label: "Batch analyze" },
   { href: "/review", label: "Review queue" },
+  { href: "/owner/moderation", label: "Approvals" },
   { href: "/results", label: "Results" },
 ];
 

@@ -1,6 +1,7 @@
 // Observations: what a visitor saw about one feature of one place, such as "the ramp at the main
 // entrance is present" or "the lift is not working". They fill the gaps OpenStreetMap leaves, and
 // each one keeps its source and status. Shared by browser and server.
+import type { ModerationRecord } from "./moderation";
 import type { PlaceRef } from "./place";
 
 export const OBSERVATION_FINDINGS = ["present", "absent", "damaged", "blocked"] as const;
@@ -55,6 +56,8 @@ export interface Observation {
   hasPhoto: boolean;
   consentedAt: string;
   statusHistory: ObservationEvent[];
+  /** Whether the observation is public. Absent on any made before moderation, which count as approved. */
+  moderation?: ModerationRecord;
 }
 
 export function observationStatus(o: Pick<Observation, "statusHistory">): ObservationStatus {

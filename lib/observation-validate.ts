@@ -1,7 +1,8 @@
 import "server-only";
+import { findInDirectory } from "./campus-directory";
 import { validateImageDataUrl } from "./image-input";
 import { OBSERVATION_FINDINGS, PLACE_AREAS, type ObservationFinding, type PlaceArea } from "./observations";
-import { OSM_TYPES, type PlaceRef } from "./place";
+import { OSM_TYPES, distanceMeters, type PlaceRef } from "./place";
 import { PLACE_FEATURES } from "./place-attributes";
 import { activeRegion, inRegion } from "./region";
 
@@ -18,6 +19,8 @@ export interface ObservationSubmission {
 }
 
 const FEATURE_IDS = new Set(PLACE_FEATURES.map((f) => f.id));
+/** How far the coordinates sent by the browser may be from the place's own position. */
+const COORDINATE_TOLERANCE_METERS = 300;
 
 /** Checks an observation sent by the browser; returns it cleaned, or a message for the visitor. */
 export function parseObservationSubmission(value: unknown, today = new Date()): ObservationSubmission | { error: string } {
@@ -28,15 +31,24 @@ export function parseObservationSubmission(value: unknown, today = new Date()): 
   const p = (body.place ?? {}) as Record<string, unknown>;
   const osmType = OSM_TYPES.find((t) => t === p.osmType);
   const osmId = Number(p.osmId);
-  const name = typeof p.name === "string" ? p.name.trim().slice(0, 200) : "";
-  if (!osmType || !Number.isSafeInteger(osmId) || osmId <= 0 || !name) return { error: "Choose the place this is about." };
+  if (!osmType || !Number.isSafeInteger(osmId) || osmId <= 0) return { error: "Choose the place this is about." };
 
-  const latitude = Number(body.latitude);
-  const longitude = Number(body.longitude);
   const region = activeRegion();
-  if (!inRegion(region, latitude, longitude)) {
+  const claimedLatitude = Number(body.latitude);
+  const claimedLongitude = Number(body.longitude);
+  if (!inRegion(region, claimedLatitude, claimedLongitude)) {
     return { error: `This place is outside the ${region.name} pilot area.` };
   }
+  // The place must be one of the campus directory's own records, and what is stored is the directory's
+  // name and position, never the browser's: nobody can attach an observation to a place that is not
+  // there, under another name, or at another spot.
+  const canonical = findInDirectory(region, osmType, osmId);
+  if (!canonical) return { error: "Choose a place from the campus directory." };
+  if (distanceMeters(canonical, { latitude: claimedLatitude, longitude: claimedLongitude }) > COORDINATE_TOLERANCE_METERS) {
+    return { error: "The location does not match the place." };
+  }
+  const place: PlaceRef = { osmType, osmId, name: canonical.name };
+  const { latitude, longitude } = canonical;
 
   const featureId = typeof body.featureId === "string" && FEATURE_IDS.has(body.featureId) ? body.featureId : undefined;
   if (!featureId) return { error: "Choose what the observation is about." };
@@ -61,5 +73,5 @@ export function parseObservationSubmission(value: unknown, today = new Date()): 
     photo = image;
   }
 
-  return { place: { osmType, osmId, name }, latitude, longitude, featureId, finding, area, note, observedOn, photo };
+  return { place, latitude, longitude, featureId, finding, area, note, observedOn, photo };
 }

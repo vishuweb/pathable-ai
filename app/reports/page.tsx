@@ -6,13 +6,13 @@ import { AREA_LABEL } from "@/lib/observations";
 import { placePath } from "@/lib/place";
 import { summarizeReport, verifiedNeeds } from "@/lib/report";
 import { STATUS_INFO, currentStatus } from "@/lib/report-status";
-import { reports as reportStore } from "@/lib/store";
+import { publicReports } from "@/lib/moderation-store";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Community reports · PathAble AI" };
 
 export default async function ReportsPage() {
-  const reports = (await reportStore.list()).reverse();
+  const reports = (await publicReports()).reverse();
   const items: ReportListItem[] = reports.map((report) => {
     const s = summarizeReport(report);
     const created = formatDateTime(report.createdAt);

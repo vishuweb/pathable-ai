@@ -28,7 +28,7 @@ export default function PrivacyPage() {
       <h2>When you save a report</h2>
       <ul>
         <li>
-          The report is stored and <strong>listed publicly</strong> on Saved reports: the photo, the AI findings and
+          The report is stored and, once the project owner has approved it, <strong>listed publicly</strong> on Saved reports: the photo, the AI findings and
           outlines, your review decisions and notes, and the location if you added one.
         </li>
         <li>

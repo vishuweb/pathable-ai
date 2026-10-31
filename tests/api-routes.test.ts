@@ -5,6 +5,7 @@ import { mkdtemp, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
+import sharp from "sharp";
 import { encodeWav } from "../lib/wav";
 import { startMockMeta } from "./mock-meta";
 
@@ -29,7 +30,8 @@ after(async () => {
   await rm(dataDir, { recursive: true, force: true });
 });
 
-const JPEG = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2Q==";
+// A real 400x300 picture: the server decodes and re-encodes every photo, so a stub would be refused.
+const JPEG = `data:image/jpeg;base64,${(await sharp({ create: { width: 400, height: 300, channels: 3, background: "#8899aa" } }).jpeg().toBuffer()).toString("base64")}`;
 const post = (body: unknown, contentType = "application/json") =>
   new Request("http://localhost/api", {
     method: "POST",
@@ -312,7 +314,7 @@ test("observations: saved as community reported, listed for the place, then veri
   const outside = await read(await observationsRoute.POST(post(observation({ latitude: 40.4459, longitude: -3.6774 }))));
   assert.match(outside.body.error, /outside the IIT \(ISM\) Dhanbad pilot area/);
 
-  const photo = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2Q==";
+  const photo = JPEG;
   const saved = await read(await observationsRoute.POST(post(observation({ photo }))));
   assert.equal(saved.status, 201);
   const id: string = saved.body.id;

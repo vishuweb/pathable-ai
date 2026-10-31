@@ -60,9 +60,15 @@ export function ObservationForm({ place, latitude, longitude, features, featureI
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ place, latitude, longitude, featureId, finding, area, note, observedOn, photo: photo?.dataUrl, consent }),
       });
-      const data = (await res.json().catch(() => undefined)) as { id: string } | ApiError | undefined;
+      const data = (await res.json().catch(() => undefined)) as { id: string; moderation?: string } | ApiError | undefined;
       if (!res.ok || !data || "error" in data) throw new Error(data && "error" in data ? data.error : "It could not be saved.");
-      setMessage({ text: "Thank you. Your observation now appears above as community reported, until someone checks it.", error: false });
+      setMessage({
+        text:
+          data.moderation === "pending"
+            ? "Thank you. Your observation is waiting for the project owner's approval. It becomes public, as community reported, once approved."
+            : "Thank you. Your observation now appears above as community reported, until someone checks it.",
+        error: false,
+      });
       setNote("");
       setPhoto(undefined);
       setConsent(false);
@@ -77,8 +83,9 @@ export function ObservationForm({ place, latitude, longitude, features, featureI
   return (
     <form onSubmit={(e) => void submit(e)} className="observation-form">
       <p className="muted">
-        Saw something at {place.name}? Tell us what you found. It is shown as <strong>community reported</strong> until
-        someone independently checks it, and it never makes the place &ldquo;accessible&rdquo; on its own.
+        Saw something at {place.name}? Tell us what you found. The project owner checks it before it appears; it is then
+        shown as <strong>community reported</strong> until someone independently verifies it, and it never makes the place
+        &ldquo;accessible&rdquo; on its own.
       </p>
 
       <label className="field">

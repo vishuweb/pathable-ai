@@ -11,7 +11,7 @@ import { PlaceServiceError, lookupPlace, type PlaceDetails } from "@/lib/places"
 import { activeRegion, inRegion } from "@/lib/region";
 import { summarizeReport, verifiedNeeds } from "@/lib/report";
 import { STATUS_INFO, currentStatus } from "@/lib/report-status";
-import { observations, reports } from "@/lib/store";
+import { publicObservations, publicReports } from "@/lib/moderation-store";
 
 export const dynamic = "force-dynamic";
 
@@ -75,10 +75,10 @@ export default async function PlacePage({ params }: Params) {
     );
   }
 
-  const here = (await observations.list()).filter((o) => o.place.osmType === place.osmType && o.place.osmId === place.osmId);
+  const here = (await publicObservations()).filter((o) => o.place.osmType === place.osmType && o.place.osmId === place.osmId);
   const features = featureStatuses(place.tags, here, { lastEdited: place.lastEdited });
 
-  const nearby = (await reports.list())
+  const nearby = (await publicReports())
     .map((report) => {
       const loc = report.location;
       const samePlace = loc?.place?.osmType === place.osmType && loc.place.osmId === place.osmId;
@@ -150,6 +150,7 @@ export default async function PlacePage({ params }: Params) {
         reportHref={reportHere}
         sourceNote={sourceNote}
         isOwner={await isOwner()}
+        canContribute={Boolean(saved)}
       />
     </article>
   );

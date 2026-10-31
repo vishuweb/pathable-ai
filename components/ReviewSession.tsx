@@ -23,7 +23,7 @@ import { LocationField } from "./LocationField";
 import { MissedIssuesEditor } from "./MissedIssuesEditor";
 import { VoiceNoteButton, appendDictation } from "./VoiceNoteButton";
 
-type SaveState = { state: "idle" | "saving" | "error"; error?: string } | { state: "saved"; id: string };
+type SaveState = { state: "idle" | "saving" | "error"; error?: string } | { state: "saved"; id: string; pending: boolean };
 
 interface Props {
   /** For a queued draft, `dataUrl` is the draft image URL; the server reuses the stored photo. */
@@ -40,7 +40,7 @@ interface Props {
   onDirtyChange?: (dirty: boolean) => void;
   onSaved?: (reportId: string) => void;
   /** Rendered in place of the save button once the report is saved. */
-  renderSaved: (reportId: string) => React.ReactNode;
+  renderSaved: (reportId: string, pending: boolean) => React.ReactNode;
   /** Prefix section headings with step numbers (the single-photo page has a step 1 above). */
   numbered?: boolean;
   /** A place chosen before the photo, e.g. from a place page's "Report a barrier here". */
@@ -137,8 +137,8 @@ export function ReviewSession({
           reviewMs: Date.now() - reviewStartedAt.current,
         },
       };
-      const { id } = await postJson<SaveReportResponse>("/api/reports", submission);
-      setSave({ state: "saved", id });
+      const { id, moderation } = await postJson<SaveReportResponse>("/api/reports", submission);
+      setSave({ state: "saved", id, pending: moderation === "pending" });
       onSaved?.(id);
     } catch (err) {
       setSave({ state: "error", error: err instanceof Error ? err.message : "The report could not be saved." });
@@ -266,7 +266,7 @@ export function ReviewSession({
 
                 {save.state === "saved" ? (
                   <div className="save-success" role="status">
-                    {renderSaved(save.id)}
+                    {renderSaved(save.id, save.pending)}
                   </div>
                 ) : (
                   <div className="save-actions">

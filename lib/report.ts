@@ -1,5 +1,6 @@
 import { CATEGORY_INFO } from "./categories";
 import { NEED_GROUPS, type NeedGroup } from "./needs";
+import type { ModerationRecord, ModerationState } from "./moderation";
 import type { PlaceArea } from "./observations";
 import type { PlaceRef } from "./place";
 import type { StatusEvent } from "./report-status";
@@ -99,6 +100,8 @@ export interface SavedReport extends Omit<ReportSubmission, "image" | "draftId" 
   consentedAt?: string;
   /** Status changes, oldest first, starting with "submitted"; absent on reports saved before statuses existed. */
   statusHistory?: StatusEvent[];
+  /** Whether the report is public. Absent on reports made before moderation, which count as approved. */
+  moderation?: ModerationRecord;
   id: string;
   createdAt: string;
 }
@@ -112,6 +115,8 @@ export interface DraftsSummary {
 
 export interface SaveReportResponse {
   id: string;
+  /** "pending" when the report waits for the owner's approval before it is public. */
+  moderation?: ModerationState;
 }
 
 export function sourceKey(source: PhotoSource): string {
