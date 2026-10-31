@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NeedGroupChips } from "@/components/NeedGroupChips";
 import { directory } from "@/lib/campus-directory";
 import { placePath } from "@/lib/place";
+import { PROVENANCE_INFO, type Provenance } from "@/lib/provenance";
 import { activeRegion } from "@/lib/region";
 
 const ACTIONS = [
@@ -30,6 +31,8 @@ const ACTIONS = [
     icon: "M12 5v14 M5 12h14",
   },
 ];
+
+const LEGEND: Provenance[] = ["unknown", "osm", "community", "verified", "outdated"];
 
 // Real campus places from the OpenStreetMap directory, used as examples.
 const EXAMPLES = [
@@ -86,9 +89,11 @@ export default function HomePage() {
           {ACTIONS.map((a) => (
             <li key={a.title}>
               <Link href={a.href} className="action-card">
-                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-                  <path d={a.icon} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <span className="action-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="28" height="28" focusable="false">
+                    <path d={a.icon} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
                 <span className="action-title">{a.title}</span>
                 <span className="action-text">{a.text}</span>
               </Link>
@@ -114,22 +119,22 @@ export default function HomePage() {
         </ul>
       </section>
 
-      <section aria-labelledby="trust-title" className="trust">
-        <h2 id="trust-title">How to read the information</h2>
-        <ul>
-          <li>
-            Every detail shows where it came from: <strong>OpenStreetMap</strong>, a <strong>visitor&apos;s report</strong>, or{" "}
-            <strong>independently verified</strong>.
-          </li>
-          <li>
-            Missing details are shown as <strong>Unknown</strong>, never as accessible. There is no overall score.
-          </li>
-          <li>
-            AI only suggests barriers in photos; a person always decides. <Link href="/#how">How it works</Link>
-          </li>
-        </ul>
+      <section aria-labelledby="legend-title" className="legend">
+        <h2 id="legend-title">What the labels mean</h2>
+        <p className="muted">Every detail on a place page carries one of these, so you always know how far to trust it.</p>
+        <dl className="legend-list">
+          {LEGEND.map((key) => (
+            <div key={key}>
+              <dt>
+                <span className={`provenance provenance-${key}`}>{PROVENANCE_INFO[key].label}</span>
+              </dt>
+              <dd>{PROVENANCE_INFO[key].description}</dd>
+            </div>
+          ))}
+        </dl>
         <p className="muted">
-          Pilot area: {region.fullName}. Routes are not planned yet. <Link href="/privacy">Privacy</Link>
+          There is no overall score, and a place is never called accessible because details are missing. Pilot area:{" "}
+          {region.fullName}. Routes are not planned yet. <Link href="/privacy">Privacy</Link>
         </p>
       </section>
 

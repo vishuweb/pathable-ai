@@ -121,8 +121,6 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
 
   return (
     <div className="explorer">
-      <NeedGroupChips heading="Show what matters to you" headingLevel={2} />
-
       <form
         className="place-search"
         role="search"
@@ -152,15 +150,19 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
         )}
       </form>
 
-      <div className="filter-buttons" role="group" aria-label="Kind of place">
-        <button type="button" className="filter-button" aria-pressed={category === ""} onClick={() => setCategory("")}>
-          All
-        </button>
-        {present.map((c) => (
-          <button key={c} type="button" className="filter-button" aria-pressed={category === c} onClick={() => setCategory(c)}>
-            {PLACE_CATEGORY_LABEL[c]}
-          </button>
-        ))}
+      <div className="explorer-toolbar">
+        <label className="field">
+          Kind of place
+          <select value={category} onChange={(e) => setCategory(e.target.value as PlaceCategory | "")}>
+            <option value="">All kinds ({places.length})</option>
+            {present.map((c) => (
+              <option key={c} value={c}>
+                {PLACE_CATEGORY_LABEL[c]} ({places.filter((p) => p.category === c).length})
+              </option>
+            ))}
+          </select>
+        </label>
+        <NeedGroupChips heading="Your needs" headingLevel={3} />
       </div>
 
       <p role="status" className="muted list-status">

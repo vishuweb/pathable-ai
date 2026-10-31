@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,13 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Link href="/" className="brand">
             PathAble <span>AI</span>
           </Link>
-          <nav aria-label="Main">
-            <Link href="/report">Report a barrier</Link>
-            <Link href="/places">Explore places</Link>
-            <Link href="/reports">Community reports</Link>
-            <Link href="/needs">My needs</Link>
-            <Link href="/#how-it-works">How it works</Link>
-          </nav>
+          <SiteNav />
         </header>
         <main id="main">{children}</main>
         <footer className="site-footer">

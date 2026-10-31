@@ -62,13 +62,8 @@ export default async function PlacesPage({ searchParams }: { searchParams: Searc
       <p className="eyebrow">Pilot area</p>
       <h1 id="places-title">Check a place at {region.name}</h1>
       <p className="intro">
-        Search a building, hostel, gate or facility to see what is known about it for your needs, what is still unknown,
+        Find a building, hostel, gate or facility to see what is known about it for your needs, what is still unknown,
         and barriers reported there.
-      </p>
-      <p className="callout">
-        {places.length} places from OpenStreetMap (directory saved {directoryRetrieved(region)}). Many campus places are
-        missing, and almost none has accessibility details recorded yet; missing details are shown as unknown, never as
-        accessible. Search only shows places inside the campus.
       </p>
       <PlaceExplorer
         regionName={region.name}
@@ -80,6 +75,11 @@ export default async function PlacesPage({ searchParams }: { searchParams: Searc
         featureNeeds={featureNeeds}
         recent={recent}
       />
+      <p className="muted">
+        {places.length} places from OpenStreetMap (saved {directoryRetrieved(region)}). Many campus places are missing and
+        almost none has accessibility details recorded yet; missing details show as unknown, never as accessible. Search
+        only shows places inside the campus.
+      </p>
       <p className="muted">
         Map data and place names © OpenStreetMap contributors (ODbL). Campus boundary: OpenStreetMap {region.source.osm}.
       </p>

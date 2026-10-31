@@ -505,7 +505,7 @@ test("visitors see the public site; the owner gets the workspace and moderation"
   const nav = await visitor.$$eval('nav[aria-label="Main"] a', (links) => links.map((a) => a.textContent));
   assert.deepEqual(
     nav,
-    ["Report a barrier", "Explore places", "Community reports", "My needs", "How it works"],
+    ["Check a place", "Community reports", "My needs", "Report a barrier"],
     "no owner tools in the public navigation",
   );
   assert.ok(await visitor.$('.action-grid a[href="/report"]'), "the home page leads to reporting");

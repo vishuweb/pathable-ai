@@ -65,6 +65,9 @@ function FeatureRow({ feature, onAdd }: { feature: FeatureStatus; onAdd: (id: st
   );
 }
 
+/** What most visitors want to know first, shown until they say what matters to them. */
+const KEY_FEATURES = ["wheelchair", "steps", "ramp", "lift", "toilets_wheelchair", "tactile_paving", "hearing_loop", "signage"];
+
 /** A place's accessibility profile, ordered around the visitor's own needs. */
 export function PlaceProfileView({ place, features, reports, reportHref, sourceNote, isOwner }: Props) {
   const { preferences, loaded } = usePreferences();
@@ -75,6 +78,13 @@ export function PlaceProfileView({ place, features, reports, reportHref, sourceN
   const known = features.filter((f) => f.current !== "unknown");
   const unknownMine = mine.filter((f) => f.current === "unknown");
   const unknownOthers = features.filter((f) => f.current === "unknown" && !mineIds.has(f.id));
+  const key = KEY_FEATURES.flatMap((id) => features.find((f) => f.id === id) ?? []);
+  const counts = {
+    verified: features.filter((f) => f.current === "verified").length,
+    reported: features.filter((f) => f.current === "community").length,
+    osm: features.filter((f) => f.current === "osm").length,
+    unknown: features.filter((f) => f.current === "unknown").length,
+  };
 
   const addFor = (id: string) => {
     setFeatureId(id);
@@ -84,12 +94,45 @@ export function PlaceProfileView({ place, features, reports, reportHref, sourceN
 
   return (
     <div className="profile">
+      <section aria-label="Summary of what is recorded" className="profile-summary">
+        <dl className="summary-tiles">
+          <div className="tile-osm">
+            <dt>Recorded in OpenStreetMap</dt>
+            <dd>{counts.osm}</dd>
+          </div>
+          <div className="tile-community">
+            <dt>Reported by visitors</dt>
+            <dd>{counts.reported}</dd>
+          </div>
+          <div className="tile-verified">
+            <dt>Independently verified</dt>
+            <dd>{counts.verified}</dd>
+          </div>
+          <div className="tile-unknown">
+            <dt>Still unknown</dt>
+            <dd>{counts.unknown}</dd>
+          </div>
+        </dl>
+        <p className="muted">
+          Counts of the {features.length} details this page can hold. Not a score: a place is never called accessible
+          because some details are recorded.
+        </p>
+      </section>
+
       <section aria-labelledby="overview-title" className="profile-section overview">
         <h2 id="overview-title">Your accessibility overview</h2>
         {!loaded ? null : chosen.length === 0 ? (
           <>
-            <p>Choose what matters to you and this page shows those details first.</p>
+            <p>
+              Key details to check before you visit. Choose what matters to you and this page will show your own details
+              first.
+            </p>
             <NeedGroupChips heading="What matters to you?" headingLevel={3} />
+            <ul className="features key-features">
+              {key.map((f) => (
+                <FeatureRow key={f.id} feature={f} onAdd={addFor} />
+              ))}
+            </ul>
           </>
         ) : (
           <>
@@ -195,20 +238,29 @@ export function PlaceProfileView({ place, features, reports, reportHref, sourceN
           <p>Every detail for your chosen needs has at least one record. Check the source and date above before relying on it.</p>
         )}
         {unknownOthers.length > 0 && (
-          <details className="more-unknown">
+          <details className="more-unknown" open={chosen.length === 0}>
             <summary>
               {chosen.length ? "Other details nobody has recorded" : "Details nobody has recorded"} ({unknownOthers.length})
             </summary>
-            <ul className="unknown-list">
-              {unknownOthers.map((f) => (
-                <li key={f.id}>
-                  {f.label}{" "}
-                  <button type="button" className="button-link" onClick={() => addFor(f.id)}>
-                    Add what you saw<span className="visually-hidden">: {f.label}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {NEED_GROUPS.map((group) => {
+              const rows = unknownOthers.filter((f) => f.group === group);
+              if (!rows.length) return null;
+              return (
+                <div key={group} className="unknown-group">
+                  <h3>{NEED_GROUP_INFO[group].label}</h3>
+                  <ul className="unknown-list">
+                    {rows.map((f) => (
+                      <li key={f.id}>
+                        {f.label}{" "}
+                        <button type="button" className="button-link" onClick={() => addFor(f.id)}>
+                          Add what you saw<span className="visually-hidden">: {f.label}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </details>
         )}
       </section>

@@ -28,10 +28,20 @@ export default async function ReportBarrierPage({ searchParams }: { searchParams
     <>
       <section className="intro">
         <h1>Report a barrier</h1>
-        <p>
-          Add a photo of a footpath, curb ramp, crossing or entrance. AI suggests possible barriers and outlines the
-          evidence; you check every suggestion before anything is shared.
-        </p>
+        <ol className="flow-steps" aria-label="The three steps">
+          <li>
+            <strong>Add a photo</strong>
+            <span>of the barrier</span>
+          </li>
+          <li>
+            <strong>Check the AI&apos;s suggestions</strong>
+            <span>confirm, correct or reject each</span>
+          </li>
+          <li>
+            <strong>Share the report</strong>
+            <span>nothing is public until you do</span>
+          </li>
+        </ol>
         {initialLocation?.place && (
           <p className="callout">
             Reporting at <Link href={placePath(initialLocation.place)}>{initialLocation.place.name}</Link>. You can change

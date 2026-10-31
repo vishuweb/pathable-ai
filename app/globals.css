@@ -2162,3 +2162,236 @@ fieldset:disabled .segment {
   display: grid;
   gap: 6px;
 }
+
+/* Main navigation */
+.site-header .site-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+
+.site-header .site-nav a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.site-header .site-nav a:hover {
+  background: #eef4fb;
+}
+
+.site-header .site-nav a[aria-current="page"] {
+  background: #dbe9f8;
+  border-color: #9bbbe0;
+}
+
+.site-header .site-nav a.nav-cta {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.site-header .site-nav a.nav-cta:hover {
+  background: var(--accent-hover);
+}
+
+.site-header .site-nav a.nav-cta[aria-current="page"] {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+@media (min-width: 700px) {
+  .site-header .site-nav {
+    display: flex;
+    width: auto;
+  }
+}
+
+/* Home: clearer hierarchy */
+.action-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #dbe9f8;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.action-card .action-icon svg {
+  color: inherit;
+}
+
+.action-title {
+  font-size: 1.2rem;
+}
+
+.action-card:hover .action-title {
+  text-decoration: underline;
+}
+
+.legend-list {
+  margin: 12px 0;
+  display: grid;
+  gap: 8px;
+}
+
+.legend-list > div {
+  display: grid;
+  gap: 4px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.legend-list dt,
+.legend-list dd {
+  margin: 0;
+}
+
+@media (min-width: 700px) {
+  .legend-list > div {
+    grid-template-columns: 16rem 1fr;
+    align-items: center;
+  }
+}
+
+/* Place profile: summary tiles and grouped unknowns */
+.profile-summary {
+  margin-top: 8px;
+}
+
+.summary-tiles {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.summary-tiles > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left-width: 6px;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.summary-tiles dt {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.summary-tiles dd {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.tile-osm {
+  border-left-color: #2a4f7a;
+}
+
+.tile-community {
+  border-left-color: #b07a00;
+}
+
+.tile-verified {
+  border-left-color: #1e5b2f;
+}
+
+.tile-unknown {
+  border-left-style: dashed;
+  border-left-color: #6b7380;
+}
+
+.key-features {
+  margin-top: 14px;
+}
+
+.unknown-group h3 {
+  margin: 14px 0 4px;
+  font-size: 1rem;
+}
+
+@media (min-width: 700px) {
+  .summary-tiles {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Explore: search first, then a compact toolbar */
+.explorer-toolbar {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+  align-items: start;
+}
+
+.explorer-toolbar .field {
+  margin-top: 0;
+}
+
+@media (min-width: 900px) {
+  .explorer-toolbar {
+    grid-template-columns: 20rem 1fr;
+    gap: 24px;
+  }
+}
+
+/* Report: what happens next */
+.flow-steps {
+  list-style: none;
+  counter-reset: flow;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.flow-steps li {
+  counter-increment: flow;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  column-gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.flow-steps li::before {
+  content: counter(flow);
+  grid-row: span 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.flow-steps span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (min-width: 700px) {
+  .flow-steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
