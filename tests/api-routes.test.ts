@@ -83,6 +83,41 @@ test("analyze: refuses oversized bodies, even without a Content-Length", async (
   assert.equal((await analyzeRoute.POST(request)).status, 413);
 });
 
+test("analyze and segment forward a clean copy of the photo, never the caller's metadata", async () => {
+  const withGps = await sharp({ create: { width: 400, height: 300, channels: 3, background: "#8899aa" } })
+    .withExif({ IFD0: { Copyright: "secret-camera-owner" }, IFD3: { GPSLatitudeRef: "N", GPSLatitude: "23/1 48/1 57/1", GPSLongitudeRef: "E", GPSLongitude: "86/1 26/1 31/1" } })
+    .jpeg()
+    .toBuffer();
+  assert.ok((await sharp(withGps).metadata()).exif, "the test photo carries EXIF");
+  const url = `data:image/jpeg;base64,${withGps.toString("base64")}`;
+  const sentImage = async () => {
+    const last = mock.requests.at(-1)!;
+    const encoded = /data:image\/jpeg;base64,([A-Za-z0-9+/=]+)/.exec(last.body.toString("utf8"))?.[1];
+    assert.ok(encoded, "the photo reached the (mock) model");
+    return Buffer.from(encoded, "base64");
+  };
+
+  mock.replies.chat = { kind: "content", content: JSON.stringify(modelReply) };
+  assert.equal((await analyzeRoute.POST(post({ image: url }))).status, 200);
+  const forwarded = await sentImage();
+  assert.equal((await sharp(forwarded).metadata()).exif, undefined);
+  assert.ok(!forwarded.includes(Buffer.from("secret-camera-owner")));
+
+  const target = { findingId: "f1", phrase: "electric scooter", box: { x_min: 100, y_min: 500, x_max: 400, y_max: 900 } };
+  mock.replies.sam.set("electric scooter", { kind: "objects", boxes: [[60, 160, 150, 260]] });
+  assert.equal((await segmentRoute.POST(post({ image: url, width: 400, height: 300, targets: [target] }))).status, 200);
+  assert.ok(mock.requests.at(-1)!.path.includes("/responses"), "the segmentation request is the last one");
+  const segmented = await sentImage();
+  assert.equal((await sharp(segmented).metadata()).exif, undefined);
+  assert.ok(!segmented.includes(Buffer.from("secret-camera-owner")));
+
+  const calls = mock.requests.length;
+  const gif = await sharp({ create: { width: 40, height: 30, channels: 3, background: "#000" } }).gif().toBuffer();
+  assert.equal((await analyzeRoute.POST(post({ image: `data:image/jpeg;base64,${gif.toString("base64")}` }))).status, 400, "a GIF posing as a JPEG");
+  assert.equal((await segmentRoute.POST(post({ image: url, width: 401, height: 300, targets: [target] }))).status, 400, "wrong size");
+  assert.equal(mock.requests.length, calls, "and nothing reached the model");
+});
+
 test("analyze: returns validated findings and maps upstream failures to clear errors", async () => {
   mock.replies.chat = { kind: "content", content: JSON.stringify(modelReply) };
   const ok = await read(await analyzeRoute.POST(post({ image: JPEG })));

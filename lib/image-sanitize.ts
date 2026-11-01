@@ -6,6 +6,9 @@ export class ImageError extends Error {}
 /** The largest picture, in pixels, that will be decoded; protects the server from decompression bombs. */
 const MAX_INPUT_PIXELS = 40_000_000;
 
+/** The picture formats accepted, judged by what the bytes decode as, not by what the upload claims to be. */
+const ACCEPTED_FORMATS = ["jpeg", "png", "webp"];
+
 export interface CleanImage {
   jpeg: Buffer;
   width: number;
@@ -19,7 +22,10 @@ export interface CleanImage {
  */
 export async function cleanImage(jpeg: Buffer): Promise<CleanImage> {
   try {
-    const { data, info } = await sharp(jpeg, { limitInputPixels: MAX_INPUT_PIXELS, failOn: "error" })
+    const input = sharp(jpeg, { limitInputPixels: MAX_INPUT_PIXELS, failOn: "error" });
+    const { format } = await input.metadata();
+    if (!format || !ACCEPTED_FORMATS.includes(format)) throw new Error("unsupported format");
+    const { data, info } = await input
       .rotate()
       .jpeg({ quality: 88 })
       .toBuffer({ resolveWithObject: true });

@@ -150,6 +150,8 @@ async function approveAll(): Promise<number> {
   for (;;) {
     const buttons = await owner.$$('xpath/.//button[contains(., "Approve")]');
     if (!buttons.length) break;
+    assert.equal(await buttons[0].evaluate((b) => (b as HTMLButtonElement).disabled), true, "approval is locked until the owner says they checked");
+    await owner.click(".report-item .consent input");
     await buttons[0].click();
     await owner.waitForFunction((n) => document.querySelectorAll(".report-item").length < n, {}, buttons.length);
     approved++;

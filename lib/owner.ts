@@ -155,9 +155,34 @@ export function authFailure(session: Session, needed: Role): Response | undefine
   }
 }
 
+/**
+ * A refusal for a state-changing request that a browser says came from another site, or undefined.
+ * The session cookie is SameSite=Lax already; this is a second, independent layer. Requests with no
+ * Origin or Sec-Fetch-Site header (scripts, curl, tests) are not browser requests and carry no ambient cookie to abuse.
+ */
+export function crossSiteRefusal(request: Request): Response | undefined {
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return undefined;
+  const site = request.headers.get("sec-fetch-site");
+  let foreign = site !== null && site !== "same-origin" && site !== "none";
+  const origin = request.headers.get("origin");
+  if (!foreign && origin) {
+    const host = request.headers.get("host") ?? new URL(request.url).host;
+    try {
+      foreign = new URL(origin).host !== host;
+    } catch {
+      foreign = true;
+    }
+  }
+  if (!foreign) return undefined;
+  return new Response(JSON.stringify({ error: "This request came from another site and was refused." }), {
+    status: 403,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 /** For route handlers: `const denied = requireRole(request, "owner"); if (denied) return denied;` */
 export function requireRole(request: Request, needed: Role): Response | undefined {
-  return authFailure(sessionFromRequest(request), needed);
+  return crossSiteRefusal(request) ?? authFailure(sessionFromRequest(request), needed);
 }
 
 export function ownerKeyRequired(config: AccessConfig = accessConfig()): boolean {

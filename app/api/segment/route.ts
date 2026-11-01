@@ -1,4 +1,5 @@
 import { jsonResponse, readJsonBody } from "@/lib/http";
+import { cleanImage, dataUrlBytes, ImageError } from "@/lib/image-sanitize";
 import { validateImageDataUrl } from "@/lib/image-input";
 import { MissingApiKeyError, SEGMENTATION_MODEL } from "@/lib/meta";
 import { limitAiRequest } from "@/lib/rate-limit";
@@ -37,9 +38,22 @@ export async function POST(request: Request) {
   const targets = parseTargets(input.targets);
   if (!targets) return jsonResponse<ApiError>({ error: `Provide 1–${MAX_FINDINGS} valid targets.` }, 400);
 
+  // What goes to the Meta API is a fresh JPEG with no metadata, and the sizes must match the picture.
+  let forwarded: string;
+  try {
+    const clean = await cleanImage(dataUrlBytes(image));
+    if (clean.width !== width || clean.height !== height) {
+      return jsonResponse<ApiError>({ error: "The photo's size does not match width and height." }, 400);
+    }
+    forwarded = `data:image/jpeg;base64,${clean.jpeg.toString("base64")}`;
+  } catch (error) {
+    if (error instanceof ImageError) return jsonResponse<ApiError>({ error: error.message }, 400);
+    throw error;
+  }
+
   const started = Date.now();
   try {
-    const evidence = await segmentEvidence(image, width, height, targets, request.signal);
+    const evidence = await segmentEvidence(forwarded, width, height, targets, request.signal);
     return jsonResponse<SegmentResponse>({
       evidence,
       model: SEGMENTATION_MODEL,

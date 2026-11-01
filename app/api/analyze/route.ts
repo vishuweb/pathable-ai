@@ -1,6 +1,7 @@
 import { APIConnectionTimeoutError, RateLimitError } from "openai";
 import { AnalysisError, analyzeImage } from "@/lib/analyze";
 import { jsonResponse, readJsonBody } from "@/lib/http";
+import { cleanImage, dataUrlBytes, ImageError } from "@/lib/image-sanitize";
 import { validateImageDataUrl } from "@/lib/image-input";
 import { ANALYSIS_MODEL, MissingApiKeyError } from "@/lib/meta";
 import { limitAiRequest } from "@/lib/rate-limit";
@@ -20,9 +21,18 @@ export async function POST(request: Request) {
   const image = validateImageDataUrl((body.value as { image?: unknown } | null)?.image);
   if (typeof image !== "string") return jsonResponse<ApiError>(image, 400);
 
+  // What goes to the Meta API is a fresh JPEG with no metadata, whatever the caller sent.
+  let forwarded: string;
+  try {
+    forwarded = `data:image/jpeg;base64,${(await cleanImage(dataUrlBytes(image))).jpeg.toString("base64")}`;
+  } catch (error) {
+    if (error instanceof ImageError) return jsonResponse<ApiError>({ error: error.message }, 400);
+    throw error;
+  }
+
   const started = Date.now();
   try {
-    const analysis = await analyzeImage(image, request.signal);
+    const analysis = await analyzeImage(forwarded, request.signal);
     return jsonResponse<AnalyzeResponse>({
       analysis,
       model: ANALYSIS_MODEL,

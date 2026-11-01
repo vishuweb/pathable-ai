@@ -35,6 +35,7 @@ const observationsRoute = await import("../app/api/observations/route");
 const observationRoute = await import("../app/api/observations/[id]/route");
 const observationImageRoute = await import("../app/api/observations/[id]/image/route");
 const resultsRoute = await import("../app/api/results/route");
+const ownerRoute = await import("../app/api/owner/route");
 const moderation = await import("../lib/moderation-store");
 after(() => rm(dataDir, { recursive: true, force: true }));
 
@@ -343,6 +344,53 @@ test("unreadable or mismatched photos are refused", async () => {
   assert.match(mismatched.body.error, /size does not match/);
   assert.equal((await saveReport({ width: 401 })).status, 400);
   assert.equal((await saveObservation({ photo: dataUrl(Buffer.from("nope")) })).status, 400);
+});
+
+test("only real JPEG, PNG and WebP pictures are accepted, whatever the upload claims to be", async () => {
+  const base = { create: { width: 400, height: 300, channels: 3 as const, background: "#445566" } };
+  const png = await sharp(base).png().toBuffer();
+  const webp = await sharp(base).webp().toBuffer();
+  assert.equal((await saveReport({ image: dataUrl(png) }, OWNER)).status, 201, "PNG is converted to a clean JPEG");
+  assert.equal((await saveReport({ image: dataUrl(webp) }, OWNER)).status, 201);
+  const gif = await sharp(base).gif().toBuffer();
+  const tiff = await sharp(base).tiff().toBuffer();
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="400" height="300"/></svg>');
+  for (const [label, bytes] of [["gif", gif], ["tiff", tiff], ["svg", svg]] as const) {
+    const refused = await saveReport({ image: dataUrl(bytes) });
+    assert.equal(refused.status, 400, `${label} posing as a JPEG is refused`);
+    assert.equal((await saveObservation({ photo: dataUrl(bytes) })).status, 400, `${label} observation photo is refused`);
+  }
+});
+
+// ---------------------------------------------------------------- requests from other sites
+
+test("a signed-in owner's browser cannot be driven from another site", async () => {
+  const saved = await saveReport({});
+  const id = saved.body.id as string;
+  const attack = (headers: Record<string, string>, method: "PATCH" | "DELETE" = "PATCH") =>
+    reportRoute[method](
+      request(`/api/reports/${id}`, { method, cookie: OWNER, headers, ...(method === "PATCH" ? { json: { moderation: "approved" } } : {}) }),
+      ctx(id),
+    );
+  const foreign: Record<string, string>[] = [{ origin: "https://evil.example" }, { "sec-fetch-site": "cross-site" }, { "sec-fetch-site": "same-site" }, { origin: "null" }];
+  for (const headers of foreign) {
+    const refused = await attack(headers);
+    assert.equal(refused.status, 403, JSON.stringify(headers));
+    assert.match((await refused.json()).error, /another site/);
+  }
+  assert.equal((await attack({ origin: "https://evil.example" }, "DELETE")).status, 403);
+  assert.equal((await (await getReport(id, OWNER)).json()).moderation.state, "pending", "nothing changed");
+
+  // The real site's own requests, and non-browser clients, still work.
+  assert.equal((await attack({ origin: "http://localhost", "sec-fetch-site": "same-origin" })).status, 200);
+
+  const signOut = (headers: Record<string, string>) => {
+    const form = new FormData();
+    form.set("action", "signout");
+    return ownerRoute.POST(new Request("http://localhost/api/owner", { method: "POST", body: form, headers }));
+  };
+  assert.equal((await signOut({ origin: "https://evil.example" })).status, 403, "another site cannot sign the owner out");
+  assert.equal((await signOut({ origin: "http://localhost" })).status, 303);
 });
 
 // ---------------------------------------------------------------- moderation and visibility

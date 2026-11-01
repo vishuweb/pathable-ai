@@ -38,6 +38,8 @@ Shared reports and observations start as **pending**: only the owner can see the
 - Owner sign-in attempts are rate-limited.
 - Sessions are signed, carry a role and an expiry, and are checked on every request. Invalid or expired sessions get 401 (and the cookie is cleared), a wrong role gets 403, and a server with no keys set answers 503 instead of opening up. Only local development with no keys at all acts as the owner.
 - The review queue (`GET /api/drafts`, queued photos) is limited to the owner and reviewers.
+- State-changing owner and reviewer requests that a browser marks as coming from another site (`Origin` host differs from `Host`, or `Sec-Fetch-Site` is not same-origin) are refused with 403, on top of the `SameSite=Lax` cookie. Non-browser clients send neither header and carry no ambient cookie.
+- Approving a submission needs a tick saying the full-size photo and every text were checked; the approvals page shows the location text, coordinates that will become public, notes and added barriers.
 
 **Abuse and cost**
 - Per-visitor hourly limits on analysis, segmentation, transcription, and on submitting reports and observations (`SUBMISSION_LIMIT_PER_HOUR`), plus a daily cap on public submissions.
@@ -46,7 +48,7 @@ Shared reports and observations start as **pending**: only the owner can see the
 - No automatic retries of model calls; every call has a deadline inside the 60-second route limit.
 
 **Privacy by design**
-- Metadata, including GPS, is stripped in the browser and again on the server before any photo is stored; location is never added automatically.
+- Metadata, including GPS, is stripped in the browser and again on the server before any photo is stored or sent to the Meta API (only JPEG, PNG and WebP are accepted, judged by what the bytes decode as); location is never added automatically.
 - Photos are served `private, no-store`, so deleting or rejecting an item stops it being served at once.
 - Observation places and coordinates must match the campus directory; the stored name and position are the directory's own.
 - Consent is required before a report is saved and published, and its time is recorded.
@@ -56,6 +58,7 @@ Shared reports and observations start as **pending**: only the owner can see the
 ## Known limitations
 
 - **Single owner.** One shared key; no individual accounts, roles or per-person audit trail.
+- **Soft limits, not guarantees.** Visitors are told apart by the first `x-forwarded-for` address (trustworthy on Vercel, which sets it; spoofable on any other host). Each server instance counts separately, so the real ceiling is the limit times the number of live instances, and a cold start resets it. The pending cap is read from storage and then written later with no lock, so simultaneous requests can pass it together; filling the cap also blocks honest visitors until the owner approves or rejects. Treat the cap as protection against ordinary abuse, not against a coordinated flood.
 - **In-memory limits.** Per-visitor limits and daily caps are counted per server instance, so they slow abuse rather than enforce an exact total. The pending-approval cap is counted from storage and is the firm bound.
 - **No automatic blurring.** Faces and number plates are not detected or blurred; the app relies on the consent statement and owner moderation.
 - **Deletion leaves no audit record**, and removal requests go through public GitHub issues.
@@ -63,6 +66,7 @@ Shared reports and observations start as **pending**: only the owner can see the
 - **Third-party processing.** Photos and recordings sent to the Meta Model API are handled under Meta's terms; this project does not control that retention.
 - **No CSRF tokens.** Owner actions rely on the SameSite=Lax cookie and JSON requests; this is adequate for a single-owner demo but should be revisited with accounts.
 - **Public listing.** Every approved report is public; there is no private-report option.
+- **Photos stored before Phase 1** were cleaned in the browser only; they have not been re-encoded.
 - **Manual moderation only.** Approval is a human check; nothing screens uploads automatically.
 - **Dev toolchain advisory.** `npm audit` reports a moderate minimatch advisory in the ESLint dev tooling; it is not part of the deployed app.
 

@@ -1,10 +1,12 @@
-import { OWNER_COOKIE, signIn } from "@/lib/owner";
+import { OWNER_COOKIE, crossSiteRefusal, signIn } from "@/lib/owner";
 import { allowRequest } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 /** Sign-in form target: starts a signed, expiring session for a correct key, or ends it on sign-out. */
 export async function POST(request: Request) {
+  const refused = crossSiteRefusal(request);
+  if (refused) return refused;
   const form = await request.formData().catch(() => undefined);
   const redirect = (path: string) => new Response(null, { status: 303, headers: { Location: path } });
 
