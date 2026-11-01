@@ -18,10 +18,13 @@ export function LocationField({ value, onChange }: Props) {
   const coordinates = formatCoordinates(value);
 
   const choose = (place: PlaceResult) => {
+    // A position already taken with the device stays as the exact spot; the place is linked beside it.
+    const exact = value.accuracyM !== undefined && value.place === undefined;
     onChange({
       label: value.label || place.name,
-      latitude: place.latitude,
-      longitude: place.longitude,
+      latitude: exact ? value.latitude : place.latitude,
+      longitude: exact ? value.longitude : place.longitude,
+      accuracyM: exact ? value.accuracyM : undefined,
       place: { osmType: place.osmType, osmId: place.osmId, name: place.name },
     });
     setStatus(`Linked to ${place.name}.`);
@@ -44,6 +47,8 @@ export function LocationField({ value, onChange }: Props) {
         }
         onChange({
           label: value.label,
+          // Keep a linked place: the position says where at the place, the place says which one.
+          place: value.place,
           latitude: round(position.coords.latitude),
           longitude: round(position.coords.longitude),
           accuracyM: Math.round(position.coords.accuracy),

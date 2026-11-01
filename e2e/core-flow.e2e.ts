@@ -390,16 +390,17 @@ const section = (text: string, from: string, to: string) => text.slice(text.inde
 test("journey 1, mobility: step-free, ramp, lift, entrance and toilet information, with unknowns named", { skip: !CHROME && "Chrome not found" }, async () => {
   const page = await openAs(["Mobility"]);
   const text = await openLibraryFromHome(page);
-  const overview = section(text, "Your accessibility overview", "What is known");
+  const overview = section(text, "Your accessibility overview", "Reported barriers");
   assert.match(overview, /For your needs: Mobility/);
-  assert.match(overview, /Wheelchair access\s+Recorded in OpenStreetMap · Outdated\s+Partly accessible/, "recorded, with its source and a stale warning");
+  assert.match(overview, /Wheelchair access\s+Recorded in OpenStreetMap · Outdated\s+Recorded in OpenStreetMap · Outdated: Partly accessible/, "recorded, with its source and a stale warning");
+  assert.match(overview, /Last seen more than two years ago\. It may have changed; it is shown as recorded\./, "and says plainly that it was kept, not dropped");
   for (const unknown of ["Steps at the entrance or way in", "Ramp", "Lift", "Wheelchair-accessible toilet", "Accessible parking or drop-off"]) {
     assert.match(overview, new RegExp(`${unknown}\\s+Unknown\\s+Unknown\\. Nobody has recorded this yet\\.`), `${unknown} is unknown`);
   }
-  assert.match(overview, /1 of 8 details for your needs are recorded; 7 are unknown\./);
+  assert.match(overview, /1 of 11 details for your needs are recorded; 10 are unknown\./);
   assert.ok(!/Tactile paving|Hearing loop/.test(overview), "other needs do not crowd the overview");
   assert.match(text, /A place is never called accessible because some details are\s+recorded\./);
-  const unknown = section(text, "What is still unknown", "Recent reports here");
+  const unknown = section(text, "What is still unknown", "Community contributions");
   assert.match(unknown, /could matter to your visit/);
   assert.match(unknown, /Ramp/);
   assert.deepEqual(await axeViolations(page), [], "profile passes WCAG 2.2 AA checks");
@@ -454,8 +455,9 @@ test("journey 4, contribution: observe a feature, report a barrier at the place,
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForFunction(() => /Community reported/.test(document.querySelector(".features")?.textContent ?? ""));
   const overview = await page.$eval(".overview", (o) => (o as HTMLElement).innerText);
-  assert.match(overview, /Ramp\s+Community reported\s+There, but blocked · An entrance · observed \d{4}-\d{2}-\d{2}/);
-  const known = await page.$eval("#known-title ~ .features", (e) => (e as HTMLElement).innerText);
+  assert.match(overview, /Ramp\s+Community reported\s+Community reported: There, but blocked · An entrance · last seen \d{4}-\d{2}-\d{2}/);
+  assert.match(overview, /Applies to one entrance, not to every entrance at this place\./, "a local finding says how far it reaches");
+  const known = await page.$eval("#known-title", (h) => (h.parentElement as HTMLElement).innerText);
   assert.match(known, /Community reported: There, but blocked.*“A bike rack stands in front of the ramp\.”/s);
 
   // Report a barrier with a photo, pre-filled with this place.
@@ -484,7 +486,9 @@ test("journey 4, contribution: observe a feature, report a barrier at the place,
   // It now shows on the place page, with its status, and in the community list with its location.
   await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
   const reports = await page.$eval("#reports-title", (h) => (h.parentElement as HTMLElement).innerText);
-  assert.match(reports, /At this place/);
+  assert.match(reports, /Reported \d{4}-\d{2}-\d{2}/);
+  assert.match(reports, /Steps, a ramp or a lift/);
+  assert.match(reports, /Applies to one set of steps, one ramp or one lift, not to every ramp or lift at this place\./);
   assert.match(reports, /Status:\s*Submitted/);
   assert.match(reports, /Confirmed by the person who reported it\. Nobody else has checked it yet\./);
   await page.goto(`${BASE}/reports`, { waitUntil: "networkidle0" });
@@ -496,6 +500,84 @@ test("journey 4, contribution: observe a feature, report a barrier at the place,
   assert.match(detail, /Affected area\s+Steps, a ramp or a lift/);
   assert.match(detail, /Status: Submitted/);
   assert.deepEqual(await axeViolations(page), [], "report passes WCAG 2.2 AA checks");
+  await page.close();
+});
+
+test("journey 5, conflict and verification: disagreeing observations are both shown, and verification needs a reason", { skip: !CHROME && "Chrome not found" }, async () => {
+  const send = async (change: Record<string, unknown>) => {
+    const res = await fetch(`${BASE}/api/observations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        place: { osmType: "way", osmId: 517026148, name: "Central Library" },
+        latitude: 23.8158145,
+        longitude: 86.4421811,
+        featureId: "lift",
+        area: "steps_ramp",
+        note: "",
+        consent: true,
+        ...change,
+      }),
+    });
+    assert.equal(res.status, 201);
+    return ((await res.json()) as { id: string }).id;
+  };
+  const broken = await send({ finding: "damaged", observedOn: "2026-10-28", note: "Out of order on Tuesday" });
+  await send({ finding: "present", observedOn: "2026-10-30", note: "I used it on Thursday" });
+
+  // Pending: the profile knows nothing about either.
+  const open = async (needs: string[] = ["Mobility"]) => {
+    const page = await openAs(needs);
+    await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+    return page;
+  };
+  let page = await open();
+  assert.ok(!(await page.$eval("main", (m) => (m as HTMLElement).innerText)).includes("Out of order on Tuesday"));
+  await page.close();
+
+  assert.equal(await approveAll(), 2, "the owner approves both");
+
+  // Verification needs a recorded reason, and a visitor cannot do it.
+  const owner = await ownerPage();
+  const verify = (note: string) =>
+    owner.evaluate(
+      async (id, text) =>
+        (await fetch(`/api/observations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "verified", note: text }) })).status,
+      broken,
+      note,
+    );
+  assert.equal(
+    (await fetch(`${BASE}/api/observations/${broken}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "verified", note: "me" }) })).status,
+    401,
+  );
+  assert.equal(await verify(""), 400, "no reason, no verification");
+  assert.equal(await verify("Site visit 31 Oct 2026: lift out of order, sign on the door"), 200);
+  await owner.close();
+
+  page = await open();
+  const lift = await page.$eval("main", (m) => (m as HTMLElement).innerText);
+  assert.match(lift, /Records disagree/, "the disagreement is stated");
+  assert.match(lift, /none has been chosen as correct/);
+  assert.match(lift, /There, but damaged or not working · Steps, a ramp or a lift/, "one account is kept");
+  assert.match(lift, /Present and usable · Steps, a ramp or a lift/, "and so is the other");
+  assert.match(lift, /Independently verified: There, but damaged/);
+  assert.match(lift, /Checked: Site visit 31 Oct 2026/);
+  assert.match(lift, /One of them is independently verified; the others are still shown\./);
+  assert.match(lift, /Community reported: Present and usable/, "the unverified one is not upgraded");
+  assert.match(lift, /Independently verified\s+1/, "one detail is verified, no more");
+  assert.deepEqual(await axeViolations(page), [], "a profile with a conflict passes WCAG 2.2 AA checks");
+
+  // "It has changed since" settles the disagreement without deleting either record.
+  await (await page.waitForSelector('xpath/.//li[contains(@class,"claim")][contains(., "Present and usable")]//button[contains(., "It has changed since")]'))!.click();
+  assert.match(await page.$eval(".response-banner", (e) => e.textContent ?? ""), /It has changed since\./);
+  await (await page.waitForSelector('xpath/.//label[contains(., "There, but blocked")]'))!.click();
+  await page.click(".observation-form .consent input");
+  await (await page.waitForSelector('xpath/.//button[contains(., "Share observation publicly")]'))!.click();
+  await page.waitForFunction(() => /Thank you/.test(document.querySelector(".observation-form p[role=status]")?.textContent ?? ""));
+  assert.equal(await approveAll(), 1, "the update waits for approval like anything else");
+  await page.reload({ waitUntil: "networkidle0" });
+  const after = await page.$eval("main", (m) => (m as HTMLElement).innerText);
+  assert.match(after, /Earlier records that were updated \(1\)/, "the old claim moved to the history, not away");
   await page.close();
 });
 

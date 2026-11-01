@@ -1,10 +1,12 @@
 import { jsonResponse, readJsonBody } from "@/lib/http";
 import { cleanImage, dataUrlBytes, ImageError } from "@/lib/image-sanitize";
+import { isPublic } from "@/lib/moderation";
 import { backlogFull, initialModeration, publicObservations } from "@/lib/moderation-store";
 import { parseObservationSubmission } from "@/lib/observation-validate";
 import type { Observation } from "@/lib/observations";
 import { requireRole, roleOf } from "@/lib/owner";
 import { OSM_TYPES } from "@/lib/place";
+import { DUPLICATE_WINDOW_DAYS } from "@/lib/place-intelligence";
 import { limitSubmission } from "@/lib/rate-limit";
 import { observations } from "@/lib/store";
 import type { ApiError } from "@/lib/types";
@@ -46,7 +48,25 @@ export async function POST(request: Request) {
   const backlog = await backlogFull(request);
   if (backlog) return jsonResponse<ApiError>({ error: backlog.error }, backlog.status);
 
-  const { photo, ...rest } = submission;
+  const { photo, ...submitted } = submission;
+  let rest = submitted;
+
+  // Answering an earlier observation: it must be public and be about this same feature at this same place.
+  if (rest.respondsTo) {
+    const target = await observations.get(rest.respondsTo.id);
+    if (!target || !isPublic(target) || target.place.osmType !== rest.place.osmType || target.place.osmId !== rest.place.osmId || target.featureId !== rest.featureId) {
+      return jsonResponse<ApiError>({ error: "That observation could not be answered." }, 400);
+    }
+    const { kind } = rest.respondsTo;
+    if (kind === "confirm" || kind === "evidence") {
+      // Agreeing with it or adding to it means saying what it says, about the same spot.
+      rest = { ...rest, finding: target.finding, area: target.area };
+    } else if (kind === "dispute" && rest.finding === target.finding) {
+      return jsonResponse<ApiError>({ error: "That matches the earlier observation. Choose “I saw the same” instead." }, 400);
+    } else if (kind === "update" && rest.finding === target.finding && rest.area === target.area) {
+      return jsonResponse<ApiError>({ error: "That is what was already recorded. Tell us what has changed." }, 400);
+    }
+  }
   let jpeg: Buffer | undefined;
   if (photo) {
     // Re-encoded here, whatever the browser did: this drops GPS and every other piece of metadata.
@@ -69,6 +89,8 @@ export async function POST(request: Request) {
     statusHistory: [{ status: "community", at: createdAt, note: "" }],
     moderation,
   };
+  // The same thing seen before is counted together with it on the place page, however it is worded.
+  const similar = rest.respondsTo ? undefined : await findSimilar(observation);
   try {
     if (jpeg) await observations.save(observation, jpeg);
     else await observations.update(observation);
@@ -76,5 +98,21 @@ export async function POST(request: Request) {
     console.error("[observations] save failed", error);
     return jsonResponse<ApiError>({ error: "The observation could not be saved. Please try again." }, 500);
   }
-  return jsonResponse({ id: observation.id, moderation: moderation.state }, 201);
+  return jsonResponse({ id: observation.id, moderation: moderation.state, ...(similar ? { similarTo: similar } : {}) }, 201);
+}
+
+/** An approved observation of the same feature, spot and finding from around the same time. */
+async function findSimilar(created: Observation): Promise<string | undefined> {
+  const day = 24 * 60 * 60 * 1000;
+  const near = (await publicObservations()).find(
+    (o) =>
+      o.id !== created.id &&
+      o.place.osmType === created.place.osmType &&
+      o.place.osmId === created.place.osmId &&
+      o.featureId === created.featureId &&
+      o.area === created.area &&
+      o.finding === created.finding &&
+      Math.abs(Date.parse(o.observedOn) - Date.parse(created.observedOn)) <= DUPLICATE_WINDOW_DAYS * day,
+  );
+  return near?.id;
 }

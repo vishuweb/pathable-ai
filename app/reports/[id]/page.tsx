@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ReportPlaceAssign } from "@/components/ReportPlaceAssign";
 import { SavedReportView } from "@/components/SavedReportView";
+import { directory } from "@/lib/campus-directory";
 import { formatDateTime } from "@/lib/format";
 import { moderationState } from "@/lib/moderation";
 import { visibleReport } from "@/lib/moderation-store";
 import { isOwner } from "@/lib/owner";
+import { activeRegion } from "@/lib/region";
 import { statusHistory } from "@/lib/report-status";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +44,13 @@ export default async function ReportPage({ params }: Params) {
         statusEvents={statusHistory(report).map((event) => ({ ...event, label: formatDateTime(event.at) }))}
         isOwner={owner}
       />
+      {owner && (
+        <ReportPlaceAssign
+          reportId={report.id}
+          current={report.location?.place?.name}
+          options={directory(activeRegion()).map((p) => ({ key: `${p.osmType}/${p.osmId}`, label: p.name })).sort((a, b) => a.label.localeCompare(b.label))}
+        />
+      )}
     </>
   );
 }

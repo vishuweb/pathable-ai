@@ -2395,3 +2395,47 @@ fieldset:disabled .segment {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* Place profile: claims, conflicts and responses */
+.warning {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+}
+.block {
+  display: block;
+}
+.claim + .claim {
+  margin-top: 0.6rem;
+}
+.claim-conflict {
+  border-left: 4px solid var(--warn-text);
+  padding-left: 0.6rem;
+}
+.claim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-top: 0.25rem;
+}
+.response-banner {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+.overview-facts {
+  padding-left: 1.2rem;
+}
+.known-group {
+  margin-block: 0.75rem;
+}
+.known-group > summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding-block: 0.4rem;
+}
+.claim-history {
+  margin-top: 0.4rem;
+}

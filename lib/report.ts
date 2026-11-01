@@ -37,8 +37,22 @@ export interface ReportLocation {
   longitude?: number;
   /** Accuracy radius in meters, as reported by the device. */
   accuracyM?: number;
-  /** The OpenStreetMap place chosen by the reporter; its coordinates are then the place's. */
+  /** The OpenStreetMap place this report is about: chosen by the reporter, or assigned later by the owner. */
   place?: PlaceRef;
+  /** The place's own position from the campus directory, set by the server when a place is linked. */
+  placeCoordinates?: { latitude: number; longitude: number };
+  /**
+   * Where the barrier or the reporter actually was, kept apart from the place's position so a building's
+   * centre never stands in for it. latitude and longitude above hold this when known, else the place's.
+   */
+  observationCoordinates?: { latitude: number; longitude: number; accuracyM?: number };
+}
+
+/** Who tied a report to its place, and when. Reports with no place are never guessed onto one. */
+export interface PlaceAssociation {
+  by: "reporter" | "owner";
+  at: string;
+  note?: string;
 }
 
 /** Where an evaluated photo came from, so results can be reported per dataset (e.g. "own" vs "web"). */
@@ -102,6 +116,8 @@ export interface SavedReport extends Omit<ReportSubmission, "image" | "draftId" 
   statusHistory?: StatusEvent[];
   /** Whether the report is public. Absent on reports made before moderation, which count as approved. */
   moderation?: ModerationRecord;
+  /** How the place link was made; absent on older reports, which count as chosen by the reporter. */
+  placeAssociation?: PlaceAssociation;
   id: string;
   createdAt: string;
 }

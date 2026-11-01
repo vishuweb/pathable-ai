@@ -52,6 +52,7 @@ Make public spaces more accessible through trustworthy accessibility information
 | Reports linked to OpenStreetMap places; place profiles with per-attribute community data, unknowns, staleness and nearby reports | Unit tests with mocked OpenStreetMap; browser test |
 | Report status with dated history; notes required for claims; duplicate links | Route tests; browser test of the full workflow |
 | Owner moderation: delete reports, change status; visitors get 403 | Route tests; live check of the 403 responses |
+| Phase 2 place intelligence: reports and observations tied to a place by id, scoped evidence, conflicts, duplicates, supersession and resolved history, personalised order | `tests/place-intelligence.test.ts` and `tests/place-profile-api.test.ts` (mocked storage), plus the browser journeys; not yet verified on the live deployment |
 | Phase 1 safety: submission rate limits, pending approval before anything is public, server-side photo re-encoding, owner-only review queue, canonical place checks, signed expiring sessions that fail closed | `tests/security.test.ts` (mocked storage and Meta API) and the browser test; not yet verified on the live deployment |
 | Voice notes with Muse Voice Transcribe 1.0 | Mocked route tests; browser test with a simulated microphone; live calls during development |
 | Batch analysis, review queue, measured results with Wilson intervals | Unit tests of the metrics; browser tests |

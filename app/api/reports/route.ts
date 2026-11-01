@@ -1,4 +1,5 @@
 import { findInDirectory } from "@/lib/campus-directory";
+import { checkSpot } from "@/lib/location-check";
 import { jsonResponse, readJsonBody } from "@/lib/http";
 import { cleanImage, dataUrlBytes, ImageError } from "@/lib/image-sanitize";
 import { backlogFull, initialModeration } from "@/lib/moderation-store";
@@ -55,16 +56,31 @@ export async function POST(request: Request) {
   }
 
   // A chosen campus place always carries the directory's own name and coordinates, never the browser's.
+  // The place keeps the directory's own position. Where the reporter actually was, if they gave a spot at
+  // the place, is kept apart from it, so a building's centre never stands in for the barrier.
   const place = rest.location?.place && findInDirectory(activeRegion(), rest.location.place.osmType, rest.location.place.osmId);
-  const location =
-    rest.location && place
-      ? {
-          ...rest.location,
-          place: { osmType: place.osmType, osmId: place.osmId, name: place.name },
-          latitude: place.latitude,
-          longitude: place.longitude,
-        }
-      : rest.location;
+  if (rest.location?.place && !place) {
+    return jsonResponse<ApiError>({ error: "Choose a place from the campus directory." }, 400);
+  }
+  let location = rest.location;
+  if (rest.location && place) {
+    const claimed =
+      rest.location.latitude !== undefined && rest.location.longitude !== undefined
+        ? { latitude: rest.location.latitude, longitude: rest.location.longitude, accuracyM: rest.location.accuracyM }
+        : undefined;
+    const spot = claimed ? checkSpot(place, claimed) : undefined;
+    if (spot && !spot.ok) return jsonResponse<ApiError>({ error: spot.error }, 400);
+    const kept = { ...rest.location };
+    delete kept.accuracyM;
+    location = {
+      ...kept,
+      place: { osmType: place.osmType, osmId: place.osmId, name: place.name },
+      placeCoordinates: { latitude: place.latitude, longitude: place.longitude },
+      latitude: spot?.observation?.latitude ?? place.latitude,
+      longitude: spot?.observation?.longitude ?? place.longitude,
+      ...(spot?.observation ? { observationCoordinates: spot.observation, accuracyM: spot.observation.accuracyM } : {}),
+    };
+  }
 
   const createdAt = new Date().toISOString();
   const moderation = initialModeration(roleOf(request), createdAt);
@@ -76,6 +92,7 @@ export async function POST(request: Request) {
     consentedAt: consent ? createdAt : undefined,
     statusHistory: [{ status: "submitted", at: createdAt, note: "" }],
     moderation,
+    ...(location?.place ? { placeAssociation: { by: "reporter" as const, at: createdAt } } : {}),
   };
   try {
     await reports.save(report, jpeg);

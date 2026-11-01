@@ -18,6 +18,8 @@ export interface PlaceAttribute {
   detail?: string;
   /** Date this tag was last checked on site, if contributors recorded one (check_date). */
   checked?: string;
+  /** What the tag says about the feature, where it is a plain yes or no. */
+  polarity?: "yes" | "no";
 }
 
 interface Rule {
@@ -201,6 +203,30 @@ const RULES: Rule[] = [
     keys: ["capacity:disabled"],
     read: (v) => (v === "0" || v === "no" ? "No accessible spaces" : v === "yes" ? "Accessible spaces available" : `${v} accessible spaces`),
   },
+  {
+    id: "step_free_entrance",
+    group: "mobility",
+    needIds: ["step_free", "accessible_entrance"],
+    label: "Step-free way in",
+    keys: [],
+    read: (v) => v,
+  },
+  {
+    id: "entrance_width",
+    group: "mobility",
+    needIds: ["accessible_entrance", "wheelchair_paths"],
+    label: "Entrance and door width",
+    keys: [],
+    read: (v) => v,
+  },
+  {
+    id: "clear_path",
+    group: "mobility",
+    needIds: ["wheelchair_paths", "smooth_surface"],
+    label: "Paths clear of obstructions",
+    keys: [],
+    read: (v) => v,
+  },
   // OpenStreetMap has no reliable tags for the features below, so they are known only from
   // observations people contribute; until then they are unknown.
   {
@@ -265,6 +291,7 @@ export function placeAttributes(tags: Record<string, string>): PlaceAttribute[] 
       value: rule.read(tags[key].trim(), tags),
       detail: rule.detailKey ? tags[rule.detailKey]?.slice(0, 300) : undefined,
       checked: tags[`check_date:${key}`] ?? tags.check_date,
+      ...(["yes", "designated"].includes(tags[key].trim()) ? { polarity: "yes" as const } : tags[key].trim() === "no" ? { polarity: "no" as const } : {}),
     };
   });
 }

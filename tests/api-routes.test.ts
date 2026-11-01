@@ -267,7 +267,8 @@ test("reports: status changes are validated and recorded as dated history", asyn
   assert.equal((await patch({ status: "closed", note: "Dup", duplicateOf: id })).status, 400, "not a duplicate of itself");
   assert.equal((await patch({ status: "closed", note: "Dup", duplicateOf: "../x" })).status, 400);
 
-  assert.equal((await patch({ status: "verified" })).status, 200);
+  assert.equal((await patch({ status: "verified" })).status, 400, "verifying needs a recorded reason");
+  assert.equal((await patch({ status: "verified", note: "Checked on site, 31 Oct 2026" })).status, 200);
   assert.equal((await patch({ status: "resolved", note: "Recheck photo shows the ramp is clear." })).status, 200);
   const updated = await read(await reportRoute.GET(new Request("http://localhost"), params));
   const history = updated.body.statusHistory as { status: string; at: string; note: string }[];

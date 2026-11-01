@@ -57,6 +57,7 @@ Shared reports and observations start as **pending**: only the owner can see the
 
 ## Known limitations
 
+- **Place links by id only.** A report with no linked place appears on no place page until the owner links it; the owner's link is trusted. Observation exact positions are only checked to be at the place (within 400 m) and inside the campus boundary.
 - **Single owner.** One shared key; no individual accounts, roles or per-person audit trail.
 - **Soft limits, not guarantees.** Visitors are told apart by the first `x-forwarded-for` address (trustworthy on Vercel, which sets it; spoofable on any other host). Each server instance counts separately, so the real ceiling is the limit times the number of live instances, and a cold start resets it. The pending cap is read from storage and then written later with no lock, so simultaneous requests can pass it together; filling the cap also blocks honest visitors until the owner approves or rejects. Treat the cap as protection against ordinary abuse, not against a coordinated flood.
 - **In-memory limits.** Per-visitor limits and daily caps are counted per server instance, so they slow abuse rather than enforce an exact total. The pending-approval cap is counted from storage and is the firm bound.

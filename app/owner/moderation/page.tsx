@@ -31,6 +31,9 @@ export default async function ModerationPage() {
           when: formatDateTime(r.createdAt),
           lines: [
             `${s.verified} confirmed ${s.verified === 1 ? "barrier" : "barriers"} of ${s.findings} AI ${s.findings === 1 ? "suggestion" : "suggestions"}`,
+            r.location?.place
+              ? `Linked to the place: ${r.location.place.name}. It will appear on that place page once approved.`
+              : "No place is linked, so it will not appear on any place page until you link one (open the full report).",
             ...(r.location?.label ? [`Location text: ${r.location.label}`] : []),
             ...(r.location?.latitude !== undefined
               ? [

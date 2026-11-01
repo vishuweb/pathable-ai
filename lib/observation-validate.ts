@@ -1,15 +1,21 @@
 import "server-only";
 import { findInDirectory } from "./campus-directory";
 import { validateImageDataUrl } from "./image-input";
-import { OBSERVATION_FINDINGS, PLACE_AREAS, type ObservationFinding, type PlaceArea } from "./observations";
-import { OSM_TYPES, distanceMeters, type PlaceRef } from "./place";
+import { checkSpot } from "./location-check";
+import { OBSERVATION_FINDINGS, PLACE_AREAS, RESPONSE_KINDS, type Coordinates, type ObservationFinding, type ObservationResponse, type PlaceArea } from "./observations";
+import { OSM_TYPES, type PlaceRef } from "./place";
+import { isStoreId } from "./store";
 import { PLACE_FEATURES } from "./place-attributes";
 import { activeRegion, inRegion } from "./region";
 
 export interface ObservationSubmission {
   place: PlaceRef;
+  /** The place's own position, from the directory. */
   latitude: number;
   longitude: number;
+  /** Where the visitor said they were, when that is a separate spot at the place. */
+  observationCoordinates?: Coordinates;
+  respondsTo?: ObservationResponse;
   featureId: string;
   finding: ObservationFinding;
   area: PlaceArea;
@@ -19,8 +25,6 @@ export interface ObservationSubmission {
 }
 
 const FEATURE_IDS = new Set(PLACE_FEATURES.map((f) => f.id));
-/** How far the coordinates sent by the browser may be from the place's own position. */
-const COORDINATE_TOLERANCE_METERS = 300;
 
 /** Checks an observation sent by the browser; returns it cleaned, or a message for the visitor. */
 export function parseObservationSubmission(value: unknown, today = new Date()): ObservationSubmission | { error: string } {
@@ -44,11 +48,19 @@ export function parseObservationSubmission(value: unknown, today = new Date()): 
   // there, under another name, or at another spot.
   const canonical = findInDirectory(region, osmType, osmId);
   if (!canonical) return { error: "Choose a place from the campus directory." };
-  if (distanceMeters(canonical, { latitude: claimedLatitude, longitude: claimedLongitude }) > COORDINATE_TOLERANCE_METERS) {
-    return { error: "The location does not match the place." };
-  }
+  const accuracy = body.accuracyM == null ? undefined : Number(body.accuracyM);
+  const spot = checkSpot(canonical, { latitude: claimedLatitude, longitude: claimedLongitude, accuracyM: accuracy });
+  if (!spot.ok) return { error: spot.error };
   const place: PlaceRef = { osmType, osmId, name: canonical.name };
   const { latitude, longitude } = canonical;
+
+  let respondsTo: ObservationResponse | undefined;
+  if (body.respondsTo != null) {
+    const r = body.respondsTo as Record<string, unknown>;
+    const kind = RESPONSE_KINDS.find((k) => k === r?.kind);
+    if (typeof r?.id !== "string" || !isStoreId(r.id) || !kind) return { error: "That observation could not be answered." };
+    respondsTo = { id: r.id, kind };
+  }
 
   const featureId = typeof body.featureId === "string" && FEATURE_IDS.has(body.featureId) ? body.featureId : undefined;
   if (!featureId) return { error: "Choose what the observation is about." };
@@ -73,5 +85,5 @@ export function parseObservationSubmission(value: unknown, today = new Date()): 
     photo = image;
   }
 
-  return { place, latitude, longitude, featureId, finding, area, note, observedOn, photo };
+  return { place, latitude, longitude, observationCoordinates: spot.observation, respondsTo, featureId, finding, area, note, observedOn, photo };
 }

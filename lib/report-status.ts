@@ -25,7 +25,7 @@ export const STATUS_INFO: Record<ReportStatus, { label: string; description: str
   verified: {
     label: "Verified",
     description: "The project owner agrees the reported barriers are visible in the photo.",
-    needsNote: false,
+    needsNote: true,
   },
   action_reported: {
     label: "Action reported",

@@ -500,11 +500,18 @@ test("observations are tied to real campus directory places and positions", asyn
 });
 
 test("a report's chosen campus place is stored with the directory's name and position", async () => {
-  const spoofed = await saveReport({ location: { label: "x", latitude: 23.8095, longitude: 86.443, place: { ...LIBRARY, name: "Fake Name" } } }, OWNER);
-  assert.equal(spoofed.status, 201);
-  const stored = (await body(await getReport(spoofed.body.id, OWNER))).body;
+  // The name is always the directory's; a position far from the place is refused rather than trusted.
+  const renamed = await saveReport({ location: { label: "x", latitude: LIBRARY_AT.latitude, longitude: LIBRARY_AT.longitude, place: { ...LIBRARY, name: "Fake Name" } } }, OWNER);
+  assert.equal(renamed.status, 201);
+  const stored = (await body(await getReport(renamed.body.id, OWNER))).body;
   assert.equal(stored.location.place.name, "Central Library");
   assert.equal(stored.location.latitude, 23.8158145);
+  assert.deepEqual(stored.location.placeCoordinates, { latitude: 23.8158145, longitude: 86.4421811 });
+  assert.equal(stored.location.observationCoordinates, undefined, "the place's own position is not a separate spot");
+  assert.equal(stored.placeAssociation.by, "reporter");
+  const far = await saveReport({ location: { label: "x", latitude: 23.8095, longitude: 86.443, place: { ...LIBRARY, name: "Fake Name" } } }, OWNER);
+  assert.equal(far.status, 400);
+  assert.equal(far.body.error, "The location does not match the place.");
   const outside = await saveReport({ location: { label: "Madrid", latitude: 40.4459, longitude: -3.6774 } }, OWNER);
   assert.equal(outside.status, 400);
 });

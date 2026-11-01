@@ -1,7 +1,10 @@
+import { findInDirectory } from "@/lib/campus-directory";
 import { jsonResponse, readJsonBody } from "@/lib/http";
 import { visibleReport } from "@/lib/moderation-store";
 import { MODERATION_STATES } from "@/lib/moderation";
 import { requireRole, roleOf } from "@/lib/owner";
+import { OSM_TYPES } from "@/lib/place";
+import { activeRegion } from "@/lib/region";
 import { REPORT_STATUSES, STATUS_INFO, currentStatus, statusHistory, type StatusEvent } from "@/lib/report-status";
 import { isStoreId, reports } from "@/lib/store";
 import type { ApiError } from "@/lib/types";
@@ -54,6 +57,35 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const updated = { ...report, moderation: { state, at: new Date().toISOString(), ...(note ? { note } : {}) } };
     await reports.update(updated);
     return jsonResponse({ moderation: updated.moderation });
+  }
+
+  if ("place" in input) {
+    // The owner ties a report to a campus place, or takes the link off. Reports are never matched to a place by guesswork.
+    const at = new Date().toISOString();
+    if (input.place === null) {
+      const location = { ...(report.location ?? { label: "" }) };
+      delete location.place;
+      delete location.placeCoordinates;
+      const rest = { ...report };
+      delete rest.placeAssociation;
+      await reports.update({ ...rest, location: location.label || location.latitude !== undefined ? location : undefined });
+      return jsonResponse({ place: null });
+    }
+    const wanted = (input.place ?? {}) as Record<string, unknown>;
+    const osmType = OSM_TYPES.find((t) => t === wanted.osmType);
+    const place = osmType && findInDirectory(activeRegion(), osmType, Number(wanted.osmId));
+    if (!place) return jsonResponse<ApiError>({ error: "Choose a place from the campus directory." }, 400);
+    const base = report.location ?? { label: place.name };
+    const location = {
+      ...base,
+      place: { osmType: place.osmType, osmId: place.osmId, name: place.name },
+      placeCoordinates: { latitude: place.latitude, longitude: place.longitude },
+      latitude: base.latitude ?? place.latitude,
+      longitude: base.longitude ?? place.longitude,
+    };
+    const updated = { ...report, location, placeAssociation: { by: "owner" as const, at, ...(note ? { note } : {}) } };
+    await reports.update(updated);
+    return jsonResponse({ place: location.place, placeAssociation: updated.placeAssociation });
   }
 
   const status = REPORT_STATUSES.find((s) => s === input.status);
