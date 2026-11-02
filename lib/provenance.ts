@@ -5,6 +5,7 @@ export const PROVENANCE = [
   "osm",
   "ai",
   "community",
+  "owner_recorded",
   "reporter_confirmed",
   "verified",
   "outdated",
@@ -23,11 +24,15 @@ export const PROVENANCE_INFO: Record<Provenance, { label: string; description: s
     label: "Community reported",
     description: "Observed by a visitor. Not yet checked by anyone else.",
   },
+  owner_recorded: {
+    label: "Recorded by the project team",
+    description: "Seen on a field survey by the project team and approved for publication. Not checked by anyone else.",
+  },
   reporter_confirmed: {
     label: "Confirmed by reporter",
     description: "The person who reported it checked the AI's suggestions. Not yet checked by anyone else.",
   },
-  verified: { label: "Independently verified", description: "Checked by the project owner, with a recorded reason." },
+  verified: { label: "Independently verified", description: "Checked by someone other than whoever recorded it, with a recorded reason." },
   outdated: { label: "Outdated", description: "Last observed more than two years ago; it may have changed." },
   resolved: { label: "Resolved, with evidence", description: "Recorded as fixed, with the evidence noted." },
 };

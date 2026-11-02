@@ -88,6 +88,16 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
       text: `${pending} ${pending === 1 ? "submission is" : "submissions are"} waiting. Nothing a visitor sends is public until you approve it.`,
     },
     {
+      href: "/owner/survey",
+      title: "Campus surveys",
+      text: "Record what you see on campus: drafts, checklists, photos and review. Works on a phone.",
+    },
+    {
+      href: "/owner/coverage",
+      title: "Survey coverage",
+      text: "What has been looked at, what has not, and what to survey next. Import and export live here.",
+    },
+    {
       href: "/batch",
       title: "Batch analyze",
       text: "Analyze a folder of your own or web photos; each one joins the review queue.",

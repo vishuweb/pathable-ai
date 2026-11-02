@@ -1,5 +1,6 @@
 import "server-only";
 import { publicObservations, publicReports } from "./moderation-store";
+import { publicSurveysAt } from "./survey-store";
 import type { PlaceRef } from "./place";
 import { buildPlaceIntelligence, type PlaceIntelligence } from "./place-intelligence";
 
@@ -15,6 +16,6 @@ export async function loadPlaceIntelligence(
   lastEdited?: string,
   now?: Date,
 ): Promise<PlaceIntelligence> {
-  const [observations, reports] = await Promise.all([publicObservations(), publicReports()]);
-  return buildPlaceIntelligence({ place, tags, lastEdited, observations, reports, now });
+  const [observations, reports, surveys] = await Promise.all([publicObservations(), publicReports(), publicSurveysAt(place, now)]);
+  return buildPlaceIntelligence({ place, tags, lastEdited, observations, reports, surveys, now });
 }

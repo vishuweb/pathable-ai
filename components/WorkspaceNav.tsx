@@ -8,18 +8,20 @@ const LINKS = [
   { href: "/batch", label: "Batch analyze" },
   { href: "/review", label: "Review queue" },
   { href: "/owner/moderation", label: "Approvals" },
+  { href: "/owner/survey", label: "Surveys" },
+  { href: "/owner/coverage", label: "Coverage" },
   { href: "/results", label: "Results" },
 ];
 
 /** Navigation inside the owner workspace, kept apart from the public site navigation. */
 export function WorkspaceNav({ reviewerOnly = false }: { reviewerOnly?: boolean }) {
   const pathname = usePathname();
-  const links = reviewerOnly ? LINKS.filter((l) => l.href === "/review" || l.href === "/results") : LINKS;
+  const links = reviewerOnly ? LINKS.filter((l) => l.href === "/review" || l.href === "/owner/survey" || l.href === "/results") : LINKS;
   return (
     <nav aria-label={reviewerOnly ? "Reviewer workspace" : "Owner workspace"} className="workspace-nav">
       <span className="workspace-label">{reviewerOnly ? "Reviewer workspace" : "Owner workspace"}</span>
       {links.map((link) => {
-        const current = link.href === "/review" ? pathname.startsWith("/review") : pathname === link.href;
+        const current = link.href === "/review" || link.href === "/owner/survey" ? pathname.startsWith(link.href) : pathname === link.href;
         return (
           <Link key={link.href} href={link.href} aria-current={current ? "page" : undefined}>
             {link.label}

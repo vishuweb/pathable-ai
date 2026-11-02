@@ -64,7 +64,7 @@ function ClaimItem({
       {claim.observedOn && (
         <span className="muted">
           {" "}
-          · {own ? "last seen" : "checked"} {date(claim.observedOn)}
+          · {claim.source === "osm" ? "checked" : "last seen"} {date(claim.observedOn)}
         </span>
       )}
       {claim.count > 1 && <span className="muted"> · {claim.count} separate reports of the same</span>}
@@ -78,6 +78,14 @@ function ClaimItem({
           {" "}
           <a href={`/api/observations/${id}/image`} target="_blank" rel="noreferrer">
             photo{photos.length > 1 ? ` ${i + 1}` : ""} (opens in a new tab)
+          </a>
+        </span>
+      ))}
+      {claim.photoUrls?.map((url, i) => (
+        <span key={url}>
+          {" "}
+          <a href={url} target="_blank" rel="noreferrer">
+            survey photo{claim.photoUrls!.length > 1 ? ` ${i + 1}` : ""} (opens in a new tab)
           </a>
         </span>
       ))}
@@ -224,7 +232,7 @@ const KEY_FEATURES = ["wheelchair", "step_free_entrance", "steps", "ramp", "lift
 /** A place's accessibility profile, ordered around the visitor's own needs. */
 export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, isOwner, canContribute = true }: Props) {
   const { preferences, loaded } = usePreferences();
-  const { features, barriers, resolved, contributions, summary } = intelligence;
+  const { features, barriers, resolved, contributions, surveys, summary } = intelligence;
   const [featureId, setFeatureId] = useState(features[0]?.id ?? "");
   const [response, setResponse] = useState<Response>();
   const chosen = preferences.needs;
@@ -271,6 +279,10 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
           <div className="tile-osm">
             <dt>Recorded in OpenStreetMap</dt>
             <dd>{summary.byProvenance.osm}</dd>
+          </div>
+          <div className="tile-community">
+            <dt>Recorded by the project team</dt>
+            <dd>{summary.byProvenance.owner_recorded}</dd>
           </div>
           <div className="tile-community">
             <dt>Reported by visitors</dt>
@@ -403,6 +415,54 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
               </details>
             );
           })
+        )}
+      </section>
+
+      <section aria-labelledby="surveyed-title" className="profile-section">
+        <h2 id="surveyed-title">What has been checked on site</h2>
+        {surveys.length === 0 ? (
+          <p className="empty-state">
+            No field survey of this place has been published yet. That means nobody from the project has recorded a check here, not
+            that there is nothing to find.
+          </p>
+        ) : (
+          surveys.map((s) => (
+            <details key={s.id} className="known-group" open={!s.supersededBy && surveys.length <= 2}>
+              <summary>
+                {s.checklistLabel}: {s.target} · seen {s.observedOn}
+                {s.supersededBy ? " · replaced by a newer survey" : ""}
+              </summary>
+              <p>
+                <Chip value={s.provenance} outdated={s.outdated} />
+              </p>
+              {s.checkNote && <p className="muted">Checked: {s.checkNote}</p>}
+              {s.outdated && <p className="warning">Seen more than two years ago. It may have changed; it is shown as recorded.</p>}
+              {s.notes && <p>{s.notes}</p>}
+              <ul className="source-list">
+                {[...s.assessed]
+                  .sort((a, b) => groups.indexOf(a.group) - groups.indexOf(b.group))
+                  .map((a) => (
+                    <li key={a.attributeId}>
+                      <strong>{a.label}</strong>: {a.value}
+                      {a.method && <span className="muted"> · measured by {a.method}</span>}
+                      {a.note && <span className="muted"> · “{a.note}”</span>}
+                      {a.photoIds.map((id, i) => (
+                        <span key={id}>
+                          {" "}
+                          <a href={`/api/surveys/photos/${id}`} target="_blank" rel="noreferrer">
+                            photo{a.photoIds.length > 1 ? ` ${i + 1}` : ""} (opens in a new tab)
+                          </a>
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+              </ul>
+              {s.couldNotTell.length > 0 && <p className="muted">Looked, but could not tell: {s.couldNotTell.map((a) => a.label).join(", ")}.</p>}
+              {s.notAssessed.length > 0 && <p className="muted">Not checked on this survey: {s.notAssessed.map((a) => a.label).join(", ")}.</p>}
+              {s.coordinates && <p className="muted">The exact spot was recorded, separately from the place&apos;s position.</p>}
+              <p className="muted">{s.limits}</p>
+            </details>
+          ))
         )}
       </section>
 

@@ -4,6 +4,7 @@ import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promise
 import path from "node:path";
 import type { Observation } from "./observations";
 import type { AnalysisDraft, SavedReport } from "./report";
+import type { Sublocation, Survey, SurveyPhoto, SurveyPriority } from "./survey";
 
 // One JSON file and one JPEG per item. Local disk by default; Vercel Blob when a blob token is
 // set, because a serverless deployment's disk does not persist between requests.
@@ -147,6 +148,10 @@ function collection<T extends Item>(name: string) {
 export const reports = collection<SavedReport>("reports");
 export const drafts = collection<AnalysisDraft>("drafts");
 export const observations = collection<Observation>("observations");
+export const surveys = collection<Survey>("surveys");
+export const sublocations = collection<Sublocation>("sublocations");
+export const surveyPhotos = collection<SurveyPhoto>("survey-photos");
+export const surveyPriorities = collection<SurveyPriority>("survey-priorities");
 
 function isNotFound(error: unknown): boolean {
   return (error as NodeJS.ErrnoException)?.code === "ENOENT";

@@ -581,6 +581,110 @@ test("journey 5, conflict and verification: disagreeing observations are both sh
   await page.close();
 });
 
+test("field survey, scenarios A to F: draft, resume, spot scope, review, public page and coverage", { skip: !CHROME && "Chrome not found" }, async () => {
+  const owner = await ownerPage();
+  await owner.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+
+  // A: the owner starts a building survey of Central Library and records one real line, with a photo.
+  await owner.goto(`${BASE}/owner/survey`, { waitUntil: "networkidle0" });
+  assert.deepEqual(await axeViolations(owner), [], "the surveys page passes WCAG 2.2 AA checks");
+  await owner.select(".survey-start select", "way/517026148");
+  await Promise.all([owner.waitForNavigation({ waitUntil: "networkidle0" }), owner.click('.survey-start button[type="submit"]')]);
+  assert.match(new URL(owner.url()).pathname, /^\/owner\/survey\/[0-9a-f-]{36}$/);
+  await owner.select("#attr-step_free", "partial");
+  await owner.type('fieldset:has(#attr-step_free) input[type="text"]', "Only the east door");
+
+  // C: saved half done, and still there on coming back.
+  await (await owner.waitForSelector('xpath/.//button[normalize-space(.)="Save draft"]'))!.click();
+  await owner.waitForFunction(() => /Saved\. You can come back/.test(document.querySelector(".survey")?.textContent ?? ""));
+  await owner.reload({ waitUntil: "networkidle0" });
+  assert.equal(await owner.$eval("#attr-step_free", (e) => (e as HTMLSelectElement).value), "partial");
+  assert.match(await owner.$eval(".survey-progress", (e) => e.textContent ?? ""), /1 of 6 lines assessed/);
+  assert.deepEqual(await axeViolations(owner), [], "the survey form passes WCAG 2.2 AA checks");
+  assert.ok(await owner.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "no sideways scrolling on a phone");
+
+  await (await owner.$('.survey input[type="file"]'))!.uploadFile(PHOTO);
+  await owner.waitForFunction(() => /Photo added/.test(document.querySelector(".survey")?.textContent ?? ""));
+  await owner.waitForSelector(".survey-evidence input");
+  await owner.click(".survey-evidence input");
+  await (await owner.waitForSelector('xpath/.//button[normalize-space(.)="Submit for review"]'))!.click();
+  await owner.waitForFunction(() => /Waiting for review/.test(document.querySelector(".survey")?.textContent ?? ""));
+  const buildingId = new URL(owner.url()).pathname.split("/").pop()!;
+
+  // Not public while it waits.
+  assert.equal(((await (await fetch(`${BASE}/api/surveys/${buildingId}`)).status)), 401);
+  mock.replies.placeLookup = { kind: "json", body: [library] };
+  assert.ok(!(await (await fetch(BASE + LIBRARY_PATH)).text()).includes("Only the east door"));
+
+  // B: a specific entrance, recorded without speaking for the whole building.
+  const entrance = await owner.evaluate(async () => {
+    const post = (url: string, method: string, json: unknown) => fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(json) });
+    const created = (await (await post("/api/surveys", "POST", { place: { osmType: "way", osmId: 517026148 }, checklistId: "entrance", observedOn: "2026-11-02", sublocation: { type: "entrance", name: "East door (test fixture)" } })).json()) as { id: string };
+    await post(`/api/surveys/${created.id}`, "PATCH", { answers: { kept_clear: { value: "obstructed", note: "Bicycles at the door" } } });
+    await post(`/api/surveys/${created.id}`, "PATCH", { action: "submit" });
+    return created.id;
+  });
+
+  // D: an authorized reviewer examines each one, with its evidence, before it becomes public.
+  const context = await browser!.createBrowserContext();
+  const reviewer = await context.newPage();
+  reviewer.setDefaultNavigationTimeout(180_000);
+  await reviewer.goto(`${BASE}/owner`, { waitUntil: "networkidle0" });
+  await reviewer.type('input[name="key"]', REVIEWER_KEY);
+  await Promise.all([reviewer.waitForNavigation({ waitUntil: "networkidle0" }), reviewer.click('button[type="submit"]')]);
+  await reviewer.goto(`${BASE}/owner/survey/${buildingId}`, { waitUntil: "networkidle0" });
+  const review = await reviewer.$eval(".survey", (e) => (e as HTMLElement).innerText);
+  assert.match(review, /Only the east door/);
+  assert.match(review, /1 photo\(s\) cited/);
+  assert.match(review, /does not verify it/);
+  assert.equal(await reviewer.$('.survey input[type="file"]'), null, "reviewers do not edit");
+  await (await reviewer.waitForSelector('xpath/.//button[normalize-space(.)="Approve for public use"]'))!.click();
+  await reviewer.waitForFunction(() => /Approved\. It is now on the public/.test(document.querySelector(".survey")?.textContent ?? ""));
+  await reviewer.goto(`${BASE}/owner/survey/${entrance}`, { waitUntil: "networkidle0" });
+  await reviewer.type(".profile-section input", "Went there on 2 Nov");
+  await (await reviewer.waitForSelector('xpath/.//button[normalize-space(.)="Record an independent check"]'))!.click();
+  await reviewer.waitForFunction(() => /Your check was recorded/.test(document.querySelector(".survey")?.textContent ?? ""));
+  await (await reviewer.waitForSelector('xpath/.//button[normalize-space(.)="Approve for public use"]'))!.click();
+  await reviewer.waitForFunction(() => /Approved\. It is now on the public/.test(document.querySelector(".survey")?.textContent ?? ""));
+  await context.close();
+
+  // E: a visitor sees what was checked, its source and date, and what was not, with their own needs first.
+  const visitor = await openAs(["Mobility"]);
+  await visitor.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+  const checked = await visitor.$eval("#surveyed-title", (h) => (h.parentElement as HTMLElement).innerText);
+  assert.match(checked, /Building accessibility: The whole place/);
+  assert.match(checked, /Recorded by the project team/, "published, but not called verified");
+  assert.match(checked, /Step-free way in \(at least one\): Partly available/);
+  assert.match(checked, /Not checked on this survey: .*Lift/s, "what was not assessed is named");
+  assert.match(checked, /Entrance accessibility: Entrance: East door \(test fixture\)/);
+  assert.match(checked, /Independently verified/, "the checked one says so");
+  assert.match(checked, /Checked: Went there on 2 Nov/);
+  const overview = await visitor.$eval(".overview", (o) => (o as HTMLElement).innerText);
+  assert.match(overview, /Recorded for the place as a whole\. Individual entrances and rooms may differ\./);
+  assert.match(overview, /Lift\s+Community reported|Lift\s+Independently verified|Lift\s+Unknown/, "lift is unaffected by the building survey");
+  assert.deepEqual(await axeViolations(visitor), [], "a surveyed profile passes WCAG 2.2 AA checks");
+  await visitor.close();
+
+  // F: coverage shows what is and is not surveyed, without reading gaps as good news.
+  await owner.goto(`${BASE}/owner/coverage`, { waitUntil: "networkidle0" });
+  const coverage = await owner.$eval("main", (m) => (m as HTMLElement).innerText);
+  assert.match(coverage, /Directory coverage\s+\d+/);
+  assert.match(coverage, /Survey coverage\s+1\b/);
+  assert.match(coverage, /nothing here says any place is accessible/);
+  assert.match(coverage, /Surveyed entrances\s+1\b/);
+  assert.match(coverage, /Being low on this list does not mean a place is fine/);
+  assert.match(coverage, /No published survey yet/, "unsurveyed places are named as such");
+  assert.deepEqual(await axeViolations(owner), [], "the coverage page passes WCAG 2.2 AA checks");
+  assert.ok(await owner.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "no sideways scrolling on a phone");
+
+  // The public export holds the approved records and no private field.
+  const exported = await (await fetch(`${BASE}/api/survey-data?scope=public&format=csv`)).text();
+  assert.ok(exported.includes(buildingId));
+  assert.ok(!/private_notes/.test(exported));
+  assert.equal((await fetch(`${BASE}/api/survey-data?scope=full`)).status, 401);
+  await owner.close();
+});
+
 test("an invited reviewer can work through the queue, and nothing more", { skip: !CHROME && "Chrome not found" }, async () => {
   // A queued photo, as batch analysis would leave it.
   const draftId = "11111111-2222-4333-8444-555555555555";
@@ -610,7 +714,7 @@ test("an invited reviewer can work through the queue, and nothing more", { skip:
   await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('button[type="submit"]')]);
   assert.equal(new URL(page.url()).pathname, "/review", "reviewers land on the queue");
   const links = await page.$$eval('nav[aria-label="Reviewer workspace"] a', (a) => a.map((x) => x.textContent));
-  assert.deepEqual(links, ["Review queue", "Results"]);
+  assert.deepEqual(links, ["Review queue", "Surveys", "Results"]);
 
   await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('a[href^="/review/"]')]);
   await page.waitForSelector(".save-panel");
@@ -669,7 +773,7 @@ test("visitors see the public site; the owner gets the workspace and moderation"
   const owner = await ownerPage();
   assert.equal(new URL(owner.url()).pathname, "/owner");
   const workspace = await owner.$$eval('nav[aria-label="Owner workspace"] a', (links) => links.map((a) => a.textContent));
-  assert.deepEqual(workspace, ["Workspace", "Batch analyze", "Review queue", "Approvals", "Results"]);
+  assert.deepEqual(workspace, ["Workspace", "Batch analyze", "Review queue", "Approvals", "Surveys", "Coverage", "Results"]);
 
   await owner.goto(BASE + savedReportPath, { waitUntil: "networkidle0" });
   await owner.select(".status-form select", "under_review");

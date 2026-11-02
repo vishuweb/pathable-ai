@@ -18,7 +18,7 @@ Built for the Meta Global AI Developer Hackathon with the Meta Model API:
 
 **Live demo:** https://pathable-ai.vercel.app. Press **Report a barrier**, then upload a photo of a street, crossing or entrance, or pick one under **No photo handy? Try a sample**.
 
-**Docs:** [Architecture](docs/ARCHITECTURE.md) · [Roadmap and status](docs/ROADMAP.md) · [Evaluation plan](docs/EVALUATION.md) · [Place intelligence](docs/PLACE-INTELLIGENCE.md) · [Security and privacy](docs/SECURITY-PRIVACY.md) · [Public-beta readiness](docs/BETA-READINESS.md) · [Demo script](docs/DEMO.md) · [Submission checklist](docs/SUBMISSION.md)
+**Docs:** [Architecture](docs/ARCHITECTURE.md) · [Roadmap and status](docs/ROADMAP.md) · [Evaluation plan](docs/EVALUATION.md) · [Place intelligence](docs/PLACE-INTELLIGENCE.md) · [Field survey](docs/FIELD-SURVEY.md) · [Project status](PROJECT_STATUS.md) · [Security and privacy](docs/SECURITY-PRIVACY.md) · [Public-beta readiness](docs/BETA-READINESS.md) · [Demo script](docs/DEMO.md) · [Submission checklist](docs/SUBMISSION.md)
 
 **Built during the hackathon.** Everything here was written during the hackathon window (Oct 26 – Nov 4, 2026); the git history starts on Oct 29. See [what was built](docs/SUBMISSION.md#5-built-during-the-hackathon).
 
@@ -39,7 +39,7 @@ Open the app, press **Report a barrier** (`/report`) and pick a photo under **No
 Command-line checks:
 
 ```bash
-npm test                                                       # 133 tests; the Meta API is mocked, so they cost nothing
+npm test                                                       # 150 tests; the Meta API is mocked, so they cost nothing
 npm run lint && npm run typecheck                              # ESLint (Next.js rules) and TypeScript
 npm run e2e                                                    # browser test of the whole flow against the mocked API (needs Chrome)
 npm run smoke:spark -- path/to/photo.jpg                       # Muse Spark alone

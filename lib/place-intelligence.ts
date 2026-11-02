@@ -30,6 +30,8 @@ import type { PlaceRef } from "./place";
 import { isStale, placeAttributes } from "./place-attributes";
 import type { Provenance } from "./provenance";
 import type { SavedReport } from "./report";
+import type { PublicAnswer, PublicSurvey } from "./survey";
+import { SUBLOCATION_AREA } from "./survey-taxonomy";
 import { STATUS_INFO, currentStatus, statusHistory, type ReportStatus, type StatusEvent } from "./report-status";
 import type { IssueCategory } from "./types";
 
@@ -39,7 +41,7 @@ export const DUPLICATE_WINDOW_DAYS = 14;
 export const BARRIER_RECHECK_DAYS = 365;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const RANK: Partial<Record<Provenance, number>> = { verified: 0, community: 1, osm: 2 };
+const RANK: Partial<Record<Provenance, number>> = { verified: 0, owner_recorded: 1, community: 2, reporter_confirmed: 2, osm: 3, ai: 4 };
 
 export interface Contribution {
   id: string;
@@ -65,10 +67,14 @@ export interface Contribution {
 }
 
 export interface Claim {
-  /** The observation that stands for the claim, or "osm". */
+  /** The observation that stands for the claim, "osm", or "<survey id>:<attribute id>". */
   id: string;
-  source: "osm" | "observation";
-  provenance: "osm" | "community" | "verified";
+  source: "osm" | "observation" | "survey";
+  provenance: "osm" | "community" | "verified" | "owner_recorded" | "reporter_confirmed" | "ai";
+  /** Where it applies: claims about different spots do not contradict each other. Defaults to the area. */
+  spot?: string;
+  /** Survey photos that show this attribute. */
+  photoUrls?: string[];
   polarity?: Polarity;
   /** The observation's own finding, for answering it. */
   finding?: ObservationFinding;
@@ -159,11 +165,13 @@ export interface PlaceIntelligence {
   /** Resolved or closed barriers, with their history. */
   resolved: Barrier[];
   contributions: Contribution[];
+  /** Approved field surveys of this place or a spot at it, newest first. */
+  surveys: PublicSurvey[];
   summary: {
     features: number;
     withRecord: number;
     unknown: number;
-    byProvenance: Record<"osm" | "community" | "verified", number>;
+    byProvenance: Record<"osm" | "community" | "verified" | "owner_recorded", number>;
     conflicts: number;
     outdated: number;
     openBarriers: number;
@@ -178,6 +186,8 @@ export interface IntelligenceInput {
   lastEdited?: string;
   observations: Observation[];
   reports: SavedReport[];
+  /** Approved surveys only; see lib/survey.ts publicSurvey. */
+  surveys?: PublicSurvey[];
   now?: Date;
 }
 
@@ -357,6 +367,48 @@ function barrierOf(report: SavedReport, now: Date): Barrier | undefined {
 
 // ------------------------------------------------------------------ the profile
 
+const SURVEY_POLARITY: Record<string, Polarity> = { present: "yes", absent: "no", not_operational: "problem", obstructed: "problem" };
+
+/** What each approved survey says about one feature. A survey speaks only for its own spot. */
+function surveyClaims(surveys: PublicSurvey[], featureId: string): Claim[] {
+  const claims: Claim[] = [];
+  for (const survey of surveys) {
+    for (const answer of survey.assessed.filter((a: PublicAnswer) => a.featureId === featureId && a.raw !== "not_applicable")) {
+      const spot = survey.sublocationId ? `sub:${survey.sublocationId}` : "place";
+      const same = claims.find((c) => c.spot === spot && c.value === answer.value && !c.supersededBy && !survey.supersededBy && days(c.observedOn!, survey.observedOn) <= DUPLICATE_WINDOW_DAYS);
+      if (same) {
+        same.count++;
+        if (survey.observedOn > same.observedOn!) same.observedOn = survey.observedOn;
+        continue;
+      }
+      claims.push({
+        id: `${survey.id}:${answer.attributeId}`,
+        source: "survey",
+        provenance: survey.provenance as Claim["provenance"],
+        polarity: SURVEY_POLARITY[String(answer.raw)],
+        value: answer.value,
+        spot,
+        area: survey.sublocationType ? SUBLOCATION_AREA[survey.sublocationType] : undefined,
+        scope: survey.sublocationId
+          ? `Applies to ${survey.target} only, not to the whole place.`
+          : "Recorded for the place as a whole. Individual entrances and rooms may differ.",
+        observedOn: survey.observedOn,
+        recordedAt: survey.updatedAt,
+        detail: answer.note,
+        count: 1,
+        contributionIds: [],
+        hasPhoto: answer.photoIds.length > 0,
+        photoUrls: answer.photoIds.map((id: string) => `/api/surveys/photos/${id}`),
+        verifiedNote: survey.provenance === "verified" ? survey.checkNote : undefined,
+        outdated: survey.outdated,
+        inConflict: false,
+        supersededBy: survey.supersededBy,
+      });
+    }
+  }
+  return claims;
+}
+
 const polarityWords = (set: Set<Polarity>) => [...set].map((p) => POLARITY_LABEL[p]).join(" / ");
 
 export function buildPlaceIntelligence(input: IntelligenceInput): PlaceIntelligence {
@@ -364,12 +416,16 @@ export function buildPlaceIntelligence(input: IntelligenceInput): PlaceIntellige
   const observations = input.observations.filter((o) => isPublic(o) && samePlace(o.place, input.place));
   const reports = input.reports.filter((r) => isPublic(r) && samePlace(r.location?.place, input.place));
 
+  const surveys = (input.surveys ?? [])
+    .filter((s) => samePlace(s.place, input.place))
+    .sort((a, b) => b.observedOn.localeCompare(a.observedOn));
   const clusters = clusterObservations(observations);
   const clusterOfId = new Map<string, Cluster>();
   for (const c of clusters) for (const m of c.members) clusterOfId.set(m.obs.id, c);
 
   const features: FeatureIntel[] = placeAttributes(input.tags).map((attr) => {
     const claims: Claim[] = clusters.filter((c) => c.rep.featureId === attr.id).map((c) => claimOf(c, now));
+    claims.push(...surveyClaims(surveys, attr.id));
     if (attr.state === "community" && attr.value) {
       const date = attr.checked ?? input.lastEdited?.slice(0, 10);
       claims.push({
@@ -395,14 +451,15 @@ export function buildPlaceIntelligence(input: IntelligenceInput): PlaceIntellige
 
     // Disagreement: different kinds of statement about the same spot (OpenStreetMap speaks for the whole place),
     // or an observation someone marked as disputing another.
-    const spots = new Set<PlaceArea>(current.flatMap((c) => (c.area ? [c.area] : [])));
+    const spotOf = (c: Claim) => c.spot ?? c.area;
+    const spots = new Set<string>(current.flatMap((c) => (spotOf(c) ? [spotOf(c)!] : [])));
     const conflictAreas: (PlaceArea | "any")[] = [];
     const conflictIds = new Set<string>();
     for (const spot of spots) {
-      const here = current.filter((c) => c.area === spot || c.source === "osm");
+      const here = current.filter((c) => spotOf(c) === spot || c.source === "osm");
       const kinds = new Set(here.map((c) => c.polarity).filter((p): p is Polarity => Boolean(p)));
       if (kinds.size > 1) {
-        conflictAreas.push(spot);
+        conflictAreas.push(here.find((c) => spotOf(c) === spot)?.area ?? "any");
         here.forEach((c) => c.polarity && conflictIds.add(c.id));
       }
     }
@@ -476,15 +533,16 @@ export function buildPlaceIntelligence(input: IntelligenceInput): PlaceIntellige
     })
     .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
 
-  const byProvenance = { osm: 0, community: 0, verified: 0 };
-  for (const f of features) if (f.current === "osm" || f.current === "community" || f.current === "verified") byProvenance[f.current]++;
-  const observedDates = [...contributions.map((c) => c.observedOn), ...all.map((b) => b.observedOn ?? b.reportedAt.slice(0, 10))].sort();
-  const updates = [...contributions.map((c) => c.recordedAt), ...all.flatMap((b) => [b.reportedAt, ...b.history.map((e) => e.at)])].sort();
+  const byProvenance = { osm: 0, community: 0, verified: 0, owner_recorded: 0 };
+  for (const f of features) if (f.current === "osm" || f.current === "community" || f.current === "verified" || f.current === "owner_recorded") byProvenance[f.current]++;
+  const observedDates = [...contributions.map((c) => c.observedOn), ...all.map((b) => b.observedOn ?? b.reportedAt.slice(0, 10)), ...surveys.map((s) => s.observedOn)].sort();
+  const updates = [...contributions.map((c) => c.recordedAt), ...all.flatMap((b) => [b.reportedAt, ...b.history.map((e) => e.at)]), ...surveys.map((s) => s.updatedAt)].sort();
   return {
     features,
     barriers,
     resolved,
     contributions,
+    surveys,
     summary: {
       features: features.length,
       withRecord: features.filter((f) => f.current !== "unknown").length,

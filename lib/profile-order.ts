@@ -19,12 +19,15 @@ function priority(feature: FeatureIntel): number {
   switch (feature.current) {
     case "verified":
       return 2;
-    case "community":
+    case "owner_recorded":
       return 3;
-    case "osm":
+    case "community":
+    case "reporter_confirmed":
       return 4;
-    default:
+    case "osm":
       return 5;
+    default:
+      return 6;
   }
 }
 

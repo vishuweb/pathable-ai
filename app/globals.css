@@ -2439,3 +2439,103 @@ fieldset:disabled .segment {
 .claim-history {
   margin-top: 0.4rem;
 }
+
+/* Field surveys */
+.survey-line {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-block: 0.75rem;
+  min-width: 0;
+}
+.survey-line-done {
+  border-left: 4px solid var(--accent);
+}
+.survey-line legend {
+  font-weight: 600;
+  padding-inline: 0.25rem;
+}
+.survey-evidence {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.survey-progress progress {
+  width: 100%;
+  height: 0.75rem;
+}
+.survey-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  padding-block: 0.75rem;
+}
+.survey-photos {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.survey-photos li {
+  display: flex;
+  flex-direction: column;
+  max-width: 160px;
+}
+.survey-photos img {
+  width: 160px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.survey-list {
+  padding-left: 1.2rem;
+}
+.survey-list li {
+  margin-block: 0.4rem;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+}
+.metric {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+.metric dt {
+  font-weight: 600;
+}
+.metric dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.metric dd.metric-definition {
+  font-size: 0.875rem;
+  font-weight: 400;
+  margin-top: 0.25rem;
+}
+.survey-queue {
+  padding-left: 1.5rem;
+}
+.survey-queue > li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: space-between;
+  padding-block: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.survey-queue > li > div:first-child {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+.survey-queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
