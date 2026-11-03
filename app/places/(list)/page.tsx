@@ -70,8 +70,8 @@ export default async function PlacesPage({ searchParams }: { searchParams: Searc
 
   return (
     <section aria-labelledby="places-title">
-      <p className="eyebrow">Pilot area</p>
-      <h1 id="places-title">Check a place at {region.name}</h1>
+      <p className="eyebrow">{region.location}</p>
+      <h1 id="places-title">Explore {region.name}</h1>
       <p className="intro">
         Find a building, hostel, gate or facility to see what is known about it for your needs, what is still unknown,
         and barriers reported there.
@@ -85,6 +85,7 @@ export default async function PlacesPage({ searchParams }: { searchParams: Searc
         featureIndex={featureIndex}
         featureNeeds={featureNeeds}
         signals={signals}
+        focusSearch={query.focus === "search"}
         initialShow={show}
         recent={recent}
       />

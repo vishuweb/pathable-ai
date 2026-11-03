@@ -26,6 +26,11 @@ export interface ReportListItem {
   needs: NeedGroup[];
   latitude?: number;
   longitude?: number;
+  /** Labels of the barriers a person confirmed. */
+  categories: string[];
+  /** A photo from the web, reviewed for the AI evaluation; not something seen on campus. */
+  fromEvaluation: boolean;
+  open: boolean;
 }
 
 interface Centre {
@@ -44,8 +49,19 @@ export function ReportList({ items }: { items: ReportListItem[] }) {
   const [centre, setCentre] = useState<Centre>();
   const [locating, setLocating] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
+  const [search, setSearch] = useState("");
+  const [state, setState] = useState<"" | "open" | "closed">("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const allCategories = [...new Set(items.flatMap((i) => i.categories))].sort();
   const mine = groupsOf(preferences);
-  const byNeed = filter.length ? items.filter((item) => item.needs.some((n) => filter.includes(n))) : items;
+  const needle = search.trim().toLowerCase();
+  const byNeed = items.filter(
+    (item) =>
+      (!filter.length || item.needs.some((n) => filter.includes(n))) &&
+      (!state || (state === "open") === item.open) &&
+      (!categoryFilter || item.categories.includes(categoryFilter)) &&
+      (!needle || `${item.title} ${item.locationLabel} ${item.summary} ${item.categories.join(" ")}`.toLowerCase().includes(needle)),
+  );
   const withDistance = byNeed.map((item) => ({
     item,
     distance:
@@ -75,6 +91,31 @@ export function ReportList({ items }: { items: ReportListItem[] }) {
 
   return (
     <>
+      <div className="report-search">
+        <label className="field">
+          Search reports
+          <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="A place or kind of barrier" />
+        </label>
+        <label className="field">
+          Kind of barrier
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <option value="">All kinds</option>
+            {allCategories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          State
+          <select value={state} onChange={(e) => setState(e.target.value as "" | "open" | "closed")}>
+            <option value="">Open and closed</option>
+            <option value="open">Still open</option>
+            <option value="closed">Resolved or closed</option>
+          </select>
+        </label>
+      </div>
       <div className="report-filter" role="group" aria-labelledby="filter-label">
         <p id="filter-label" className="filter-label">
           Show reports that affect:
@@ -173,6 +214,8 @@ export function ReportList({ items }: { items: ReportListItem[] }) {
                   {item.area && <> · {item.area}</>}
                 </p>
                 <p>{item.summary}</p>
+                {item.categories.length > 0 && <p className="report-categories">{item.categories.join(" · ")}</p>}
+                {item.fromEvaluation && <p className="muted">A web photo reviewed for the AI evaluation, not a barrier seen on campus.</p>}
                 <NeedChips needs={item.needs} label="Confirmed barriers affect" />
               </div>
             </li>

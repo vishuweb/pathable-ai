@@ -92,7 +92,7 @@ export function LocationField({ value, onChange }: Props) {
           value={value.label}
           maxLength={200}
           autoComplete="off"
-          placeholder="e.g. Main St & 3rd Ave, north-east corner"
+          placeholder="e.g. the ramp by the east door"
           onChange={(e) => onChange({ ...value, label: e.target.value })}
         />
       </label>

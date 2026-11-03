@@ -2,11 +2,30 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { WorkspaceNav } from "@/components/WorkspaceNav";
 import { canReview, isOwner, ownerKeyMissing, ownerKeyRequired, sessionProblem } from "@/lib/owner";
-import { countPending } from "@/lib/moderation-store";
-import { drafts, reports } from "@/lib/store";
+import { directory } from "@/lib/campus-directory";
+import { computeCoverage } from "@/lib/coverage";
+import { computeMetrics, evaluationReports } from "@/lib/metrics";
+import { moderationState } from "@/lib/moderation";
+import { NEED_GROUPS, NEED_GROUP_INFO } from "@/lib/needs";
+import { activeRegion } from "@/lib/region";
+import { drafts, observations, reports, sublocations, surveyPhotos, surveyPriorities, surveys } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Owner workspace · PathAble AI" };
+
+function OwnerMetric({ value, label, href, action }: { value: number; label: string; href?: string; action?: string }) {
+  return (
+    <div className="metric">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+      {href && (
+        <dd className="metric-definition">
+          <Link href={href}>{action}</Link>
+        </dd>
+      )}
+    </div>
+  );
+}
 
 export default async function OwnerPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
@@ -80,65 +99,88 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
     );
   }
 
-  const [queued, saved, pending] = await Promise.all([drafts.list(), reports.list(), countPending()]);
-  const tools = [
-    {
-      href: "/owner/moderation",
-      title: "Approvals",
-      text: `${pending} ${pending === 1 ? "submission is" : "submissions are"} waiting. Nothing a visitor sends is public until you approve it.`,
-    },
-    {
-      href: "/owner/survey",
-      title: "Campus surveys",
-      text: "Record what you see on campus: drafts, checklists, photos and review. Works on a phone.",
-    },
-    {
-      href: "/owner/coverage",
-      title: "Survey coverage",
-      text: "What has been looked at, what has not, and what to survey next. Import and export live here.",
-    },
-    {
-      href: "/owner/ai-usage",
-      title: "AI usage",
-      text: "Calls made to each Meta model, and whether AI is paused.",
-    },
-    {
-      href: "/batch",
-      title: "Batch analyze",
-      text: "Analyze a folder of your own or web photos; each one joins the review queue.",
-    },
-    {
-      href: "/review",
-      title: "Review queue",
-      text: `${queued.length} ${queued.length === 1 ? "photo is" : "photos are"} waiting. Your reviews become the evaluation labels.`,
-    },
-    {
-      href: "/results",
-      title: "Results",
-      text: "Precision, recall and evidence quality measured from your reviews.",
-    },
-    {
-      href: "/reports",
-      title: "Moderate shared reports",
-      text: `${saved.length} shared ${saved.length === 1 ? "report" : "reports"}. Open one to change its status or delete it.`,
-    },
-  ];
+  const region = activeRegion();
+  const [queued, saved, allObservations, allSurveys, spots, priorities, photos] = await Promise.all([
+    drafts.list(),
+    reports.list(),
+    observations.list(),
+    surveys.list(),
+    sublocations.list(),
+    surveyPriorities.list(),
+    surveyPhotos.list(),
+  ]);
+  const coverage = computeCoverage({
+    places: directory(region).map((p) => ({ osmType: p.osmType, osmId: p.osmId, name: p.name, category: p.category })),
+    surveys: allSurveys,
+    sublocations: spots,
+    observations: allObservations,
+    reports: saved,
+    priorities,
+  });
+  const states = [...saved, ...allObservations].map(moderationState);
+  const pending = states.filter((s) => s === "pending").length;
+  const approved = states.filter((s) => s === "approved").length;
+  const rejected = states.filter((s) => s === "rejected").length;
+  const surveyCount = (state: string) => allSurveys.filter((x) => x.state === state).length;
+  const { included } = evaluationReports(saved, { publicSite: ownerKeyRequired() });
+  const evaluation = computeMetrics(included)[0];
+  const largest = Math.max(1, ...NEED_GROUPS.map((g) => coverage.byNeedGroup[g]));
 
   return (
     <section aria-labelledby="owner-title">
       <WorkspaceNav />
-      <h1 id="owner-title">Owner workspace</h1>
-      <p className="intro">Evaluation and moderation tools. Visitors cannot see or use them.</p>
-      <ul className="card-grid">
-        {tools.map((tool) => (
-          <li key={tool.href} className="card">
-            <h2>
-              <Link href={tool.href}>{tool.title}</Link>
-            </h2>
-            <p>{tool.text}</p>
-          </li>
-        ))}
-      </ul>
+      <h1 id="owner-title">Overview</h1>
+      <p className="intro">Live figures from this site&apos;s own records. Visitors cannot see this.</p>
+
+      <h2>Needs attention</h2>
+      <dl className="metrics">
+        <OwnerMetric value={pending} label="Waiting for approval" href="/owner/moderation" action="Open approvals" />
+        <OwnerMetric value={surveyCount("submitted")} label="Surveys waiting for review" href="/owner/survey" action="Open surveys" />
+        <OwnerMetric value={queued.length} label="Photos in the review queue" href="/review" action="Open the queue" />
+      </dl>
+
+      <h2>Records</h2>
+      <dl className="metrics">
+        <OwnerMetric value={approved} label="Approved submissions" />
+        <OwnerMetric value={rejected} label="Rejected submissions" />
+        <OwnerMetric value={surveyCount("draft") + surveyCount("returned")} label="Unfinished surveys" href="/owner/survey" action="Continue one" />
+        <OwnerMetric value={surveyCount("approved")} label="Published surveys" />
+        <OwnerMetric value={saved.length + photos.length} label="Photos held as evidence" />
+      </dl>
+
+      <div className="two-panels">
+        <section aria-labelledby="coverage-head" className="landing-panel">
+          <h2 id="coverage-head">Campus coverage</h2>
+          <p>
+            {coverage.survey.placesWithApprovedSurvey} of {coverage.directory.places} directory places have a published survey. {coverage.verified.places} have an independently verified record.
+          </p>
+          <h3 className="subhead">Assessed survey lines by kind of need</h3>
+          <ul className="bar-list">
+            {NEED_GROUPS.map((g) => (
+              <li key={g}>
+                <span>{NEED_GROUP_INFO[g].short}</span>
+                <span className="bar-track" aria-hidden="true">
+                  <span className="bar-fill" style={{ width: `${(coverage.byNeedGroup[g] / largest) * 100}%` }} />
+                </span>
+                <strong>{coverage.byNeedGroup[g]}</strong>
+              </li>
+            ))}
+          </ul>
+          <p>
+            <Link href="/owner/coverage">Full coverage and the survey queue</Link>
+          </p>
+        </section>
+        <section aria-labelledby="evaluation-head" className="landing-panel">
+          <h2 id="evaluation-head">AI evaluation</h2>
+          <p>
+            {evaluation.photos} reviewed {evaluation.photos === 1 ? "photo" : "photos"} in the evaluation set: {evaluation.confirmed} suggestions confirmed, {evaluation.corrected} corrected, {evaluation.rejected} rejected, {evaluation.missed} barriers the AI missed.
+          </p>
+          <p className="muted">One reviewer per photo, so this is an early measure and not independent ground truth.</p>
+          <p>
+            <Link href="/results">Open the evaluation</Link> · <Link href="/owner/ai-usage">AI usage</Link>
+          </p>
+        </section>
+      </div>
       {ownerKeyRequired() && (
         <form method="post" action="/api/owner" className="signout">
           <input type="hidden" name="action" value="signout" />

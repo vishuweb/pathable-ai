@@ -81,3 +81,28 @@ They are labelled as being about other places and are not counted as this place'
 ## "Popular places" became "Places to start with"
 
 There is no visit data, so popularity was an unsupported claim.
+
+## Redesign
+
+Layered on the existing CSS rather than rewritten: `app/design.css`, `design-home.css` and `design-pages.css` load after `globals.css`, so working behaviour and print styles stay. New tokens, no new runtime dependency.
+
+Typeface: Atkinson Hyperlegible, from the Braille Institute, because it keeps similar letters distinct for low-vision readers. It is bundled at build time, so visitors make no request to a font service.
+
+Maps as data: `CampusOutline` draws the real boundary and directory points as SVG, so the home page and place headers show true data, load nothing from map servers, and invent no markers.
+
+On a phone the map loads only when asked for, which saves data and tile requests.
+
+Loading skeletons live in route groups for the two list pages only. A `loading.tsx` above a page that can return 404 makes it answer 200.
+
+## Reporting without AI
+
+If analysis fails, the reporter can continue and describe the barrier themselves. The report records `analysis: none` and needs at least one barrier from the person, so nothing is attributed to AI.
+
+## Demo is isolated by construction
+
+Sample data lives only in `lib/demo/fixtures.ts`, is imported only by `app/demo` and `components/demo`, uses fictional "Sample" places, and is never stored. A test enforces the import boundary. It runs the real aggregation in the browser, so the demo cannot drift from the real rules. Visitor choices in the demo are not saved to their real preferences.
+
+## Evaluation photos are labelled
+
+The 8 web photos reviewed for the AI evaluation are public reports, but they are not campus barriers. They stay listed, with a note saying so, and the home page's recent reports and community count exclude them.
+

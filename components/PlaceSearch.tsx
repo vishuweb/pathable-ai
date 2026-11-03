@@ -59,7 +59,7 @@ export function PlaceSearch({ label, onChoose }: Props) {
             value={query}
             maxLength={120}
             autoComplete="off"
-            placeholder="e.g. a station, street corner or building"
+            placeholder="e.g. a building, hostel or gate"
             aria-describedby={results ? resultsId : undefined}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {

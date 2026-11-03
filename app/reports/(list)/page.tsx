@@ -4,7 +4,8 @@ import { ReportList, type ReportListItem } from "@/components/ReportList";
 import { formatDateTime } from "@/lib/format";
 import { AREA_LABEL } from "@/lib/observations";
 import { placePath } from "@/lib/place";
-import { summarizeReport, verifiedNeeds } from "@/lib/report";
+import { CATEGORY_INFO } from "@/lib/categories";
+import { summarizeReport, verifiedCategories, verifiedNeeds } from "@/lib/report";
 import { STATUS_INFO, currentStatus } from "@/lib/report-status";
 import { publicReports } from "@/lib/moderation-store";
 
@@ -34,6 +35,9 @@ export default async function ReportsPage() {
       statusLabel: STATUS_INFO[status].label,
       summary: `${s.verified} ${s.verified === 1 ? "barrier" : "barriers"} confirmed by the reporter${s.missed ? `, including ${s.missed} they added` : ""}`,
       needs: verifiedNeeds(report),
+      categories: verifiedCategories(report).map((c) => CATEGORY_INFO[c].label),
+      fromEvaluation: report.source?.dataset === "web",
+      open: status !== "resolved" && status !== "closed",
       latitude: report.location?.latitude,
       longitude: report.location?.longitude,
     };

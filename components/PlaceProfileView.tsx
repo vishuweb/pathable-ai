@@ -122,6 +122,20 @@ function FeatureCard({
   onRespond: (feature: FeatureIntel, claim: Claim, kind: ResponseKind) => void;
 }) {
   const open = feature.barrierIds.map((id) => barriers.get(id)).filter((b): b is Barrier => Boolean(b));
+  // Nothing recorded and nothing reported: one line, so a page of gaps stays short and does not look broken.
+  if (feature.claims.length === 0 && open.length === 0 && feature.history.length === 0) {
+    return (
+      <li className="feature feature-unknown">
+        <div className="feature-head">
+          <strong>{feature.label}</strong>
+          <Chip value="unknown" />
+        </div>
+        <button type="button" className="button-link" onClick={() => onAdd(feature.id)}>
+          Add what you saw<span className="visually-hidden">: {feature.label}</span>
+        </button>
+      </li>
+    );
+  }
   return (
     <li className={`feature feature-${feature.current}`}>
       <div className="feature-head">
@@ -273,6 +287,15 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
 
   return (
     <div className="profile">
+      <nav aria-label="On this page" className="profile-jump">
+        <a href="#overview-title">Your overview</a>
+        <a href="#reports-title">Barriers{barriers.length ? ` (${barriers.length})` : ""}</a>
+        <a href="#known-title">Known</a>
+        <a href="#surveyed-title">Checked on site</a>
+        <a href="#unknown-title">Unknown ({summary.unknown})</a>
+        <a href="#community-title">Community</a>
+        <a href="#contribute">Contribute</a>
+      </nav>
       <section aria-labelledby="place-overview-title" className="profile-summary">
         <h2 id="place-overview-title">Place overview</h2>
         <dl className="summary-tiles">

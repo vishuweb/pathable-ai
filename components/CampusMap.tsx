@@ -40,7 +40,7 @@ export function CampusMap({ label, boundary, places }: Props) {
       }).addTo(map);
       const outline = L.polygon(
         boundary.map(([lon, lat]) => [lat, lon] as [number, number]),
-        { color: "#0b5cad", weight: 3, fillOpacity: 0.05 },
+        { color: "#0b5d5b", weight: 3, fillOpacity: 0.05 },
       ).addTo(map);
       map.fitBounds(outline.getBounds());
       remove = () => map.remove();
@@ -62,9 +62,9 @@ export function CampusMap({ label, boundary, places }: Props) {
       link.textContent = place.name;
       L.circleMarker([place.latitude, place.longitude], {
         radius: 7,
-        color: "#14171c",
+        color: "#16211f",
         weight: 2,
-        fillColor: "#0b5cad",
+        fillColor: "#0b5d5b",
         fillOpacity: 0.9,
       })
         .bindPopup(link)

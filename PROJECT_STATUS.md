@@ -16,6 +16,8 @@ Updated at each milestone. Plan: [PROJECT_MASTER_PLAN.md](PROJECT_MASTER_PLAN.md
 | 8 Performance and CI | Partly done, deployed | CI workflow, reports paging, campus names moved to config. Place pages still list all records on each view |
 | 9 Final acceptance | Done against mocks only | See docs/ACCEPTANCE.md |
 
+| Redesign | Done on branch `redesign`, not deployed | Design system, home, explorer, profile, guided report, reports, needs, owner workspace, demo |
+
 ## Blockers needing the owner
 
 1. **Meta credits.** Confirm the promotional balance, which models it covers, and that usage cannot reach personal billing. No live Meta call has been made.
@@ -25,7 +27,7 @@ Updated at each milestone. Plan: [PROJECT_MASTER_PLAN.md](PROJECT_MASTER_PLAN.md
 
 ## Latest verified results
 
-Branch `phase3-field-survey`. Lint clean, typecheck clean, 159 unit and API tests pass, 16 browser tests pass, production build compiles. All with mocked Meta and map services. CI passed on GitHub for commit `93af3d1` (lint, typecheck, unit and API tests, build; the browser tests run locally only).
+Branch `redesign`. Lint clean, typecheck clean, 163 unit and API tests pass, 19 browser tests pass, production build compiles. All with mocked Meta and map services. CI passed on GitHub for commit `93af3d1` (lint, typecheck, unit and API tests, build; the browser tests run locally only).
 
 ## Deployment
 

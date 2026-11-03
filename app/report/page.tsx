@@ -26,22 +26,9 @@ export default async function ReportBarrierPage({ searchParams }: { searchParams
   const initialLocation = placeFromQuery(await searchParams);
   return (
     <>
-      <section className="intro">
+      <section>
         <h1>Report a barrier</h1>
-        <ol className="flow-steps" aria-label="The three steps">
-          <li>
-            <strong>Add a photo</strong>
-            <span>of the barrier</span>
-          </li>
-          <li>
-            <strong>Check the AI&apos;s suggestions</strong>
-            <span>confirm, correct or reject each</span>
-          </li>
-          <li>
-            <strong>Share the report</strong>
-            <span>nothing is public until you do</span>
-          </li>
-        </ol>
+        <p className="intro">A few guided steps. AI suggests, you decide, and nothing is public until it has been checked.</p>
         {initialLocation?.place && (
           <p className="callout">
             Reporting at <Link href={placePath(initialLocation.place)}>{initialLocation.place.name}</Link>. You can change

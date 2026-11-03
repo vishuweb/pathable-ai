@@ -114,7 +114,9 @@ async function analyzePhoto(): Promise<Page> {
   page.on("dialog", (d) => void d.accept());
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
   await page.goto(`${BASE}/report`, { waitUntil: "networkidle0" });
-  const input = await page.$('input[type="file"]');
+  // Step 1 asks where it is, and can be skipped.
+  await (await page.waitForSelector('xpath/.//button[contains(., "Continue to the photo")]'))!.click();
+  const input = await page.waitForSelector('input[type="file"]');
   await input!.uploadFile(PHOTO);
   return page;
 }
@@ -123,8 +125,8 @@ async function axeViolations(page: Page): Promise<string[]> {
   await page.evaluate(AXE);
   return page.evaluate(async () => {
     const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-    const axe = (window as unknown as { axe: { run: (d: Document, o: unknown) => Promise<{ violations: { id: string }[] }> } }).axe;
-    return (await axe.run(document, { runOnly: { type: "tag", values: tags } })).violations.map((v) => v.id);
+    const axe = (window as unknown as { axe: { run: (d: Document, o: unknown) => Promise<{ violations: { id: string; nodes: { target: unknown }[] }[] }> } }).axe;
+    return (await axe.run(document, { runOnly: { type: "tag", values: tags } })).violations.map((v) => `${v.id} at ${v.nodes.map((n) => String(n.target)).join(", ")}`);
   });
 }
 
@@ -209,7 +211,7 @@ test("a photo becomes a reviewed, consented, saved report", { skip: !CHROME && "
   assert.equal(moderation, "pending", "a visitor's report waits for approval");
   await page.waitForSelector(".save-success");
   const message = await page.$eval(".save-success", (e) => e.textContent ?? "");
-  assert.match(message, /Report received\. It is not public yet/);
+  assert.match(message, /Report received.*It is not public yet/s);
   assert.equal(await page.$('.save-success a[href^="/reports/"]'), null, "no link to a page that would not open");
 
   savedReportPath = `/reports/${id}`;
@@ -310,8 +312,12 @@ test("campus places: search stays on campus, the map shows the boundary, and a p
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
 
   await page.goto(`${BASE}/places`, { waitUntil: "networkidle0" });
-  assert.match(await page.$eval("h1", (h) => h.textContent ?? ""), /IIT \(ISM\) Dhanbad/);
+  assert.match(await page.$eval("h1", (h) => h.textContent ?? ""), /Explore IIT \(ISM\) Dhanbad/);
+  // On a phone the map is one tap away, and loads only then.
+  assert.equal(await page.$(".campus-map"), null, "no map tiles are fetched until it is asked for");
+  await (await page.waitForSelector('xpath/.//div[contains(@class,"view-toggle")]//button[contains(., "Map")]'))!.click();
   await page.waitForSelector(".campus-map path.leaflet-interactive");
+  await (await page.waitForSelector('xpath/.//div[contains(@class,"view-toggle")]//button[contains(., "List")]'))!.click();
   const listed = await page.$$eval(".place-list li a", (a) => a.map((x) => x.textContent ?? ""));
   assert.ok(listed.length > 50, "the campus directory is listed");
   assert.equal(new Set(listed).size, listed.length, "no two entries have the same name");
@@ -337,7 +343,7 @@ test("campus places: search stays on campus, the map shows the boundary, and a p
   assert.equal(await page.$(".place-list"), null, "Madrid is never shown");
   assert.match(await search("central library"), /found within IIT \(ISM\) Dhanbad/);
   assert.equal(await page.$eval(".place-list li a", (a) => a.textContent), "Central Library");
-  assert.deepEqual(await axeViolations(page), [], "Explore places passes WCAG 2.2 AA checks");
+  assert.deepEqual(await axeViolations(page), [], "Explore campus passes WCAG 2.2 AA checks");
   await page.close();
 });
 
@@ -397,7 +403,7 @@ test("journey 1, mobility: step-free, ramp, lift, entrance and toilet informatio
   assert.match(overview, /Wheelchair access\s+Recorded in OpenStreetMap · Outdated\s+Recorded in OpenStreetMap · Outdated: Partly accessible/, "recorded, with its source and a stale warning");
   assert.match(overview, /Last seen more than two years ago\. It may have changed; it is shown as recorded\./, "and says plainly that it was kept, not dropped");
   for (const unknown of ["Steps at the entrance or way in", "Ramp", "Lift", "Wheelchair-accessible toilet", "Accessible parking or drop-off"]) {
-    assert.match(overview, new RegExp(`${unknown}\\s+Unknown\\s+Unknown\\. Nobody has recorded this yet\\.`), `${unknown} is unknown`);
+    assert.match(overview, new RegExp(`${unknown}\\s+Unknown\\s+Add what you saw`), `${unknown} is unknown`);
   }
   assert.match(overview, /1 of 11 details for your needs are recorded; 10 are unknown\./);
   assert.ok(!/Tactile paving|Hearing loop/.test(overview), "other needs do not crowd the overview");
@@ -645,14 +651,106 @@ test("discovery: filters use real records, and empty results do not read as good
   assert.deepEqual(await choose("checked"), [], "no survey has been published yet");
   assert.match(await page.$eval(".explorer .empty-state", (e) => e.textContent ?? ""), /not that there is nothing to find/);
 
-  // The home page's "Improve campus access" goes straight to the gaps.
+  // "Fill a gap" on the home page goes straight to the gaps.
   await page.goto(BASE, { waitUntil: "networkidle0" });
-  assert.ok(await page.waitForSelector('.action-grid a[href="/places?show=gaps"]'));
+  assert.ok(await page.waitForSelector('.info-card a[href="/places?show=gaps"]'));
   assert.ok(!(await page.$eval("main", (m) => m.textContent ?? "")).includes("Popular places"), "no claim of popularity without data");
 
   const missing = await page.goto(`${BASE}/no-such-page`, { waitUntil: "domcontentloaded" });
   assert.equal(missing?.status(), 404);
   assert.match(await page.$eval("h1", (h) => h.textContent ?? ""), /could not find that page/);
+  await page.close();
+});
+
+test("report without AI: if the AI fails, a person can still report, and nothing claims to come from AI", { skip: !CHROME && "Chrome not found" }, async () => {
+  mock.replies.chat = { kind: "status", status: 500 };
+  const page = await analyzePhoto();
+  await page.waitForSelector('.error[role="alert"]');
+  await (await page.waitForSelector('xpath/.//button[contains(., "Continue without AI")]'))!.click();
+  await page.waitForSelector(".save-panel");
+  assert.match(await page.$eval("main", (m) => m.textContent ?? ""), /nothing here came from AI/);
+  await page.click(".consent input");
+  const share = await page.waitForSelector(".save-actions .button-primary");
+  assert.equal(await share!.evaluate((b) => (b as HTMLButtonElement).disabled), true, "needs a barrier described by the person");
+  await page.close();
+});
+
+test("demo: real interactions on sample data, clearly labelled, and nothing reaches the server or real records", { skip: !CHROME && "Chrome not found" }, async () => {
+  const page = await browser!.newPage();
+  page.setDefaultTimeout(60_000);
+  page.setDefaultNavigationTimeout(180_000);
+  await page.setViewport({ width: 360, height: 760, isMobile: true, hasTouch: true });
+  const writes: string[] = [];
+  page.on("request", (r) => {
+    if (r.method() !== "GET" && r.url().includes("/api/")) writes.push(r.url());
+  });
+  await page.goto(`${BASE}/demo`, { waitUntil: "networkidle0" });
+  assert.equal((await page.$$('a[href^="/demo/"]')).length, 4, "four scenarios");
+  assert.deepEqual(await axeViolations(page), [], "the demo list passes WCAG 2.2 AA checks");
+  const NOTICE = "Illustrative demo — not verified campus data.";
+  for (const id of ["mobility", "visual", "hearing", "wayfinding"]) {
+    await page.goto(`${BASE}/demo/${id}`, { waitUntil: "networkidle0" });
+    assert.ok((await page.$eval(".demo-banner", (e) => e.textContent ?? "")).includes(NOTICE), `${id} is labelled`);
+    assert.ok(await page.$('.demo-banner a[href="/places"]'), "with a way out");
+  }
+
+  await page.goto(`${BASE}/demo/mobility`, { waitUntil: "networkidle0" });
+  const press = async (text: string) => (await page.waitForSelector(`xpath/.//button[contains(., "${text}")]`))!.click();
+  await page.type('input[type="search"]', "Sample Library");
+  await press("Sample Library");
+  await page.waitForSelector("#demo-profile");
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "no sideways scrolling at 360px");
+  assert.deepEqual(await axeViolations(page), [], "the demo profile passes WCAG 2.2 AA checks");
+  await press("See the sample evidence");
+  await page.waitForSelector("#demo-ai");
+  const buttons = await page.$$('xpath/.//div[contains(@class,"flow-actions")]//button[contains(., "Confirm")]');
+  await buttons[0].click();
+  const rejects = await page.$$('xpath/.//div[contains(@class,"flow-actions")]//button[contains(., "Reject")]');
+  await rejects[1].click();
+  await page.waitForFunction(() => /Confirmed by reporter/.test(document.querySelector(".demo-candidates")?.textContent ?? ""));
+  await press("See what happens next");
+  await page.waitForSelector("#demo-verify");
+  assert.match(await page.$eval("#demo-verify ~ .empty-state", (e) => e.textContent ?? ""), /has not been shown to have no barriers/, "not on the place until approved");
+  await press("Approve this sample");
+  await page.waitForFunction(() => /Confirmed by reporter/.test(document.querySelector(".demo-features")?.textContent ?? ""));
+  await press("Record a sample check");
+  await page.waitForFunction(() => /Independently verified/.test(document.querySelector(".demo-features")?.textContent ?? ""));
+  await press("Add what you saw");
+  await page.waitForSelector("#demo-contribute");
+  await press("Add to this demo");
+  await page.waitForFunction(() => /Added to this demo only/.test(document.querySelector("#demo-contribute")?.parentElement?.textContent ?? ""));
+  assert.deepEqual(writes, [], "nothing was sent");
+
+  // Nothing from the demo is in real data.
+  const reports = await (await fetch(`${BASE}/reports`)).text();
+  const places = await (await fetch(`${BASE}/places`)).text();
+  assert.ok(!reports.includes("Sample Library") && !places.includes("Sample Library"));
+  assert.equal((await fetch(`${BASE}/demo/nothing`)).status, 404);
+  await page.close();
+});
+
+test("responsive: the main pages fit from 360px to a large screen, with no accessibility violations", { skip: !CHROME && "Chrome not found" }, async () => {
+  const page = await browser!.newPage();
+  page.setDefaultNavigationTimeout(180_000);
+  await page.setRequestInterception(true);
+  page.on("request", (r) => void (r.url().includes("tile.openstreetmap.org") ? r.abort() : r.continue()));
+  mock.replies.placeLookup = { kind: "json", body: [library] };
+  for (const width of [360, 390, 768, 1440]) {
+    await page.setViewport({ width, height: 900 });
+    for (const path of ["/", "/places", LIBRARY_PATH, "/reports", "/needs", "/report", "/privacy"]) {
+      await page.goto(BASE + path, { waitUntil: "networkidle0" });
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${path} fits at ${width}px`);
+      if (width === 360 || width === 1440) assert.deepEqual(await axeViolations(page), [], `${path} at ${width}px`);
+    }
+  }
+  // The phone menu is a real dialog: it opens, moves focus and closes with Escape.
+  await page.setViewport({ width: 360, height: 760 });
+  await page.goto(BASE, { waitUntil: "networkidle0" });
+  await (await page.waitForSelector('xpath/.//button[contains(., "Open the menu")]'))!.click();
+  await page.waitForSelector("dialog[open] .drawer-nav a");
+  assert.equal(await page.$$eval("dialog[open] .drawer-nav a", (a) => a.length), 6);
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !document.querySelector("dialog[open]"));
   await page.close();
 });
 
@@ -794,7 +892,7 @@ test("an invited reviewer can work through the queue, and nothing more", { skip:
   await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('button[type="submit"]')]);
   assert.equal(new URL(page.url()).pathname, "/review", "reviewers land on the queue");
   const links = await page.$$eval('nav[aria-label="Reviewer workspace"] a', (a) => a.map((x) => x.textContent));
-  assert.deepEqual(links, ["Review queue", "Surveys", "Results"]);
+  assert.deepEqual(links, ["Review queue", "Surveys", "AI evaluation"]);
 
   await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click('a[href^="/review/"]')]);
   await page.waitForSelector(".save-panel");
@@ -834,7 +932,7 @@ test("visitors see the public site; the owner gets the workspace and moderation"
   const nav = await visitor.$$eval('nav[aria-label="Main"] a', (links) => links.map((a) => a.textContent));
   assert.deepEqual(
     nav,
-    ["Check a place", "Community reports", "My needs", "Report a barrier"],
+    ["Explore campus", "Community reports", "My needs", "See a demo", "Report a barrier"],
     "no owner tools in the public navigation",
   );
   assert.ok(await visitor.$('.action-grid a[href="/report"]'), "the home page leads to reporting");
@@ -853,14 +951,16 @@ test("visitors see the public site; the owner gets the workspace and moderation"
   const owner = await ownerPage();
   assert.equal(new URL(owner.url()).pathname, "/owner");
   const workspace = await owner.$$eval('nav[aria-label="Owner workspace"] a', (links) => links.map((a) => a.textContent));
-  assert.deepEqual(workspace, ["Workspace", "Batch analyze", "Review queue", "Approvals", "Surveys", "Coverage", "Results"]);
+  assert.deepEqual(workspace, ["Overview", "Reports", "Approvals", "Review queue", "Surveys", "Coverage", "Batch analyze", "AI evaluation", "AI usage", "Settings and privacy"]);
 
   await owner.goto(BASE + savedReportPath, { waitUntil: "networkidle0" });
   await owner.select(".status-form select", "under_review");
   await owner.click(".status-form button[type=submit]");
   await owner.waitForFunction(() => /Under review/.test(document.querySelector("#status-heading")?.textContent ?? ""));
   const deleteButton = await owner.waitForSelector('xpath/.//button[contains(., "Delete report")]');
-  await Promise.all([owner.waitForNavigation({ waitUntil: "networkidle0" }), deleteButton!.click()]);
+  await deleteButton!.click();
+  const confirm = await owner.waitForSelector('xpath/.//dialog[@open]//button[contains(., "Delete for good")]');
+  await Promise.all([owner.waitForNavigation({ waitUntil: "networkidle0" }), confirm!.click()]);
   assert.equal((await fetch(BASE + "/api" + savedReportPath)).status, 404, "the report is gone");
   await owner.close();
 });

@@ -41,10 +41,13 @@ interface Props {
   onSaved?: (reportId: string) => void;
   /** Rendered in place of the save button once the report is saved. */
   renderSaved: (reportId: string, pending: boolean) => React.ReactNode;
-  /** Prefix section headings with step numbers (the single-photo page has a step 1 above). */
-  numbered?: boolean;
   /** A place chosen before the photo, e.g. from a place page's "Report a barrier here". */
   initialLocation?: ReportLocation;
+  initialArea?: PlaceArea | "";
+  /** The AI could not run: the reporter describes the barrier themselves, and at least one is needed. */
+  manual?: boolean;
+  /** How far through the review this is, for a progress indicator. */
+  onProgress?: (progress: { reviewed: number; total: number; consent: boolean; saved: boolean }) => void;
 }
 
 const EMPTY_LOCATION: ReportLocation = { label: "" };
@@ -65,8 +68,10 @@ export function ReviewSession({
   onDirtyChange,
   onSaved,
   renderSaved,
-  numbered = true,
   initialLocation = EMPTY_LOCATION,
+  initialArea = "",
+  manual = false,
+  onProgress,
 }: Props) {
   const [selectedId, setSelectedId] = useState<string>();
   const [showOverlay, setShowOverlay] = useState(true);
@@ -74,7 +79,7 @@ export function ReviewSession({
   const [missedIssues, setMissedIssues] = useState<MissedIssue[]>([]);
   const [location, setLocation] = useState<ReportLocation>(initialLocation);
   const [reviewerNote, setReviewerNote] = useState("");
-  const [area, setArea] = useState<PlaceArea | "">("");
+  const [area, setArea] = useState<PlaceArea | "">(initialArea);
   const [observedOn, setObservedOn] = useState("");
   const [consent, setConsent] = useState(false);
   const [save, setSave] = useState<SaveState>({ state: "idle" });
@@ -91,7 +96,7 @@ export function ReviewSession({
     !saved &&
     (Object.values(reviews).some((r) => r.decision || r.note) ||
       missedIssues.length > 0 ||
-      Boolean(location !== initialLocation || reviewerNote || area || observedOn));
+      Boolean(location !== initialLocation || reviewerNote || area !== initialArea || observedOn));
 
   useEffect(() => {
     onDirtyChange?.(dirty);
@@ -110,7 +115,11 @@ export function ReviewSession({
 
   const reviewedCount = findings.filter((f) => isReviewComplete(reviews[f.id], f.category)).length;
   const allReviewed = reviewedCount === findings.length;
-  const canSave = ready && allReviewed && consent && save.state !== "saving" && !saved;
+  const canSave = ready && allReviewed && consent && save.state !== "saving" && !saved && (!manual || missedIssues.length > 0);
+
+  useEffect(() => {
+    onProgress?.({ reviewed: reviewedCount, total: findings.length, consent, saved });
+  }, [onProgress, reviewedCount, findings.length, consent, saved]);
 
   const saveReport = async () => {
     if (!analysis || !models || !canSave) return;
@@ -177,13 +186,15 @@ export function ReviewSession({
         {analysis && (
           <>
             <div className="scene-summary">
-              <h2>{numbered && "2. "}Review potential issues</h2>
+              <h2>{manual ? "Describe the barrier yourself" : "Review the AI's suggestions"}</h2>
               <p>{analysis.scene_summary}</p>
               {analysis.image_quality !== "good" && analysis.image_quality_notes && (
                 <p className="muted">Image quality: {analysis.image_quality_notes}</p>
               )}
             </div>
-            {findings.length ? (
+            {manual ? (
+              <p className="callout">AI suggestions are not available right now, so nothing here came from AI. Add the barrier you can see in the photo below.</p>
+            ) : findings.length ? (
               <ol className="finding-list">
                 {findings.map((finding, index) => (
                   <li key={finding.id}>
@@ -217,7 +228,7 @@ export function ReviewSession({
 
             {ready && (
               <section className="save-panel" aria-labelledby="save-heading">
-                <h2 id="save-heading">{numbered && "3. "}Add details and save</h2>
+                <h2 id="save-heading">Add details and share</h2>
                 <fieldset className="plain-fieldset" disabled={saved}>
                   <legend className="visually-hidden">Report details</legend>
                   <MissedIssuesEditor issues={missedIssues} onChange={setMissedIssues} />
@@ -291,7 +302,9 @@ export function ReviewSession({
                       </label>
                     </div>
                     <p className="muted" id="save-hint">
-                      {findings.length === 0
+                      {manual && missedIssues.length === 0
+                        ? "Add the barrier you can see, then share."
+                        : findings.length === 0
                         ? "No AI findings to review. Add any barriers the AI missed, then share."
                         : allReviewed
                           ? findings.length === 1
@@ -319,10 +332,12 @@ export function ReviewSession({
               </section>
             )}
 
-            <p className="disclaimer">
-              These are AI-generated candidates for human review. They are not an accessibility compliance
-              assessment.
-            </p>
+            {!manual && (
+              <p className="disclaimer">
+                These are AI-generated candidates for human review. They are not an accessibility compliance
+                assessment.
+              </p>
+            )}
           </>
         )}
       </div>

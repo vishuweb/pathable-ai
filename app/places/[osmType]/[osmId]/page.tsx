@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PlaceProfileView } from "@/components/PlaceProfileView";
+import { CampusOutline } from "@/components/ui/CampusOutline";
+import { PLACE_CATEGORY_LABEL } from "@/lib/place-categories";
 import { directoryRetrieved, findInDirectory } from "@/lib/campus-directory";
 import { isOwner } from "@/lib/owner";
 import { OSM_TYPES, osmUrl, type OsmType } from "@/lib/place";
@@ -88,20 +90,34 @@ export default async function PlacePage({ params }: Params) {
       <p className="back-link">
         <Link href="/places">← Explore places</Link>
       </p>
-      <header className="page-heading">
+      <header className="place-header">
         <div>
-          <p className="eyebrow">{place.kind}</p>
+          <p className="eyebrow">{saved ? PLACE_CATEGORY_LABEL[saved.category] : place.kind}</p>
           <h1 id="place-title">{place.name}</h1>
           <p className="muted">
-            {region.name} ·{" "}
+            {region.name}
+            {intelligence.summary.lastUpdatedAt ? ` · Last updated ${intelligence.summary.lastUpdatedAt.slice(0, 10)}` : place.lastEdited ? ` · OpenStreetMap record edited ${place.lastEdited.slice(0, 10)}` : ""} ·{" "}
             <a href={osmUrl(place)} target="_blank" rel="noreferrer">
               OpenStreetMap record (opens in a new tab)
             </a>
           </p>
+          <p className="muted">
+            {intelligence.summary.withRecord} of {intelligence.summary.features} accessibility details recorded
+            {intelligence.summary.openBarriers ? ` · ${intelligence.summary.openBarriers} open barrier ${intelligence.summary.openBarriers === 1 ? "report" : "reports"}` : ""}
+          </p>
+          <div className="place-header-actions">
+            <Link className="button-primary" href={reportHere}>
+              Report a barrier here
+            </Link>
+            <a className="button-secondary" href="#contribute">
+              Add what you saw
+            </a>
+          </div>
         </div>
-        <Link className="button-primary" href={reportHere}>
-          Report a barrier here
-        </Link>
+        <figure>
+          <CampusOutline region={region} highlight={place} label={`Where ${place.name} is on the ${region.name} campus`} />
+          <figcaption>Position on campus</figcaption>
+        </figure>
       </header>
 
       <PlaceProfileView

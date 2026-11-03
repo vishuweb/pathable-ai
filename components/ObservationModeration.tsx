@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ApiError } from "@/lib/types";
+import { ConfirmDialog } from "./ui/Dialog";
 
 /** Owner only: mark one observation independently verified, with how it was checked, or delete it. */
 export function ObservationModeration({ id, verified }: { id: string; verified: boolean }) {
@@ -10,6 +11,7 @@ export function ObservationModeration({ id, verified }: { id: string; verified: 
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState(false);
 
   const call = async (init: RequestInit) => {
     setBusy(true);
@@ -47,11 +49,23 @@ export function ObservationModeration({ id, verified }: { id: string; verified: 
           type="button"
           className="button-secondary button-danger"
           disabled={busy}
-          onClick={() => window.confirm("Delete this observation and its photo?") && void call({ method: "DELETE" })}
+          onClick={() => setAsking(true)}
         >
           Delete observation
         </button>
       </p>
+      <ConfirmDialog
+        open={asking}
+        title="Delete this observation?"
+        body="The observation and any photo will be removed for good. This cannot be undone."
+        confirmLabel="Delete for good"
+        danger
+        onConfirm={() => {
+          setAsking(false);
+          void call({ method: "DELETE" });
+        }}
+        onCancel={() => setAsking(false)}
+      />
       <p className="field-error" role="status">
         {message}
       </p>

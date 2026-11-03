@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ApiError } from "@/lib/types";
+import { useToast } from "./ui/Toast";
 
 export interface PendingItem {
   kind: "report" | "observation";
@@ -23,6 +24,7 @@ export function ModerationQueue({ items }: { items: PendingItem[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const toast = useToast();
   // Approval needs the owner to say they looked, item by item.
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [reason, setReason] = useState<Record<string, string>>({});
@@ -38,6 +40,7 @@ export function ModerationQueue({ items }: { items: PendingItem[] }) {
     }).catch(() => undefined);
     setBusy("");
     if (res?.ok) {
+      toast(moderation === "approved" ? "Approved. It is now public." : "Rejected. It stays hidden.");
       setMessage(moderation === "approved" ? "Approved. It is now public." : "Rejected. It stays hidden; delete it from its own page if you want it gone.");
       return router.refresh();
     }

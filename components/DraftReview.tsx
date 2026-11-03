@@ -73,7 +73,7 @@ export function DraftReview({ draft, position, total, nextId }: Props) {
         timings={draft.timings}
         source={draft.source}
         draftId={draft.id}
-        numbered={false}
+       
         onSaved={() => router.push(next)}
         renderSaved={() => <p>Saved. Loading the next photo…</p>}
       />

@@ -184,16 +184,22 @@ export function summarizeReport(report: Pick<SavedReport, "analysis" | "reviews"
  * The kinds of need affected by barriers a person confirmed, corrected or added in this report.
  * AI suggestions that were rejected, or never reviewed, do not count.
  */
-export function verifiedNeeds(report: Pick<SavedReport, "analysis" | "reviews" | "missedIssues">): NeedGroup[] {
-  const categories = [
-    ...report.analysis.findings.flatMap((f) => {
-      const review = report.reviews[f.id];
-      if (review?.decision === "confirmed") return [f.category];
-      if (review?.decision === "corrected") return [review.correctedCategory ?? f.category];
-      return [];
-    }),
-    ...report.missedIssues.map((m) => m.category),
+/** The categories of barriers a person confirmed, corrected or added. */
+export function verifiedCategories(report: Pick<SavedReport, "analysis" | "reviews" | "missedIssues">): IssueCategory[] {
+  return [
+    ...new Set([
+      ...report.analysis.findings.flatMap((f) => {
+        const review = report.reviews[f.id];
+        if (review?.decision === "confirmed") return [f.category];
+        if (review?.decision === "corrected") return [review.correctedCategory ?? f.category];
+        return [];
+      }),
+      ...report.missedIssues.map((m) => m.category),
+    ]),
   ];
-  const needs = new Set(categories.flatMap((c) => CATEGORY_INFO[c].needs));
+}
+
+export function verifiedNeeds(report: Pick<SavedReport, "analysis" | "reviews" | "missedIssues">): NeedGroup[] {
+  const needs = new Set(verifiedCategories(report).flatMap((c) => CATEGORY_INFO[c].needs));
   return NEED_GROUPS.filter((g) => needs.has(g));
 }

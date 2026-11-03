@@ -11,14 +11,17 @@ What has been shown to work, how, and what has not. Every journey below runs in 
 | Contributor | contributor; journey 4 | Exact position kept apart from the place's, pending until approved, then on the correct profile |
 | Disagreement and verification | journey 5 | Both views shown; verification refused without a reason; an update settles it and keeps the history |
 | Owner and reviewer | field survey A to F; invited reviewer | Survey on a phone-sized screen, save and resume, one spot only, reviewer approval and check, public page, coverage |
+| Reporting when AI is down | report without AI | Clear error, retry, and a way to continue that attributes nothing to AI |
+| Demo | demo | Four labelled scenarios, real interactions, nothing sent, nothing in real lists |
+| Responsive | responsive | Home, explorer, profile, reports, needs, report and privacy fit at 360, 390, 768 and 1440 px, with accessibility checks at 360 and 1440 |
 | Discovery | discovery; campus places | Campus-only search, filters on real records, empty results that do not read as good news |
 
-Automated WCAG 2.2 AA checks (axe-core) run on the home page, Explore places, a place profile including one with a conflict and one with surveys, the wayfinding view, a report, the surveys page, the survey form and the coverage page. Automated checks find only some accessibility problems. **No screen-reader user or disabled person has tested this product**, and that is the most important check still missing.
+Automated WCAG 2.2 AA checks (axe-core) run on the home page, Explore places, a place profile including one with a conflict and one with surveys, the wayfinding view, a report, the demo, My needs, reports, the report flow, privacy, the surveys page, the survey form and the coverage page. Automated checks find only some accessibility problems. **No screen-reader user or disabled person has tested this product**, and that is the most important check still missing.
 
 ## Not shown
 
 - The real Muse Spark, SAM 3.1 and Muse Voice models through this code path since these changes. See [CREDIT_USAGE_LOG.md](../CREDIT_USAGE_LOG.md).
-- Anything on the live site. `main` is at Phase 1.1 and the rest is on a development branch.
+- The redesign on the live site. It is on a development branch. Earlier phases were checked on the live site after deployment, signed out only.
 - Real campus data. No place has been surveyed. The directory comes from OpenStreetMap and holds what volunteers recorded.
 - Routing. It is deliberately not built, because no route-segment data exists.
 - Model accuracy. The evaluation page reports what has been reviewed and states its limits. Nothing here should be quoted as certified accuracy.
