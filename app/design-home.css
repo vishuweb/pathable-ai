@@ -211,7 +211,7 @@ main:has(> .landing) {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  min-height: 32px;
+  min-height: 44px;
   font-weight: 700;
 }
 
@@ -350,8 +350,18 @@ main:has(> .landing) {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  min-height: 32px;
+  min-height: 44px;
   font-weight: 700;
+}
+
+.info-card,
+.category-tile {
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.info-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
 }
 
 .landing .steps {

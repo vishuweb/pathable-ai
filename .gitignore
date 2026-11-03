@@ -10,3 +10,7 @@ data/
 .env*
 !.env.example
 .next-e2e/
+
+# Playwright UI review
+/ui-review/output/
+/.next-ui/

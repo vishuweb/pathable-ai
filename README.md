@@ -40,6 +40,7 @@ Command-line checks:
 
 ```bash
 npm test                                                       # 163 tests; the Meta API is mocked, so they cost nothing
+npm run ui:review                                              # every page at 5 widths: screenshots, accessibility, tap targets, no Meta calls
 npm run lint && npm run typecheck                              # ESLint (Next.js rules) and TypeScript
 npm run e2e                                                    # browser test of the whole flow against the mocked API (needs Chrome)
 npm run smoke:spark -- path/to/photo.jpg                       # Muse Spark alone

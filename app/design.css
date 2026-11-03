@@ -638,9 +638,9 @@ main {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    /* None at all: a very short transition on every property still delays state changes. */
+    animation: none !important;
+    transition: none !important;
     scroll-behavior: auto !important;
   }
 }

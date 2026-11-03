@@ -5,7 +5,7 @@ import { SurveyImport } from "@/components/SurveyImport";
 import { SurveyPriorityControl } from "@/components/SurveyPriorityControl";
 import { WorkspaceNav } from "@/components/WorkspaceNav";
 import { directory } from "@/lib/campus-directory";
-import { computeCoverage } from "@/lib/coverage";
+import { computeCoverage, type QueueEntry } from "@/lib/coverage";
 import { NEED_GROUPS, NEED_GROUP_INFO } from "@/lib/needs";
 import { isOwner } from "@/lib/owner";
 import { PLACE_CATEGORY_LABEL } from "@/lib/place-categories";
@@ -32,6 +32,23 @@ export default async function CoveragePage() {
   const places = directory(region).map((p) => ({ osmType: p.osmType, osmId: p.osmId, name: p.name, category: p.category }));
   const [allSurveys, spots, allObservations, allReports, priorities] = await Promise.all([surveys.list(), sublocations.list(), observations.list(), reports.list(), surveyPriorities.list()]);
   const c = computeCoverage({ places, surveys: allSurveys, sublocations: spots, observations: allObservations, reports: allReports, priorities });
+  const queueRow = (q: QueueEntry) => (
+    <li key={`${q.place.osmType}/${q.place.osmId}`}>
+      <div>
+        <Link href={placePath(q.place)}>{q.place.name}</Link> <span className="muted">· {PLACE_CATEGORY_LABEL[q.place.category]}</span>
+        <p className="muted">
+          {q.level === "hold" ? `On hold${q.note ? `: ${q.note}` : ""}. ` : ""}
+          {q.reasons.join(". ")}.{q.draftSurveys ? ` ${q.draftSurveys} unfinished ${q.draftSurveys === 1 ? "survey" : "surveys"}.` : ""}
+        </p>
+      </div>
+      <div className="survey-queue-actions">
+        <SurveyPriorityControl place={q.place} label={q.place.name} level={q.level} />
+        <Link className="button-secondary" href={`/owner/survey?place=${q.place.osmType}/${q.place.osmId}`}>
+          Survey<span className="visually-hidden"> {q.place.name}</span>
+        </Link>
+      </div>
+    </li>
+  );
 
   return (
     <section aria-labelledby="coverage-title">
@@ -74,25 +91,15 @@ export default async function CoveragePage() {
         <p className="muted">
           Suggested order, with the reasons shown. It uses your own priorities, the kind of place, open barrier reports and whether a survey exists. It does not use how often a place is visited, because no such data exists yet. Being low on this list does not mean a place is fine.
         </p>
-        <ol className="survey-queue">
-          {c.queue.slice(0, 30).map((q) => (
-            <li key={`${q.place.osmType}/${q.place.osmId}`}>
-              <div>
-                <Link href={placePath(q.place)}>{q.place.name}</Link> <span className="muted">· {PLACE_CATEGORY_LABEL[q.place.category]}</span>
-                <p className="muted">
-                  {q.level === "hold" ? `On hold${q.note ? `: ${q.note}` : ""}. ` : ""}
-                  {q.reasons.join(". ")}.{q.draftSurveys ? ` ${q.draftSurveys} unfinished ${q.draftSurveys === 1 ? "survey" : "surveys"}.` : ""}
-                </p>
-              </div>
-              <div className="survey-queue-actions">
-                <SurveyPriorityControl place={q.place} label={q.place.name} level={q.level} />
-                <Link className="button-secondary" href={`/owner/survey?place=${q.place.osmType}/${q.place.osmId}`}>
-                  Survey<span className="visually-hidden"> {q.place.name}</span>
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <ol className="survey-queue">{c.queue.slice(0, 10).map(queueRow)}</ol>
+        {c.queue.length > 10 && (
+          <details className="more-unknown">
+            <summary>The rest of the queue ({c.queue.length - 10})</summary>
+            <ol className="survey-queue" start={11}>
+              {c.queue.slice(10).map(queueRow)}
+            </ol>
+          </details>
+        )}
         <details className="more-unknown">
           <summary>Every place with no published survey ({c.unsurveyed.length})</summary>
           <ul className="survey-list">

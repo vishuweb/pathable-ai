@@ -1170,3 +1170,170 @@ html:has(.demo-banner) {
   max-height: none;
   overflow: visible;
 }
+
+/* ------------------------------------------------------------- target sizes (WCAG 2.5.8)
+   Every interactive element is at least 24px, and primary touch targets are 44px.
+   Standalone links (a link that is the only content of its block) are actions, not
+   prose, so they get a full-height hit area. Links inside a sentence keep prose flow. */
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  flex: none;
+  accent-color: var(--accent);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+main select,
+main input[type="text"],
+main input[type="search"],
+main input[type="email"],
+main input[type="file"] {
+  min-height: 44px;
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+main p > a:only-child,
+main li > a:only-child,
+main div > a:only-child,
+main td > a:only-child,
+main dd > a:only-child,
+main summary > a:only-child {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-block: 0.35rem;
+}
+
+/* The skip link must paint above the sticky header when it receives focus. */
+.skip-link:focus {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 3000;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+}
+
+/* ------------------------------------------------------------- found by the UI review */
+
+/* The footer sits at the bottom of the window on short pages. */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+main {
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+/* Targets at least 24px (WCAG 2.5.8); controls usually 44px. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.survey-priority select {
+  min-height: 44px;
+  max-width: 100%;
+  padding-inline: 0.5rem;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--surface);
+  font: inherit;
+}
+
+.back-link a,
+.survey-list a,
+.overview-facts a,
+main li > a:only-child {
+  display: inline-block;
+  min-height: 24px;
+  padding-block: 2px;
+}
+
+.source-details,
+.contribute-form {
+  margin-block: 0.5rem;
+}
+
+.source-details > summary {
+  min-height: 32px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.contribute-form > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border: 1.5px solid var(--accent);
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.contribute-form[open] > summary {
+  margin-bottom: 1rem;
+  background: var(--surface);
+  color: var(--accent-hover);
+}
+
+.more-unknown > summary,
+.known-group > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.more-unknown > summary::before,
+.known-group > summary::before {
+  content: "▸";
+  margin-right: 0.45rem;
+  color: var(--accent);
+}
+
+.more-unknown[open] > summary::before,
+.known-group[open] > summary::before {
+  content: "▾";
+}
+
+.unknown-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+main p > a:only-child,
+main dd > a:only-child {
+  display: inline-block;
+  min-height: 24px;
+  padding-block: 2px;
+}
+
+.skip-link:focus {
+  z-index: 3000;
+}

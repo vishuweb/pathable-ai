@@ -26,11 +26,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={font.variable}>
       <body>
-        <a className="skip-link" href="#main">
-          Skip to main content
-        </a>
         <ToastProvider>
           <header className="site-header">
+            <a className="skip-link" href="#main">
+              Skip to main content
+            </a>
             <div className="site-header-inner">
               <Link href="/" className="brand">
                 <span className="brand-mark" aria-hidden="true">

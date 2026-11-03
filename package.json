@@ -11,7 +11,8 @@
     "test": "node --experimental-strip-types --no-warnings --import ./tests/register.mjs --test tests/*.test.ts",
     "e2e": "node --experimental-strip-types --no-warnings --import ./tests/register.mjs --test --test-concurrency=1 e2e/*.e2e.ts",
     "smoke:spark": "node --env-file=.env.local scripts/smoke-spark.mjs",
-    "smoke:sam": "node --env-file=.env.local scripts/smoke-sam.mjs"
+    "smoke:sam": "node --env-file=.env.local scripts/smoke-sam.mjs",
+    "ui:review": "playwright test"
   },
   "dependencies": {
     "@meta-sam/parser": "^0.1.0",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.3.7",
+    "@playwright/test": "1.64.1",
     "@types/leaflet": "1.9.20",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",

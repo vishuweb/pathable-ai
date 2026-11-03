@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NEED_GROUPS, NEED_GROUP_INFO, type NeedGroup } from "@/lib/needs";
 import { RESPONSE_LABEL, type ResponseKind } from "@/lib/observations";
 import { formatDistance, type PlaceRef } from "@/lib/place";
@@ -249,6 +249,18 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
   const { features, barriers, resolved, contributions, surveys, summary } = intelligence;
   const [featureId, setFeatureId] = useState(features[0]?.id ?? "");
   const [response, setResponse] = useState<Response>();
+  // The form is long, so it stays folded until someone asks for it.
+  const [formOpen, setFormOpen] = useState(false);
+
+  // The "Add what you saw" link in the page header arrives as #contribute.
+  useEffect(() => {
+    const check = () => {
+      if (window.location.hash === "#contribute") setFormOpen(true);
+    };
+    check();
+    window.addEventListener("hashchange", check);
+    return () => window.removeEventListener("hashchange", check);
+  }, []);
   const chosen = preferences.needs;
   const { mine, rest } = orderFeatures(features, chosen);
   const unknownMine = mine.filter((f) => f.current === "unknown");
@@ -262,6 +274,7 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
   const orderedBarriers = orderBarriers(barriers, chosen);
 
   const jumpToForm = () => {
+    setFormOpen(true);
     document.getElementById("contribute")?.scrollIntoView({ behavior: "smooth" });
     document.getElementById("contribute-heading")?.focus();
   };
@@ -385,9 +398,6 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
             )}
           </>
         )}
-        <p className="muted">
-          This is information to plan with, not a rating. A place is never called accessible because some details are recorded.
-        </p>
       </section>
 
       <section aria-labelledby="reports-title" className="profile-section">
@@ -436,7 +446,10 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
 
       <section aria-labelledby="known-title" className="profile-section">
         <h2 id="known-title">What is known</h2>
-        <p className="source-note">{sourceNote}</p>
+        <details className="source-details">
+          <summary>Where this information comes from</summary>
+          <p className="source-note">{sourceNote}</p>
+        </details>
         {known.length === 0 ? (
           <p className="empty-state">Nothing has been recorded about this place yet. You can be the first to add something.</p>
         ) : (
@@ -527,7 +540,7 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
           <p>Every detail for your chosen needs has at least one record. Check the source and date above before relying on it.</p>
         )}
         {unknownOthers.length > 0 && (
-          <details className="more-unknown" open={chosen.length === 0}>
+          <details className="more-unknown">
             <summary>
               {chosen.length ? "Other details nobody has recorded" : "Details nobody has recorded"} ({unknownOthers.length})
             </summary>
@@ -594,6 +607,8 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
           Help improve this place
         </h2>
         {canContribute ? (
+          <details className="contribute-form" open={formOpen} onToggle={(e) => setFormOpen(e.currentTarget.open)}>
+            <summary>Add what you saw</summary>
           <ObservationForm
             place={{ osmType: place.osmType, osmId: place.osmId, name: place.name }}
             latitude={place.latitude}
@@ -605,6 +620,7 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
             response={response}
             onClearResponse={() => setResponse(undefined)}
           />
+          </details>
         ) : (
           <p className="muted">
             Observations can only be added to places in the campus directory. You can still{" "}

@@ -407,7 +407,7 @@ test("journey 1, mobility: step-free, ramp, lift, entrance and toilet informatio
   }
   assert.match(overview, /1 of 11 details for your needs are recorded; 10 are unknown\./);
   assert.ok(!/Tactile paving|Hearing loop/.test(overview), "other needs do not crowd the overview");
-  assert.match(text, /A place is never called accessible because some details are\s+recorded\./);
+  assert.match(text, /never called accessible because some details are\s+recorded/);
   const unknown = section(text, "What is still unknown", "Community contributions");
   assert.match(unknown, /could matter to your visit/);
   assert.match(unknown, /Ramp/);
@@ -609,6 +609,7 @@ test("contributor: the exact position stays apart from the place's, and the resu
   const spot = { latitude: 23.815215, longitude: 86.441781 };
   await page.setGeolocation({ ...spot, accuracy: 9 });
   await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+  await page.click(".contribute-form summary");
   await page.select(".observation-form select", "shelter");
   await (await page.waitForSelector('xpath/.//button[contains(., "Add my exact position")]'))!.click();
   await page.waitForFunction(() => /saved with this, separately from the place/.test(document.querySelector(".observation-form")?.textContent ?? ""));
