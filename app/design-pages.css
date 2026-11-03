@@ -1123,3 +1123,50 @@ html:has(.demo-banner) {
     min-height: 32px;
   }
 }
+
+/* ------------------------------------------------------------- found in visual review */
+
+.site-header {
+  background: #fff;
+}
+
+.workspace-nav {
+  align-items: stretch;
+}
+
+.workspace-nav a {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.landing .steps li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.landing .steps li::before {
+  position: static;
+  display: block;
+  width: auto;
+  height: auto;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  line-height: 1.2;
+}
+
+.need-group-chips.need-cards .filter-buttons {
+  align-items: stretch;
+}
+
+.need-card {
+  height: 100%;
+  align-content: start;
+}
+
+/* The page scrolls, not a box inside it; the map stays beside the list. */
+.place-list {
+  max-height: none;
+  overflow: visible;
+}

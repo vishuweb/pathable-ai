@@ -138,7 +138,7 @@ export function SurveyForm({ survey, role, target, similarTo }: { survey: Survey
         .map(([id, d]) => [id, { value: d.value, unit: d.unit, method: d.method, note: d.note, photoIds: d.photoIds }]),
     );
 
-  const call = async (init: RequestInit, done: string) => {
+  const call = async (init: RequestInit, done: string, refresh = true) => {
     setBusy(true);
     setMessage(undefined);
     const res = await fetch(`/api/surveys/${survey.id}`, { ...init, headers: { "Content-Type": "application/json" } }).catch(() => undefined);
@@ -147,14 +147,15 @@ export function SurveyForm({ survey, role, target, similarTo }: { survey: Survey
       setMessage({ text: done, error: false });
       setDirty(false);
       setNote("");
-      router.refresh();
+      // Only the last step of a multi-step action refreshes: an earlier refresh arriving late would show stale state.
+      if (refresh) router.refresh();
       return true;
     }
     const data = (await res?.json().catch(() => undefined)) as (ApiError & { problems?: string[] }) | undefined;
     setMessage({ text: data?.problems?.join(" ") ?? data?.error ?? "That did not work. Please try again.", error: true });
     return false;
   };
-  const save = (done = "Saved. You can come back to this any time.") => call({ method: "PATCH", body: JSON.stringify({ answers: answers(), notes, privateNotes }) }, done);
+  const save = (done = "Saved. You can come back to this any time.", refresh = true) => call({ method: "PATCH", body: JSON.stringify({ answers: answers(), notes, privateNotes }) }, done, refresh);
   const act = (action: string, done: string) => call({ method: "PATCH", body: JSON.stringify({ action, note }) }, done);
 
   const addPhoto = async (file: File | undefined) => {
@@ -162,7 +163,7 @@ export function SurveyForm({ survey, role, target, similarTo }: { survey: Survey
     setBusy(true);
     setMessage(undefined);
     // Save first, so a refresh after the upload does not lose what was typed.
-    const saved = !dirty || (await save("Saved."));
+    const saved = !dirty || (await save("Saved.", false));
     if (saved) {
       try {
         const prepared = await prepareImage(file);
@@ -364,7 +365,7 @@ export function SurveyForm({ survey, role, target, similarTo }: { survey: Survey
             type="button"
             className="button-primary"
             disabled={busy || problems.length > 0}
-            onClick={() => void (async () => { if (await save("Saved.")) await act("submit", "Submitted for review. It is not public yet."); })()}
+            onClick={() => void (async () => { if (await save("Saved.", false)) await act("submit", "Submitted for review. It is not public yet."); })()}
           >
             Submit for review
           </button>

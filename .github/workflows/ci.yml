@@ -3,7 +3,7 @@ name: CI
 # No secrets are used. Tests run against a local mock of the Meta API, so CI cannot spend credits.
 on:
   push:
-    branches: [main, "phase*"]
+    branches: [main, "phase*", redesign]
   pull_request:
 
 permissions:
