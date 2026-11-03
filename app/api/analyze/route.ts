@@ -1,4 +1,5 @@
 import { APIConnectionTimeoutError, RateLimitError } from "openai";
+import { AI_EXHAUSTED_MESSAGE, isCreditError, metered, once, requestKey } from "@/lib/ai-guard";
 import { AnalysisError, analyzeImage } from "@/lib/analyze";
 import { jsonResponse, readJsonBody } from "@/lib/http";
 import { cleanImage, dataUrlBytes, ImageError } from "@/lib/image-sanitize";
@@ -30,15 +31,21 @@ export async function POST(request: Request) {
     throw error;
   }
 
-  const started = Date.now();
   try {
-    const analysis = await analyzeImage(forwarded, request.signal);
-    return jsonResponse<AnalyzeResponse>({
-      analysis,
-      model: ANALYSIS_MODEL,
-      analysisMs: Date.now() - started,
+    // The same photo again, by a double click or a retry after a lost connection, is not paid for twice.
+    const { value, cached } = await once(requestKey("analyze", ANALYSIS_MODEL, forwarded), async () => {
+      const started = Date.now();
+      let usage: { promptTokens?: number; completionTokens?: number } = {};
+      const analysis = await metered(
+        ANALYSIS_MODEL,
+        () => analyzeImage(forwarded, request.signal, (u) => (usage = u)),
+        () => usage,
+      );
+      return { analysis, analysisMs: Date.now() - started };
     });
+    return jsonResponse<AnalyzeResponse>({ ...value, model: ANALYSIS_MODEL, ...(cached ? { cached } : {}) });
   } catch (error) {
+    if (isCreditError(error)) return jsonResponse<ApiError>({ error: AI_EXHAUSTED_MESSAGE }, 503);
     if (error instanceof MissingApiKeyError) return jsonResponse<ApiError>({ error: error.message }, 500);
     if (error instanceof AnalysisError) return jsonResponse<ApiError>({ error: error.message }, 502);
     if (error instanceof APIConnectionTimeoutError) {

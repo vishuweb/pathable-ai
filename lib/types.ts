@@ -60,6 +60,8 @@ export interface AnalyzeResponse {
   analysis: SceneAnalysis;
   model: string;
   analysisMs: number;
+  /** True when this reused an earlier result for the same photo, so no new model call was made. */
+  cached?: boolean;
 }
 
 /** Box in image pixels with half-open right/bottom edges (same convention as SAM parser bounds). */

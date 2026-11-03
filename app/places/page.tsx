@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { PlaceExplorer, type RecentItem } from "@/components/PlaceExplorer";
+import { PlaceExplorer, type PlaceSignals, type RecentItem } from "@/components/PlaceExplorer";
 import { directory, directoryRetrieved } from "@/lib/campus-directory";
 import { AREA_LABEL, FINDING_LABEL, observationStatus } from "@/lib/observations";
 import { placePath } from "@/lib/place";
-import { PLACE_CATEGORIES } from "@/lib/place-categories";
+import { PLACE_CATEGORIES, SHOW_FILTERS } from "@/lib/place-categories";
 import { PLACE_FEATURES } from "@/lib/place-attributes";
-import { featureStatuses } from "@/lib/place-profile";
 import { activeRegion } from "@/lib/region";
-import { publicObservations } from "@/lib/moderation-store";
+import { publicObservations, publicReports } from "@/lib/moderation-store";
+import { buildPlaceIntelligence } from "@/lib/place-intelligence";
+import { publicSurveys } from "@/lib/survey-store";
 import type { Provenance } from "@/lib/provenance";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,8 @@ export default async function PlacesPage({ searchParams }: { searchParams: Searc
   const query = await searchParams;
   const region = activeRegion();
   const list = directory(region);
-  const all = await publicObservations();
+  const now = new Date();
+  const [all, reports, surveys] = await Promise.all([publicObservations(), publicReports(), publicSurveys(now)]);
 
   const places = list.map((p) => ({
     osmType: p.osmType,
@@ -35,9 +37,17 @@ export default async function PlacesPage({ searchParams }: { searchParams: Searc
   // What is currently known about each place's features, so the list can show how much is recorded
   // for the visitor's own needs without fetching anything per place.
   const featureIndex: Record<string, [string, Provenance][]> = {};
+  const signals: Record<string, PlaceSignals> = {};
   for (const p of list) {
-    const mine = all.filter((o) => o.place.osmType === p.osmType && o.place.osmId === p.osmId);
-    featureIndex[`${p.osmType}${p.osmId}`] = featureStatuses(p.tags, mine, { lastEdited: p.lastEdited }).map((f) => [f.id, f.current]);
+    const key = `${p.osmType}${p.osmId}`;
+    const intel = buildPlaceIntelligence({ place: p, tags: p.tags, lastEdited: p.lastEdited, observations: all, reports, surveys, now });
+    featureIndex[key] = intel.features.map((f) => [f.id, f.current]);
+    signals[key] = {
+      openBarriers: intel.summary.openBarriers,
+      surveyed: intel.surveys.some((s) => !s.supersededBy),
+      conflicts: intel.summary.conflicts,
+      outdated: intel.summary.outdated,
+    };
   }
   const featureNeeds = Object.fromEntries(PLACE_FEATURES.map((f) => [f.id, f.needIds]));
 
@@ -56,6 +66,7 @@ export default async function PlacesPage({ searchParams }: { searchParams: Searc
 
   const q = typeof query.q === "string" ? query.q.slice(0, 120) : "";
   const category = PLACE_CATEGORIES.find((c) => c === query.category);
+  const show = SHOW_FILTERS.find((f) => f === query.show);
 
   return (
     <section aria-labelledby="places-title">
@@ -73,6 +84,8 @@ export default async function PlacesPage({ searchParams }: { searchParams: Searc
         initialCategory={category}
         featureIndex={featureIndex}
         featureNeeds={featureNeeds}
+        signals={signals}
+        initialShow={show}
         recent={recent}
       />
       <p className="muted">

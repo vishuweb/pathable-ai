@@ -34,6 +34,10 @@ export const PLACE_CATEGORY_LABEL: Record<PlaceCategory, string> = {
   other: "Other places",
 };
 
+/** What the place list can be narrowed to, besides the kind of place. */
+export const SHOW_FILTERS = ["checked", "barriers", "recorded", "gaps"] as const;
+export type ShowFilter = (typeof SHOW_FILTERS)[number];
+
 /** The best-fitting category for a place; the first rule that matches wins. */
 export function categorize(tags: Record<string, string>, name = ""): PlaceCategory {
   const n = name.toLowerCase();

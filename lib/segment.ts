@@ -1,4 +1,5 @@
 import "server-only";
+import { isCreditError, noteCreditExhausted } from "./ai-guard";
 import {
   decodeMaskToSVGPath,
   parseImageStream,
@@ -39,6 +40,7 @@ export async function segmentEvidence(
 
     if (!outcome || outcome.status === "rejected") {
       console.error(`[segment] SAM failed for "${phrase}"`, outcome?.reason);
+      if (isCreditError(outcome?.reason)) noteCreditExhausted();
       return {
         findingId: target.findingId,
         phrase,

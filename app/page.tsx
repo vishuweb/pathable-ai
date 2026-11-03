@@ -25,29 +25,19 @@ const ACTIONS = [
     icon: "M4 8h3l2-3h6l2 3h3v11H4z M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
   },
   {
-    href: "/places",
+    href: "/places?show=gaps",
     title: "Improve campus access",
     text: "Add accessibility information that is still missing.",
     icon: "M12 5v14 M5 12h14",
   },
 ];
 
-const LEGEND: Provenance[] = ["unknown", "osm", "community", "verified", "outdated"];
-
-// Real campus places from the OpenStreetMap directory, used as examples.
-const EXAMPLES = [
-  "Central Library",
-  "New Lecture Hall Complex",
-  "Golden Jubilee Lecture Theatre",
-  "ISM Health Center",
-  "Main Building",
-  "Student Activity Center",
-];
+const LEGEND: Provenance[] = ["unknown", "osm", "community", "owner_recorded", "verified", "outdated"];
 
 export default function HomePage() {
   const region = activeRegion();
   const places = directory(region);
-  const examples = EXAMPLES.flatMap((name) => places.find((p) => p.name === name) ?? []);
+  const examples = (region.startPlaces ?? []).flatMap((name) => places.find((p) => p.name === name) ?? []);
   const suggestions = [
     ...new Set(places.filter((p) => !/^(unnamed|parking|bungalow|residential quarters)/i.test(p.name)).map((p) => p.name)),
   ];
@@ -67,7 +57,7 @@ export default function HomePage() {
               type="search"
               list="campus-places"
               autoComplete="off"
-              placeholder="Search Central Library, NLHC, a hostel…"
+              placeholder={`Search ${region.searchExample ?? "a place"}…`}
             />
             <button type="submit" className="button-primary">
               Search
@@ -103,7 +93,7 @@ export default function HomePage() {
       </section>
 
       <section aria-labelledby="popular-title">
-        <h2 id="popular-title">Popular places on campus</h2>
+        <h2 id="popular-title">Places to start with</h2>
         <ul className="chip-links">
           {examples.map((p) => (
             <li key={p.name}>

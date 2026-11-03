@@ -1,3 +1,4 @@
+import { metered } from "@/lib/ai-guard";
 import { jsonResponse, readBody } from "@/lib/http";
 import { MissingApiKeyError } from "@/lib/meta";
 import { limitAiRequest } from "@/lib/rate-limit";
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
 
   const started = Date.now();
   try {
-    const transcript = await transcribeWav(audio, request.signal);
+    const transcript = await metered(TRANSCRIPTION_MODEL, () => transcribeWav(audio, request.signal));
     return jsonResponse<TranscribeResponse>({
       text: transcript.text,
       model: TRANSCRIPTION_MODEL,

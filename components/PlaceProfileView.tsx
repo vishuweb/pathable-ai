@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { NEED_GROUPS, NEED_GROUP_INFO, type NeedGroup } from "@/lib/needs";
 import { RESPONSE_LABEL, type ResponseKind } from "@/lib/observations";
-import type { PlaceRef } from "@/lib/place";
+import { formatDistance, type PlaceRef } from "@/lib/place";
 import type { Barrier, Claim, Contribution, FeatureIntel, PlaceIntelligence } from "@/lib/place-intelligence";
 import { groupsOfNeeds, orderBarriers, orderFeatures, orderGroups } from "@/lib/profile-order";
 import { PROVENANCE_INFO, type Provenance } from "@/lib/provenance";
@@ -396,6 +396,20 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
           </details>
         )}
       </section>
+
+      {intelligence.nearby.length > 0 && (
+        <section aria-labelledby="nearby-title" className="profile-section">
+          <h2 id="nearby-title">Reported at places nearby</h2>
+          <p className="muted">These are about other places close by, not this one. They may matter on your way here.</p>
+          <ul className="source-list">
+            {intelligence.nearby.map((b) => (
+              <li key={b.reportId}>
+                <Link href={`/reports/${b.reportId}`}>{b.title}</Link> <span className="muted">at {b.placeName}, about {formatDistance(b.distanceMeters)} away</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="known-title" className="profile-section">
         <h2 id="known-title">What is known</h2>

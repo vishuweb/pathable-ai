@@ -2,7 +2,7 @@
 // confirmed/corrected findings are true positives, rejected ones false positives, and barriers
 // the reviewer added as "missed" are false negatives.
 import type { HighlightRating, SavedReport } from "./report";
-import { ISSUE_CATEGORIES, type EvidenceStatus, type IssueCategory } from "./types";
+import { ISSUE_CATEGORIES, LEVELS, type EvidenceStatus, type IssueCategory, type Level } from "./types";
 
 export interface Rate {
   numerator: number;
@@ -46,6 +46,12 @@ export interface DatasetMetrics {
   medianAnalysisSeconds?: number;
   medianPipelineSeconds?: number;
   byCategory: CategoryMetrics[];
+  /** How often the AI's findings were real, at each confidence it stated. A trustworthy model scores higher at higher confidence. */
+  calibration: Record<Level, Rate>;
+  /** Findings the reviewer moved to another category: what the AI confuses with what. */
+  confusions: { from: IssueCategory; to: IssueCategory; count: number }[];
+  /** Who reviewed the photos. A single person's judgement is not independent ground truth. */
+  labelers: { owner: number; reviewer: number; notRecorded: number };
 }
 
 export const ALL_DATASETS = "all";
@@ -91,11 +97,18 @@ function metricsFor(dataset: string, reports: SavedReport[]): DatasetMetrics {
   let falseAlarms = 0;
   const highlights: Record<HighlightRating, number> = { correct: 0, partial: 0, wrong: 0 };
   const evidence: Record<EvidenceStatus, number> = { segmented: 0, approximate: 0, unavailable: 0, unlocated: 0 };
+  const confidence: Record<Level, { real: number; all: number }> = { low: { real: 0, all: 0 }, medium: { real: 0, all: 0 }, high: { real: 0, all: 0 } };
+  const confused = new Map<string, { from: IssueCategory; to: IssueCategory; count: number }>();
+  const labelers = { owner: 0, reviewer: 0, notRecorded: 0 };
   const perCategory = new Map<IssueCategory, { aiFindings: number; aiReal: number; verified: number; found: number }>(
     ISSUE_CATEGORIES.map((c) => [c, { aiFindings: 0, aiReal: 0, verified: 0, found: 0 }]),
   );
 
   for (const report of reports) {
+    const by = report.moderation?.note;
+    if (by === "Saved by the owner") labelers.owner++;
+    else if (by === "Saved by a reviewer") labelers.reviewer++;
+    else labelers.notRecorded++;
     let verifiedHere = report.missedIssues.length;
     for (const finding of report.analysis.findings) {
       const review = report.reviews[finding.id];
@@ -105,11 +118,22 @@ function metricsFor(dataset: string, reports: SavedReport[]): DatasetMetrics {
       if (status) evidence[status]++;
       if (review?.decision === "rejected") {
         rejected++;
+        if (confidence[finding.confidence]) confidence[finding.confidence].all++;
         continue;
       }
       if (review?.decision !== "confirmed" && review?.decision !== "corrected") continue;
       if (review.decision === "confirmed") confirmed++;
       else corrected++;
+      if (confidence[finding.confidence]) {
+        confidence[finding.confidence].real++;
+        confidence[finding.confidence].all++;
+      }
+      if (review.decision === "corrected" && review.correctedCategory && review.correctedCategory !== finding.category) {
+        const key = `${finding.category}>${review.correctedCategory}`;
+        const entry = confused.get(key) ?? { from: finding.category, to: review.correctedCategory, count: 0 };
+        entry.count++;
+        confused.set(key, entry);
+      }
       verifiedHere++;
       ai.aiReal++;
       const trueCategory = review.decision === "corrected" && review.correctedCategory ? review.correctedCategory : finding.category;
@@ -152,6 +176,9 @@ function metricsFor(dataset: string, reports: SavedReport[]): DatasetMetrics {
     medianReviewSeconds: median(reports.map((r) => r.timings.reviewMs / 1000)),
     medianAnalysisSeconds: median(reports.map((r) => r.timings.analysisMs / 1000)),
     medianPipelineSeconds: median(reports.map((r) => (r.timings.analysisMs + (r.timings.segmentationMs ?? 0)) / 1000)),
+    calibration: Object.fromEntries(LEVELS.map((level) => [level, rate(confidence[level].real, confidence[level].all)])) as Record<Level, Rate>,
+    confusions: [...confused.values()].sort((a, b) => b.count - a.count),
+    labelers,
     byCategory: ISSUE_CATEGORIES.map((category) => {
       const c = perCategory.get(category)!;
       return {

@@ -7,7 +7,7 @@ export const NEED_GROUP_INFO: Record<NeedGroup, { label: string; short: string; 
   mobility: {
     label: "Moving around",
     short: "Mobility",
-    description: "For wheelchair users and people using walkers, crutches, prams or other mobility aids.",
+    description: "For wheelchair users, people using walkers, crutches or prams, older adults, and anyone with a temporary injury.",
   },
   vision: {
     label: "Seeing",
@@ -22,12 +22,12 @@ export const NEED_GROUP_INFO: Record<NeedGroup, { label: string; short: string; 
   cognitive: {
     label: "Understanding and finding the way",
     short: "Cognitive",
-    description: "For people who prefer simple, predictable routes and clear information.",
+    description: "For people who find unfamiliar places hard to navigate, and anyone who prefers simple, predictable routes and clear information.",
   },
   general: {
     label: "Comfort and other needs",
     short: "Other",
-    description: "For older adults, people with temporary conditions, and anyone who needs rest or facilities.",
+    description: "For older adults, people with temporary conditions, and anyone who needs rest, shelter or facilities.",
   },
 };
 

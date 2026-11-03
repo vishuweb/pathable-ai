@@ -1,3 +1,4 @@
+import { AI_EXHAUSTED_MESSAGE, aiExhausted, forget, metered, once, requestKey } from "@/lib/ai-guard";
 import { jsonResponse, readJsonBody } from "@/lib/http";
 import { cleanImage, dataUrlBytes, ImageError } from "@/lib/image-sanitize";
 import { validateImageDataUrl } from "@/lib/image-input";
@@ -51,14 +52,18 @@ export async function POST(request: Request) {
     throw error;
   }
 
-  const started = Date.now();
   try {
-    const evidence = await segmentEvidence(forwarded, width, height, targets, request.signal);
-    return jsonResponse<SegmentResponse>({
-      evidence,
-      model: SEGMENTATION_MODEL,
-      segmentationMs: Date.now() - started,
+    const key = requestKey("segment", SEGMENTATION_MODEL, forwarded, JSON.stringify(targets));
+    const { value } = await once(key, async () => {
+      const started = Date.now();
+      const evidence = await metered(SEGMENTATION_MODEL, () => segmentEvidence(forwarded, width, height, targets, request.signal));
+      return { evidence, segmentationMs: Date.now() - started };
     });
+    // A target that failed may succeed next time, so such a result is not reused.
+    if (value.evidence.some((e) => e.status === "unavailable")) forget(key);
+    // Every target failing because credits ran out is not "no evidence": say what happened.
+    if (aiExhausted() && value.evidence.every((e) => e.status === "unavailable")) return jsonResponse<ApiError>({ error: AI_EXHAUSTED_MESSAGE }, 503);
+    return jsonResponse<SegmentResponse>({ ...value, model: SEGMENTATION_MODEL });
   } catch (error) {
     if (error instanceof MissingApiKeyError) return jsonResponse<ApiError>({ error: error.message }, 500);
     console.error("[segment] failed", error);

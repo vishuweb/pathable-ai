@@ -26,7 +26,7 @@ import {
   type PlaceArea,
   type ResponseKind,
 } from "./observations";
-import type { PlaceRef } from "./place";
+import { distanceMeters, type PlaceRef } from "./place";
 import { isStale, placeAttributes } from "./place-attributes";
 import type { Provenance } from "./provenance";
 import type { SavedReport } from "./report";
@@ -167,6 +167,8 @@ export interface PlaceIntelligence {
   contributions: Contribution[];
   /** Approved field surveys of this place or a spot at it, newest first. */
   surveys: PublicSurvey[];
+  /** Open barriers linked to other places close by. Never counted as this place's, and labelled as such. */
+  nearby: NearbyBarrier[];
   summary: {
     features: number;
     withRecord: number;
@@ -180,6 +182,15 @@ export interface PlaceIntelligence {
   };
 }
 
+export interface NearbyBarrier {
+  reportId: string;
+  title: string;
+  placeName: string;
+  place: Pick<PlaceRef, "osmType" | "osmId">;
+  distanceMeters: number;
+  needGroups: NeedGroup[];
+}
+
 export interface IntelligenceInput {
   place: Pick<PlaceRef, "osmType" | "osmId">;
   tags: Record<string, string>;
@@ -188,6 +199,8 @@ export interface IntelligenceInput {
   reports: SavedReport[];
   /** Approved surveys only; see lib/survey.ts publicSurvey. */
   surveys?: PublicSurvey[];
+  /** This place's own position, needed to list open barriers at places nearby. */
+  coordinates?: { latitude: number; longitude: number };
   now?: Date;
 }
 
@@ -409,6 +422,25 @@ function surveyClaims(surveys: PublicSurvey[], featureId: string): Claim[] {
   return claims;
 }
 
+/** Reports linked to another place within this distance are mentioned, separately, as nearby. */
+export const NEARBY_METERS = 150;
+
+function nearbyBarriers(input: IntelligenceInput, now: Date): NearbyBarrier[] {
+  const here = input.coordinates;
+  if (!here) return [];
+  return input.reports
+    .flatMap((report): NearbyBarrier[] => {
+      const location = report.location;
+      const position = location?.placeCoordinates ?? (location?.latitude !== undefined && location.longitude !== undefined ? { latitude: location.latitude, longitude: location.longitude } : undefined);
+      if (!isPublic(report) || !location?.place || samePlace(location.place, input.place) || !position) return [];
+      const distance = distanceMeters(here, position);
+      const barrier = distance <= NEARBY_METERS ? barrierOf(report, now) : undefined;
+      if (!barrier?.open) return [];
+      return [{ reportId: report.id, title: barrier.items[0].title, placeName: location.place.name, place: location.place, distanceMeters: distance, needGroups: barrier.needGroups }];
+    })
+    .sort((a, b) => a.distanceMeters - b.distanceMeters);
+}
+
 const polarityWords = (set: Set<Polarity>) => [...set].map((p) => POLARITY_LABEL[p]).join(" / ");
 
 export function buildPlaceIntelligence(input: IntelligenceInput): PlaceIntelligence {
@@ -543,6 +575,7 @@ export function buildPlaceIntelligence(input: IntelligenceInput): PlaceIntellige
     resolved,
     contributions,
     surveys,
+    nearby: nearbyBarriers(input, now),
     summary: {
       features: features.length,
       withRecord: features.filter((f) => f.current !== "unknown").length,

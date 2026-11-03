@@ -12,7 +12,7 @@ import { startMockMeta } from "./mock-meta";
 const API_KEY = "test-key-must-never-leak";
 const mock = await startMockMeta();
 const dataDir = await mkdtemp(path.join(os.tmpdir(), "pathable-test-"));
-Object.assign(process.env, { META_API_BASE_URL: mock.url, MODEL_API_KEY: API_KEY, DATA_DIR: dataDir });
+Object.assign(process.env, { META_API_BASE_URL: mock.url, MODEL_API_KEY: API_KEY, DATA_DIR: dataDir, AI_CACHE_SECONDS: "0" });
 for (const name of ["OWNER_KEY", "VERCEL", "BLOB_READ_WRITE_TOKEN", "ANALYZE_LIMIT_PER_HOUR"]) delete process.env[name];
 
 const analyzeRoute = await import("../app/api/analyze/route");

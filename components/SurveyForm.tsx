@@ -2,10 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CATEGORY_INFO } from "@/lib/categories";
+import { CATEGORY_FEATURES } from "@/lib/evidence-map";
 import { prepareImage } from "@/lib/prepare-image";
 import { SURVEY_STATE_LABEL, answerLabel, isAssessed, submitProblems, surveyProgress, type StaffRole, type Survey, type SurveyAnswer } from "@/lib/survey";
 import { STATUS_LABEL, UNIT_LABEL, findChecklist, type StatusValue, type SurveyAttribute, type Unit } from "@/lib/survey-taxonomy";
-import type { ApiError } from "@/lib/types";
+import type { AnalyzeResponse, ApiError } from "@/lib/types";
+import { VoiceNoteButton, appendDictation } from "./VoiceNoteButton";
 
 type Draft = { value: string; unit?: Unit; method: string; note: string; photoIds: string[] };
 
@@ -123,6 +126,9 @@ export function SurveyForm({ survey, role, target, similarTo }: { survey: Survey
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; error: boolean }>();
   const [dirty, setDirty] = useState(false);
+  const [lastPhoto, setLastPhoto] = useState<string>();
+  const [suggestions, setSuggestions] = useState<{ title: string; condition: string; category: string; lines: string[] }[]>();
+  const [asking, setAsking] = useState(false);
 
   // Unanswered lines are left out, so a half-done survey saves as exactly that.
   const answers = () =>
@@ -163,6 +169,8 @@ export function SurveyForm({ survey, role, target, similarTo }: { survey: Survey
         const res = await fetch(`/api/surveys/${survey.id}/photos`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: prepared.dataUrl }) });
         if (res.ok) {
           setMessage({ text: "Photo added. Tick it on each line it actually shows.", error: false });
+          setLastPhoto(prepared.dataUrl);
+          setSuggestions(undefined);
           router.refresh();
         } else {
           setMessage({ text: ((await res.json().catch(() => undefined)) as ApiError | undefined)?.error ?? "The photo could not be added.", error: true });
@@ -172,6 +180,24 @@ export function SurveyForm({ survey, role, target, similarTo }: { survey: Survey
       }
     }
     setBusy(false);
+  };
+
+  // Only when asked, because each one is a paid model call. The result is a list to go and look at; it fills in nothing.
+  const askAi = async () => {
+    setAsking(true);
+    setMessage(undefined);
+    const res = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: lastPhoto }) }).catch(() => undefined);
+    const data = (await res?.json().catch(() => undefined)) as AnalyzeResponse | ApiError | undefined;
+    setAsking(false);
+    if (!res?.ok || !data || "error" in data) return setMessage({ text: data && "error" in data ? data.error : "The AI could not look at this photo. You can carry on without it.", error: true });
+    setSuggestions(
+      data.analysis.findings.map((f) => ({
+        title: f.title,
+        condition: f.observed_condition,
+        category: CATEGORY_INFO[f.category].label,
+        lines: checklist.attributes.filter((a) => a.featureId && CATEGORY_FEATURES[f.category].includes(a.featureId)).map((a) => a.label),
+      })),
+    );
   };
 
   const shown = { checklistId: survey.checklistId, answers: Object.fromEntries(Object.entries(answers()).map(([k, a]) => [k, { value: a.value } as SurveyAnswer])) };
@@ -228,6 +254,13 @@ export function SurveyForm({ survey, role, target, similarTo }: { survey: Survey
             Notes to publish with the survey <span className="muted">(no names or personal details)</span>
             <textarea rows={2} maxLength={2000} value={notes} onChange={(e) => { setDirty(true); setNotes(e.target.value); }} />
           </label>
+          <VoiceNoteButton
+            label="the notes"
+            onText={(text) => {
+              setDirty(true);
+              setNotes((current) => appendDictation(current, text, 2000));
+            }}
+          />
           <label className="field">
             Private notes <span className="muted">(for the team only, never published)</span>
             <textarea rows={2} maxLength={2000} value={privateNotes} onChange={(e) => { setDirty(true); setPrivateNotes(e.target.value); }} />
@@ -238,6 +271,33 @@ export function SurveyForm({ survey, role, target, similarTo }: { survey: Survey
             </span>
             <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(e) => void addPhoto(e.target.files?.[0])} />
           </label>
+          {lastPhoto && (
+            <p>
+              <button type="button" className="button-secondary" disabled={asking} onClick={() => void askAi()}>
+                {asking ? "Asking the AI…" : "Ask the AI what to look at in this photo"}
+              </button>
+            </p>
+          )}
+          {suggestions && (
+            <section aria-label="AI suggestions for this photo" className="warning">
+              <p>
+                <strong>Suggested by AI, not checked by anyone.</strong> Nothing here has been recorded. Go and look, then fill in the lines
+                yourself. AI cannot establish measurements, whether a lift works, or compliance.
+              </p>
+              {suggestions.length === 0 ? (
+                <p>It did not suggest anything in this photo. That does not mean there is nothing there.</p>
+              ) : (
+                <ul>
+                  {suggestions.map((s) => (
+                    <li key={s.title}>
+                      {s.title} ({s.category}): {s.condition}
+                      {s.lines.length > 0 && ` Related lines: ${s.lines.join(", ")}.`}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </>
       ) : (
         <section aria-label="What was recorded">

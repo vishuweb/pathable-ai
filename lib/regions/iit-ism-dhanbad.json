@@ -4,6 +4,8 @@
  "fullName": "Indian Institute of Technology (Indian School of Mines), Dhanbad",
  "location": "Dhanbad, Jharkhand, India",
  "active": true,
+ "startPlaces": ["Central Library", "New Lecture Hall Complex", "Golden Jubilee Lecture Theatre", "ISM Health Center", "Main Building", "Student Activity Center"],
+ "searchExample": "Central Library, NLHC, a hostel",
  "source": {
   "osm": "way/133882752",
   "osmName": "Indian Institute of Technology, Dhanbad",

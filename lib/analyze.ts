@@ -101,7 +101,11 @@ const analysisSchema = {
 export class AnalysisError extends Error {}
 
 /** `signal` aborts the upstream call, e.g. when the browser disconnects. */
-export async function analyzeImage(imageDataUrl: string, signal?: AbortSignal): Promise<SceneAnalysis> {
+export async function analyzeImage(
+  imageDataUrl: string,
+  signal?: AbortSignal,
+  onUsage?: (usage: { promptTokens?: number; completionTokens?: number }) => void,
+): Promise<SceneAnalysis> {
   const response = await getMetaClient().chat.completions.create(
     {
       model: ANALYSIS_MODEL,
@@ -122,6 +126,8 @@ export async function analyzeImage(imageDataUrl: string, signal?: AbortSignal): 
     },
     { signal },
   );
+
+  onUsage?.({ promptTokens: response.usage?.prompt_tokens, completionTokens: response.usage?.completion_tokens });
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new AnalysisError("The model returned an empty response.");

@@ -46,6 +46,8 @@ before(async () => {
     OWNER_KEY,
     REVIEWER_KEY,
     NEXT_TELEMETRY_DISABLED: "1",
+    // These tests change the mock's reply for the same photo, so results must not be reused.
+    AI_CACHE_SECONDS: "0",
   };
   for (const name of ["VERCEL", "BLOB_READ_WRITE_TOKEN", "AI_PAUSED", "AI_DAILY_LIMIT", "ANALYZE_LIMIT_PER_HOUR"]) delete env[name];
   server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "-p", String(PORT), "-H", "127.0.0.1"], {
@@ -432,6 +434,20 @@ test("journey 3, hearing: visual alerts and communication facilities, with no as
   await page.close();
 });
 
+test("journey, wayfinding: simple directions, signs and landmarks come first, with no assumptions", { skip: !CHROME && "Chrome not found" }, async () => {
+  const page = await openAs(["Wayfinding"]);
+  await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+  const overview = section(await page.$eval("main", (m) => (m as HTMLElement).innerText), "Your accessibility overview", "Reported barriers");
+  assert.match(overview, /For your needs: Cognitive/);
+  assert.match(overview, /Clear signs and directions\s+Unknown/);
+  assert.match(overview, /Recognisable landmarks and a simple way in\s+Unknown/);
+  assert.ok(!/Wheelchair access|Hearing loop|Tactile paving/.test(overview), "other needs do not crowd it");
+  const all = await page.$eval("main", (m) => (m as HTMLElement).innerText);
+  assert.match(all, /Wheelchair access/, "but they are still on the page");
+  assert.deepEqual(await axeViolations(page), [], "passes WCAG 2.2 AA checks");
+  await page.close();
+});
+
 test("journey 4, contribution: observe a feature, report a barrier at the place, and follow it", { skip: !CHROME && "Chrome not found" }, async () => {
   const page = await openAs(["Mobility"]);
   await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
@@ -581,6 +597,65 @@ test("journey 5, conflict and verification: disagreeing observations are both sh
   await page.close();
 });
 
+test("contributor: the exact position stays apart from the place's, and the result reaches the right profile", { skip: !CHROME && "Chrome not found" }, async () => {
+  await browser!.defaultBrowserContext().overridePermissions(BASE, ["geolocation"]);
+  const page = await openAs(["Comfort"]);
+  const spot = { latitude: 23.815215, longitude: 86.441781 };
+  await page.setGeolocation({ ...spot, accuracy: 9 });
+  await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
+  await page.select(".observation-form select", "shelter");
+  await (await page.waitForSelector('xpath/.//button[contains(., "Add my exact position")]'))!.click();
+  await page.waitForFunction(() => /saved with this, separately from the place/.test(document.querySelector(".observation-form")?.textContent ?? ""));
+  await page.type(".observation-form textarea", "A covered waiting area by the side door.");
+  await page.click(".observation-form .consent input");
+  await (await page.waitForSelector('xpath/.//button[contains(., "Share observation publicly")]'))!.click();
+  await page.waitForFunction(() => /Thank you/.test(document.querySelector(".observation-form p[role=status]")?.textContent ?? ""));
+  assert.equal(await approveAll(), 1);
+
+  const listed = (await (await fetch(`${BASE}/api/observations?osmType=way&osmId=517026148`)).json()) as { observations: { featureId: string; latitude: number; observationCoordinates?: { latitude: number; accuracyM?: number } }[] };
+  const stored = listed.observations.find((o) => o.featureId === "shelter")!;
+  assert.equal(stored.latitude, 23.8158145, "the place's own position");
+  assert.equal(stored.observationCoordinates?.latitude, spot.latitude, "and the exact spot, separately");
+  assert.equal(stored.observationCoordinates?.accuracyM, 9);
+  await page.reload({ waitUntil: "networkidle0" });
+  assert.match(await page.$eval(".overview", (o) => (o as HTMLElement).innerText), /Shelter from the weather\s+Community reported/);
+  await browser!.defaultBrowserContext().clearPermissionOverrides();
+  await page.close();
+});
+
+test("discovery: filters use real records, and empty results do not read as good news", { skip: !CHROME && "Chrome not found" }, async () => {
+  const page = await openAs([]);
+  await page.goto(`${BASE}/places`, { waitUntil: "networkidle0" });
+  await page.waitForSelector(".place-list");
+  const showSelect = 'xpath/.//label[contains(., "Show")]//select';
+  const choose = async (value: string) => {
+    await page.select(showSelect, value);
+    await new Promise((r) => setTimeout(r, 500));
+    return page.$$eval(".place-list li a", (a) => a.map((x) => x.textContent ?? ""));
+  };
+  const all = await page.$$eval(".place-list li a", (a) => a.length);
+  const barriers = await choose("barriers");
+  assert.deepEqual(barriers, ["Central Library"], "the only place with an approved linked report");
+  assert.match(await page.$eval(".place-list li", (l) => (l as HTMLElement).innerText), /open barrier report/);
+  const recorded = await choose("recorded");
+  assert.ok(recorded.includes("Central Library"));
+  const gaps = await choose("gaps");
+  assert.equal(gaps.length + recorded.length, all, "every place is in exactly one of the two");
+  assert.ok(!gaps.some((name) => recorded.includes(name)));
+  assert.deepEqual(await choose("checked"), [], "no survey has been published yet");
+  assert.match(await page.$eval(".explorer .empty-state", (e) => e.textContent ?? ""), /not that there is nothing to find/);
+
+  // The home page's "Improve campus access" goes straight to the gaps.
+  await page.goto(BASE, { waitUntil: "networkidle0" });
+  assert.ok(await page.waitForSelector('.action-grid a[href="/places?show=gaps"]'));
+  assert.ok(!(await page.$eval("main", (m) => m.textContent ?? "")).includes("Popular places"), "no claim of popularity without data");
+
+  const missing = await page.goto(`${BASE}/no-such-page`, { waitUntil: "domcontentloaded" });
+  assert.equal(missing?.status(), 404);
+  assert.match(await page.$eval("h1", (h) => h.textContent ?? ""), /could not find that page/);
+  await page.close();
+});
+
 test("field survey, scenarios A to F: draft, resume, spot scope, review, public page and coverage", { skip: !CHROME && "Chrome not found" }, async () => {
   const owner = await ownerPage();
   await owner.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
@@ -605,6 +680,11 @@ test("field survey, scenarios A to F: draft, resume, spot scope, review, public 
 
   await (await owner.$('.survey input[type="file"]'))!.uploadFile(PHOTO);
   await owner.waitForFunction(() => /Photo added/.test(document.querySelector(".survey")?.textContent ?? ""));
+  mock.replies.chat = { kind: "content", content: modelReply([finding("Bins beside the door", {})]) };
+  await (await owner.waitForSelector('xpath/.//button[contains(., "Ask the AI what to look at")]'))!.click();
+  await owner.waitForFunction(() => /Suggested by AI, not checked by anyone/.test(document.querySelector(".survey")?.textContent ?? ""));
+  assert.match(await owner.$eval(".survey", (e) => e.textContent ?? ""), /Bins beside the door/);
+  assert.match(await owner.$eval(".survey-progress", (e) => e.textContent ?? ""), /1 of 6 lines assessed/, "a suggestion fills in nothing");
   await owner.waitForSelector(".survey-evidence input");
   await owner.click(".survey-evidence input");
   await (await owner.waitForSelector('xpath/.//button[normalize-space(.)="Submit for review"]'))!.click();

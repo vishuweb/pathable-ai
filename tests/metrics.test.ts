@@ -100,3 +100,28 @@ test("on a public site, visitors' single uploads never count", () => {
   const single = reports[3];
   assert.deepEqual(evaluationReports([single], { publicSite: true }), { included: [], excluded: 1 });
 });
+
+test("calibration, confusions and who reviewed are reported from the labels", () => {
+  const finding = (id: string, category: string, confidence: string) => ({ id, category, title: "t", observed_condition: "c", why_it_matters: "w", evidence_phrase: "e", evidence_box: { x_min: 0, y_min: 0, x_max: 1, y_max: 1 }, located: false, potential_impact: "low", confidence, uncertainty: "", suggested_next_step: "" });
+  const report = {
+    id: "r",
+    createdAt: "2026-11-01T00:00:00Z",
+    width: 1,
+    height: 1,
+    analysis: { scene_type: "", scene_summary: "", image_quality: "good", image_quality_notes: "", no_findings_reason: "", findings: [finding("a", "other", "high"), finding("b", "other", "high"), finding("c", "signage_problem", "low")] },
+    evidence: [],
+    models: { analysis: "m" },
+    reviews: { a: { decision: "confirmed", note: "" }, b: { decision: "rejected", note: "" }, c: { decision: "corrected", correctedCategory: "crossing_problem", note: "" } },
+    missedIssues: [],
+    reviewerNote: "",
+    timings: { analysisMs: 1, reviewMs: 1 },
+    moderation: { state: "approved", at: "2026-11-01T00:00:00Z", note: "Saved by a reviewer" },
+  };
+  const [all] = computeMetrics([report as never]);
+  assert.equal(all.calibration.high.numerator, 1);
+  assert.equal(all.calibration.high.denominator, 2);
+  assert.equal(all.calibration.low.numerator, 1);
+  assert.equal(all.calibration.medium.denominator, 0);
+  assert.deepEqual(all.confusions, [{ from: "signage_problem", to: "crossing_problem", count: 1 }]);
+  assert.deepEqual(all.labelers, { owner: 0, reviewer: 1, notRecorded: 0 });
+});

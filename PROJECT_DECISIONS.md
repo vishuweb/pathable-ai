@@ -57,3 +57,27 @@ Cells starting with `=`, `+`, `-` or `@` are prefixed, so an exported note canno
 ## Live Meta calls are not made yet
 
 The owner asked for controlled live tests only after the Usage and Billing page confirms a promotional balance. That page needs the owner's sign-in, and the key is not in this environment. See CREDIT_USAGE_LOG.md.
+
+## No global loading page
+
+`app/loading.tsx` makes Next start streaming, so a hidden report answered HTTP 200 instead of 404. The browser test caught it. Pages keep their own loading states.
+
+## Repeat AI requests reuse the first result
+
+The same photo within an hour reuses the result and keeps its original timing, so evaluation numbers stay honest. Failures are not kept. It is per server instance, so it reduces spend rather than guaranteeing a total.
+
+## A credit error stops AI for an hour on that instance
+
+402, or text naming quota, billing or credit. "Too many requests" alone is treated as busy. There is no fallback to anything paid. The limit that actually protects the account is on Meta's side.
+
+## AI on survey photos only when asked
+
+Each one is a paid call, so it runs only from a button. It lists things to go and look at, and fills in no answer.
+
+## "Nearby" barriers are a separate list
+
+They are labelled as being about other places and are not counted as this place's, which keeps the Phase 2 rule that a report belongs to its own place.
+
+## "Popular places" became "Places to start with"
+
+There is no visit data, so popularity was an unsupported claim.

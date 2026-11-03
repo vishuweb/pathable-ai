@@ -68,7 +68,7 @@ export default async function PlacePage({ params }: Params) {
     );
   }
 
-  const intelligence = await loadPlaceIntelligence(place, place.tags, place.lastEdited);
+  const intelligence = await loadPlaceIntelligence(place, place.tags, place.lastEdited, undefined, { latitude: place.latitude, longitude: place.longitude });
 
   const reportHere = `/report?${new URLSearchParams({
     osm: `${place.osmType}/${place.osmId}`,

@@ -98,6 +98,11 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
       text: "What has been looked at, what has not, and what to survey next. Import and export live here.",
     },
     {
+      href: "/owner/ai-usage",
+      title: "AI usage",
+      text: "Calls made to each Meta model, and whether AI is paused.",
+    },
+    {
       href: "/batch",
       title: "Batch analyze",
       text: "Analyze a folder of your own or web photos; each one joins the review queue.",

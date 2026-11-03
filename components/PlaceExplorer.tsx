@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { placePath, type PlaceResult } from "@/lib/place";
-import { PLACE_CATEGORIES, PLACE_CATEGORY_LABEL, type PlaceCategory } from "@/lib/place-categories";
+import { PLACE_CATEGORIES, PLACE_CATEGORY_LABEL, type PlaceCategory, type ShowFilter } from "@/lib/place-categories";
 import type { Provenance } from "@/lib/provenance";
 import type { ApiError } from "@/lib/types";
 import { usePreferences } from "@/lib/use-preferences";
@@ -39,25 +39,56 @@ interface Props {
   featureIndex: Record<string, [string, Provenance][]>;
   /** Which needs each feature answers. */
   featureNeeds: Record<string, string[]>;
+  signals: Record<string, PlaceSignals>;
+  initialShow?: ShowFilter;
   recent: RecentItem[];
+}
+
+export interface PlaceSignals {
+  openBarriers: number;
+  /** At least one published field survey is current. */
+  surveyed: boolean;
+  conflicts: number;
+  outdated: number;
 }
 
 const keyOf = (p: { osmType: string; osmId: number }) => `${p.osmType}${p.osmId}`;
 
 /** Campus places: search, filter by kind, list and map. Only places inside the campus ever appear. */
-export function PlaceExplorer({ regionName, boundary, places, initialQuery = "", initialCategory, featureIndex, featureNeeds, recent }: Props) {
+export function PlaceExplorer({ regionName, boundary, places, initialQuery = "", initialCategory, featureIndex, featureNeeds, signals, initialShow, recent }: Props) {
   const { preferences } = usePreferences();
   const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState<PlaceCategory | "">(initialCategory ?? "");
+  const [show, setShow] = useState<ShowFilter | "">(initialShow ?? "");
   const [results, setResults] = useState<PlaceResult[]>();
   const [status, setStatus] = useState("");
   const [searching, setSearching] = useState(false);
 
   const present = PLACE_CATEGORIES.filter((c) => places.some((p) => p.category === c));
-  const shown: PlaceResult[] = useMemo(
-    () => results ?? places.filter((p) => !category || p.category === category),
-    [results, places, category],
-  );
+  const needs = preferences.needs;
+  const shown: PlaceResult[] = useMemo(() => {
+    // Details for the visitor's needs, or all details if they have not chosen any.
+    const relevant = (p: PlaceResult) => {
+      const features = featureIndex[keyOf(p)] ?? [];
+      return needs.length ? features.filter(([id]) => featureNeeds[id]?.some((n) => needs.includes(n))) : features;
+    };
+    const passes = (p: PlaceResult) => {
+      const signal = signals[keyOf(p)];
+      switch (show) {
+        case "checked":
+          return Boolean(signal?.surveyed);
+        case "barriers":
+          return Boolean(signal?.openBarriers);
+        case "recorded":
+          return relevant(p).some(([, state]) => state !== "unknown");
+        case "gaps":
+          return !relevant(p).some(([, state]) => state !== "unknown");
+        default:
+          return true;
+      }
+    };
+    return (results ?? places.filter((p) => !category || p.category === category)).filter(passes);
+  }, [results, places, category, show, needs, featureIndex, featureNeeds, signals]);
   const mapPlaces = useMemo(
     () => shown.map((p) => ({ key: keyOf(p), name: p.name, href: placePath(p), latitude: p.latitude, longitude: p.longitude })),
     [shown],
@@ -136,7 +167,7 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
             value={query}
             maxLength={120}
             autoComplete="off"
-            placeholder="e.g. Central Library, Jasper Hostel, NLHC"
+            placeholder="Type a building, hostel, gate or facility"
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
@@ -162,19 +193,36 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
             ))}
           </select>
         </label>
+        <label className="field">
+          Show
+          <select value={show} onChange={(e) => setShow(e.target.value as ShowFilter | "")}>
+            <option value="">All places</option>
+            <option value="checked">Checked on site by the project team</option>
+            <option value="barriers">With an open barrier report</option>
+            <option value="recorded">With something recorded {needs.length ? "for my needs" : ""}</option>
+            <option value="gaps">Nothing recorded yet {needs.length ? "for my needs" : ""} (help fill the gap)</option>
+          </select>
+        </label>
         <NeedGroupChips heading="Your needs" headingLevel={3} />
       </div>
 
       <p role="status" className="muted list-status">
-        {status ||
-          `${shown.length} ${shown.length === 1 ? "place" : "places"} on campus${category ? `: ${PLACE_CATEGORY_LABEL[category].toLowerCase()}` : ""}.`}
+        {searching || !show
+          ? status || `${shown.length} ${shown.length === 1 ? "place" : "places"} on campus${category ? `: ${PLACE_CATEGORY_LABEL[category].toLowerCase()}` : ""}.`
+          : `${shown.length} ${shown.length === 1 ? "place matches" : "places match"} this filter.`}
       </p>
 
       <div className="explorer-layout">
         <CampusMap label={`Map of ${regionName} with the places listed`} boundary={boundary} places={mapPlaces} />
         {shown.length === 0 ? (
           <p className="empty-state">
-            {results ? `No matching place found within ${regionName} campus.` : "No places of this kind are recorded yet."}
+            {results && !show
+              ? `No matching place found within ${regionName} campus.`
+              : show === "checked"
+                ? "No place shown here has been checked on site yet. That means nobody has recorded a check, not that there is nothing to find."
+                : show === "barriers"
+                  ? "No place shown here has an open barrier report. That does not mean there are no barriers."
+                  : "No places match. Try another filter."}
           </p>
         ) : (
           <ul className="place-list">
@@ -185,6 +233,13 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
                   <Link href={placePath(p)}>{p.name}</Link>
                   <span className="muted">{p.kind}</span>
                   {note && <span className="place-indicator">{note}</span>}
+                  {signals[keyOf(p)]?.surveyed && <span className="place-indicator">Checked on site</span>}
+                  {Boolean(signals[keyOf(p)]?.openBarriers) && (
+                    <span className="place-indicator">
+                      {signals[keyOf(p)].openBarriers} open barrier {signals[keyOf(p)].openBarriers === 1 ? "report" : "reports"}
+                    </span>
+                  )}
+                  {Boolean(signals[keyOf(p)]?.conflicts) && <span className="place-indicator">Records disagree</span>}
                 </li>
               );
             })}

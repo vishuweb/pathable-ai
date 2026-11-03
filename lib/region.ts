@@ -9,6 +9,10 @@ export interface Region {
   fullName: string;
   location: string;
   active: boolean;
+  /** Real directory places to suggest on the home page. A starting point, not a measure of use. */
+  startPlaces?: string[];
+  /** Shown as a hint in search boxes. */
+  searchExample?: string;
   source: { osm: string; osmName: string; version: number; lastEdited: string; retrieved: string; license: string };
   bbox: { minLat: number; minLon: number; maxLat: number; maxLon: number };
   /** Closed ring of [longitude, latitude] points, as in GeoJSON. */

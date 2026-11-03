@@ -15,7 +15,8 @@ export async function loadPlaceIntelligence(
   tags: Record<string, string>,
   lastEdited?: string,
   now?: Date,
+  coordinates?: { latitude: number; longitude: number },
 ): Promise<PlaceIntelligence> {
   const [observations, reports, surveys] = await Promise.all([publicObservations(), publicReports(), publicSurveysAt(place, now)]);
-  return buildPlaceIntelligence({ place, tags, lastEdited, observations, reports, surveys, now });
+  return buildPlaceIntelligence({ place, tags, lastEdited, observations, reports, surveys, coordinates, now });
 }

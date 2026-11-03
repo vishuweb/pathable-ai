@@ -35,11 +35,15 @@ interface Centre {
 }
 
 /** Shared reports, optionally narrowed to the kinds of need a visitor cares about. */
+/** How many reports appear before "Show more", so a long list stays usable on a phone. */
+const PAGE_SIZE = 20;
+
 export function ReportList({ items }: { items: ReportListItem[] }) {
   const { preferences } = usePreferences();
   const [filter, setFilter] = useState<NeedGroup[]>([]);
   const [centre, setCentre] = useState<Centre>();
   const [locating, setLocating] = useState("");
+  const [limit, setLimit] = useState(PAGE_SIZE);
   const mine = groupsOf(preferences);
   const byNeed = filter.length ? items.filter((item) => item.needs.some((n) => filter.includes(n))) : items;
   const withDistance = byNeed.map((item) => ({
@@ -146,7 +150,7 @@ export function ReportList({ items }: { items: ReportListItem[] }) {
         </p>
       ) : (
         <ul className="report-list">
-          {shown.map(({ item, distance }) => (
+          {shown.slice(0, limit).map(({ item, distance }) => (
             <li key={item.id} className="report-item">
               {/* eslint-disable-next-line @next/next/no-img-element -- served by our own API route */}
               <img src={`/api/reports/${item.id}/image`} alt="" width={128} height={96} loading="lazy" />
@@ -174,6 +178,13 @@ export function ReportList({ items }: { items: ReportListItem[] }) {
             </li>
           ))}
         </ul>
+      )}
+      {shown.length > limit && (
+        <p>
+          <button type="button" className="button-secondary" onClick={() => setLimit(limit + PAGE_SIZE)}>
+            Show more reports ({shown.length - limit} left)
+          </button>
+        </p>
       )}
     </>
   );

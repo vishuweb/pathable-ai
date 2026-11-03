@@ -1,4 +1,5 @@
 import "server-only";
+import { AI_EXHAUSTED_MESSAGE, isCreditError, noteCreditExhausted } from "./ai-guard";
 import { META_BASE_URL, MissingApiKeyError } from "./meta";
 
 export const TRANSCRIPTION_MODEL = process.env.TRANSCRIPTION_MODEL ?? "muse-voice-transcribe-1.0";
@@ -60,7 +61,12 @@ export async function transcribeWav(wav: Uint8Array<ArrayBuffer>, signal?: Abort
   }
 
   if (!response.ok) {
-    console.error("[transcribe] Meta Model API returned", response.status, (await response.text()).slice(0, 300));
+    const detail = (await response.text()).slice(0, 300);
+    console.error("[transcribe] Meta Model API returned", response.status, detail);
+    if (isCreditError({ status: response.status, message: detail })) {
+      noteCreditExhausted();
+      throw new TranscriptionError(AI_EXHAUSTED_MESSAGE, 503);
+    }
     if (response.status === 429) throw new TranscriptionError("The voice service is busy. Please try again shortly.", 503);
     throw new TranscriptionError("The recording could not be transcribed. Please try again.", 502);
   }

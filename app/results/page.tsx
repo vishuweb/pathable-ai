@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CATEGORY_INFO } from "@/lib/categories";
+import { CATEGORY_INFO, LEVEL_LABEL } from "@/lib/categories";
 import { ALL_DATASETS, computeMetrics, evaluationReports, rate, type DatasetMetrics, type Rate } from "@/lib/metrics";
 import { ownerKeyRequired } from "@/lib/owner";
 import { publicReports } from "@/lib/moderation-store";
@@ -70,6 +70,8 @@ export default async function ResultsPage() {
 
           <MetricsTable metrics={metrics} />
           <CategoryTable metrics={all} />
+          <Calibration metrics={all} />
+          <ErrorAnalysis metrics={all} />
           <Definitions />
         </>
       )}
@@ -177,6 +179,82 @@ function CategoryTable({ metrics }: { metrics: DatasetMetrics }) {
   );
 }
 
+function Calibration({ metrics }: { metrics: DatasetMetrics }) {
+  const levels = ["high", "medium", "low"] as const;
+  return (
+    <div className="table-wrap" tabIndex={0} role="region" aria-label="Does the AI's stated confidence mean anything?">
+      <table className="metrics-table">
+        <caption>Does the AI&apos;s stated confidence mean anything?</caption>
+        <thead>
+          <tr>
+            <th scope="col">Confidence the AI stated</th>
+            <th scope="col">Findings that were real barriers</th>
+          </tr>
+        </thead>
+        <tbody>
+          {levels.map((level) => (
+            <tr key={level}>
+              <th scope="row">{LEVEL_LABEL[level]}</th>
+              <td>
+                <RateCell rate={metrics.calibration[level]} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ErrorAnalysis({ metrics }: { metrics: DatasetMetrics }) {
+  const falseAlarms = metrics.byCategory.map((c) => ({ label: CATEGORY_INFO[c.category].label, count: c.aiFindings - c.precision.numerator })).filter((c) => c.count > 0).sort((a, b) => b.count - a.count);
+  const missed = metrics.byCategory.map((c) => ({ label: CATEGORY_INFO[c.category].label, count: c.verified - c.recall.numerator })).filter((c) => c.count > 0).sort((a, b) => b.count - a.count);
+  return (
+    <section aria-labelledby="errors-title">
+      <h2 id="errors-title">Where the AI goes wrong</h2>
+      <h3>Suggested, but not a real barrier</h3>
+      {falseAlarms.length ? (
+        <ul className="overview-facts">
+          {falseAlarms.map((c) => (
+            <li key={c.label}>
+              {c.label}: {c.count}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">None recorded yet.</p>
+      )}
+      <h3>Real barriers it missed</h3>
+      {missed.length ? (
+        <ul className="overview-facts">
+          {missed.map((c) => (
+            <li key={c.label}>
+              {c.label}: {c.count}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">None recorded yet.</p>
+      )}
+      <h3>Put in the wrong category</h3>
+      {metrics.confusions.length ? (
+        <ul className="overview-facts">
+          {metrics.confusions.map((c) => (
+            <li key={`${c.from}${c.to}`}>
+              Said {CATEGORY_INFO[c.from].label}, was {CATEGORY_INFO[c.to].label}: {c.count}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">None recorded yet.</p>
+      )}
+      <p className="muted">
+        Reviewed by: the owner {metrics.labelers.owner}, an invited reviewer {metrics.labelers.reviewer}, not recorded {metrics.labelers.notRecorded}. No photo has been labelled independently by two people, so agreement between reviewers cannot be measured yet.
+      </p>
+    </section>
+  );
+}
+
 function Definitions() {
   return (
     <section className="definitions" aria-labelledby="definitions-title">
@@ -200,8 +278,10 @@ function Definitions() {
         </dd>
       </dl>
       <p className="muted">
-        Limits: one reviewer per photo, photos chosen by the reviewer rather than sampled at random, and web photos
-        that may differ from local streets. Treat these as early measurements, not certified accuracy.
+        Limits: one reviewer per photo, so these are one person&apos;s judgement rather than independent ground truth; photos
+        chosen by the reviewer rather than sampled at random; web photos that may differ from local streets; and reviewers see the
+        AI&apos;s suggestions first, which can sway them. Treat these as early measurements, not certified accuracy, and not a
+        measure of how accessible any place is.
       </p>
     </section>
   );

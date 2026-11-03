@@ -1,4 +1,5 @@
 import "server-only";
+import { AI_EXHAUSTED_MESSAGE, aiExhausted } from "./ai-guard";
 import { ownerKeyRequired, roleOf } from "./owner";
 
 // Limits on what a public visitor can do. Each limit below is in memory, so each server instance
@@ -81,6 +82,7 @@ export async function limitAiRequest(bucket: string, request: Request): Promise<
   if (process.env.AI_PAUSED === "1") {
     return { status: 503, error: "AI analysis is paused on this demo. Please try again later." };
   }
+  if (aiExhausted()) return { status: 503, error: AI_EXHAUSTED_MESSAGE };
   if (!(await allowRequest(bucket, request))) return { status: 429, error: RATE_LIMITED };
   // A daily cap on all AI calls together (every visitor, including the owner), so a public link
   // cannot run up the API bill.

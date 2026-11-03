@@ -2,6 +2,7 @@ import "server-only";
 import { del, get, list, put } from "@vercel/blob";
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { UsageDay } from "./ai-guard";
 import type { Observation } from "./observations";
 import type { AnalysisDraft, SavedReport } from "./report";
 import type { Sublocation, Survey, SurveyPhoto, SurveyPriority } from "./survey";
@@ -152,6 +153,7 @@ export const surveys = collection<Survey>("surveys");
 export const sublocations = collection<Sublocation>("sublocations");
 export const surveyPhotos = collection<SurveyPhoto>("survey-photos");
 export const surveyPriorities = collection<SurveyPriority>("survey-priorities");
+export const aiUsage = collection<UsageDay>("ai-usage");
 
 function isNotFound(error: unknown): boolean {
   return (error as NodeJS.ErrnoException)?.code === "ENOENT";
