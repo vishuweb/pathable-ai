@@ -25,7 +25,7 @@ Updated at each milestone. Plan: [PROJECT_MASTER_PLAN.md](PROJECT_MASTER_PLAN.md
 
 ## Latest verified results
 
-Branch `phase3-field-survey`. Lint clean, typecheck clean, 159 unit and API tests pass, 16 browser tests pass, production build compiles. All with mocked Meta and map services. Nothing here has been verified on the live site. CI passed on GitHub for commit `93af3d1` (lint, typecheck, unit and API tests, build; the browser tests run locally only).
+Branch `phase3-field-survey`. Lint clean, typecheck clean, 159 unit and API tests pass, 16 browser tests pass, production build compiles. All with mocked Meta and map services. CI passed on GitHub for commit `93af3d1` (lint, typecheck, unit and API tests, build; the browser tests run locally only).
 
 ## Deployment
 
