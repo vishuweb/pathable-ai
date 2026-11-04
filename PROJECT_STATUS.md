@@ -16,7 +16,8 @@ Updated at each milestone. Plan: [PROJECT_MASTER_PLAN.md](PROJECT_MASTER_PLAN.md
 | 8 Performance and CI | Partly done, deployed | CI workflow, reports paging, campus names moved to config. Place pages still list all records on each view |
 | 9 Final acceptance | Done against mocks only | See docs/ACCEPTANCE.md |
 
-| Redesign | Done on branch `redesign`, not deployed | Design system, home, explorer, profile, guided report, reports, needs, owner workspace, demo |
+| Redesign | Deployed (`main` 529a70e, authorised by the owner) | Design system, home, explorer, profile, guided report, reports, needs, owner workspace, demo |
+| Final sprint | On `redesign`, not deployed | Place pages no longer repeat overview details, explore list paged 20 at a time, dead code removed, HACKATHON_CONTRIBUTIONS.md, demo plan in docs/demo/ |
 
 ## Blockers needing the owner
 
@@ -27,11 +28,11 @@ Updated at each milestone. Plan: [PROJECT_MASTER_PLAN.md](PROJECT_MASTER_PLAN.md
 
 ## Latest verified results
 
-Branch `redesign`. Lint clean, typecheck clean, 163 unit and API tests pass, 19 browser tests pass, production build compiles. All with mocked Meta and map services. CI passed on GitHub for commit `93af3d1` (lint, typecheck, unit and API tests, build; the browser tests run locally only).
+Branch `redesign`, 2026-11-04. Lint clean, typecheck clean, 163 unit and API tests pass, 19 of 19 browser tests pass, 99 Playwright UI checks pass (two owner pages after a test-timing fix), production build compiles. All with mocked Meta and map services. CI passed on GitHub for commit `93af3d1` (lint, typecheck, unit and API tests, build; the browser tests run locally only).
 
 ## Deployment
 
-`main` and production are at `7b52dbe`, authorised by the owner. Live read-only checks passed: see the final report in the session. No live Meta call has been made, on hold by the owner.
+`main` and production are at `529a70e` (the redesign), authorised by the owner on 2026-11-04. Live read-only checks passed: see the final report in the session. No live Meta call has been made, on hold by the owner.
 
 ## Next action
 
