@@ -274,11 +274,6 @@ const RULES: Rule[] = [
 /** Every feature a place profile can describe, with its label, group and the needs it serves. */
 export const PLACE_FEATURES = RULES.map(({ id, group, needIds, label, appliesTo }) => ({ id, group, needIds, label, crossingOnly: appliesTo === isCrossing }));
 
-/** True for features OpenStreetMap can hold; the rest come only from contributed observations. */
-export function osmCanRecord(featureId: string): boolean {
-  return (RULES.find((r) => r.id === featureId)?.keys.length ?? 0) > 0;
-}
-
 /** The accessibility attributes of a place, known and unknown, in a stable order. */
 export function placeAttributes(tags: Record<string, string>): PlaceAttribute[] {
   return RULES.filter((rule) => !rule.appliesTo || rule.appliesTo(tags)).map((rule) => {

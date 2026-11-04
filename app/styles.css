@@ -1353,9 +1353,11 @@ main:has(> .landing) {
   gap: 1.5rem 2rem;
 }
 
+/* Large numbers use 500: this typeface slashes its zero, which is heavy when bold. */
 .fact-row dd {
+  order: 1;
   font-size: var(--text-2xl);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.025em;
   line-height: 1.1;
 }
@@ -1370,10 +1372,6 @@ main:has(> .landing) {
 .fact-row > div {
   display: flex;
   flex-direction: column;
-}
-
-.fact-row dd {
-  order: 1;
 }
 
 .recent-grid {
@@ -1843,7 +1841,7 @@ main:has(> .landing) {
 }
 
 .glance dd {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .profile-side-note {
@@ -2804,7 +2802,7 @@ main:has(> .landing) {
 .metric dd {
   order: 1;
   font-size: var(--text-2xl);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.025em;
   line-height: 1.1;
 }
@@ -3053,7 +3051,7 @@ main:has(.workspace-nav) h2 {
 
 .stat-value {
   font-size: var(--text-2xl);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.025em;
 }
 
@@ -3459,21 +3457,6 @@ main dd > a:only-child {
   display: inline-block;
 }
 
-/* Large numbers in a lighter weight: this typeface slashes its zero, which is heavy when bold. */
-.metric dd,
-.fact-row dd,
-.stat-value {
-  font-weight: 500;
-}
-
-.metric dd.metric-definition {
-  font-weight: 400;
-}
-
-.glance dd {
-  font-weight: 500;
-}
-
 .flow-title {
   margin-bottom: 1.25rem;
   color: var(--muted);
@@ -3500,4 +3483,8 @@ main :is(h2, h3) > a {
 
 .step-heading:focus {
   outline: none;
+}
+
+.list-more {
+  margin-top: 1rem;
 }

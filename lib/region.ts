@@ -42,10 +42,3 @@ export function inRegion(region: Region, latitude: number, longitude: number): b
   }
   return inside;
 }
-
-export function regionCentre(region: Region): { latitude: number; longitude: number } {
-  return {
-    latitude: (region.bbox.minLat + region.bbox.maxLat) / 2,
-    longitude: (region.bbox.minLon + region.bbox.maxLon) / 2,
-  };
-}

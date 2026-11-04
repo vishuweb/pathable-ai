@@ -270,6 +270,9 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
   const known = features.filter((f) => f.current !== "unknown");
   const unknownOthers = rest.filter((f) => f.current === "unknown");
   const key = KEY_FEATURES.flatMap((id) => features.find((f) => f.id === id) ?? []);
+  // The overview already lists these, so the section below shows only the rest.
+  const inOverview = new Set((!loaded ? [] : chosen.length === 0 ? key : mine).map((f) => f.id));
+  const knownElsewhere = known.filter((f) => !inOverview.has(f.id));
   const barrierById = new Map([...barriers, ...resolved].map((b) => [b.reportId, b]));
   const contributionById = new Map(contributions.map((c) => [c.id, c]));
   const groups = orderGroups(chosen);
@@ -388,7 +391,7 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
       )}
 
       <section aria-labelledby="known-title" className="profile-section">
-        <h2 id="known-title">What is known</h2>
+        <h2 id="known-title">{inOverview.size > 0 ? "Other recorded details" : "What is known"}</h2>
         {known.length > 0 && (
           <details className="source-details">
             <summary>Where this information comes from</summary>
@@ -397,9 +400,11 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
         )}
         {known.length === 0 ? (
           <p className="empty-state">Nothing has been recorded about this place yet. You can be the first to add something.</p>
+        ) : knownElsewhere.length === 0 ? (
+          <p className="muted">Everything recorded here is in your overview above.</p>
         ) : (
           groups.map((group, index) => {
-            const rows = known.filter((f) => f.group === group);
+            const rows = knownElsewhere.filter((f) => f.group === group);
             if (!rows.length) return null;
             return (
               <details key={group} className="known-group" open={index === 0 || myGroups.includes(group) || rows.length <= 3}>

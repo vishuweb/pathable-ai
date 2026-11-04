@@ -20,7 +20,9 @@ Built for the Meta Global AI Developer Hackathon with the Meta Model API:
 
 **Docs:** [Architecture](docs/ARCHITECTURE.md) · [Roadmap and status](docs/ROADMAP.md) · [Evaluation plan](docs/EVALUATION.md) · [Place intelligence](docs/PLACE-INTELLIGENCE.md) · [Field survey](docs/FIELD-SURVEY.md) · [Project status](PROJECT_STATUS.md) · [Acceptance](docs/ACCEPTANCE.md) · [Security and privacy](docs/SECURITY-PRIVACY.md) · [Public-beta readiness](docs/BETA-READINESS.md) · [Demo script](docs/DEMO.md) · [Submission checklist](docs/SUBMISSION.md)
 
-**Built during the hackathon.** Everything here was written during the hackathon window (Oct 26 – Nov 4, 2026); the git history starts on Oct 29. See [what was built](docs/SUBMISSION.md#5-built-during-the-hackathon).
+**Built during the hackathon.** Everything here was written during the hackathon window (Oct 26 – Nov 4, 2026); the git history starts on Oct 29. See [HACKATHON_CONTRIBUTIONS.md](HACKATHON_CONTRIBUTIONS.md) for what was built, with commits.
+
+**Try it in one journey:** choose your needs on **My needs**, search for *library*, open **Central Library**, then **Report a barrier here**. The [demo script](docs/DEMO.md) has the full walk-through, and `/demo` has four illustrative scenarios that need no AI and save nothing.
 
 ## Quick start
 

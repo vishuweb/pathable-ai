@@ -75,6 +75,8 @@ const CATEGORY_ICON: Partial<Record<PlaceCategory, IconName>> = {
 type Sort = "name" | "recorded" | "barriers";
 
 /** Campus places: search, filter, sort, list and map. Only places inside the campus ever appear. */
+const PAGE = 20;
+
 export function PlaceExplorer({ regionName, boundary, places, initialQuery = "", initialCategory, focusSearch, featureIndex, featureNeeds, signals, initialShow, recent }: Props) {
   const { preferences } = usePreferences();
   const [query, setQuery] = useState(initialQuery);
@@ -88,6 +90,8 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
   const [results, setResults] = useState<PlaceResult[]>();
   const [status, setStatus] = useState("");
   const [searching, setSearching] = useState(false);
+  // A long list is shown a page at a time; a new search or filter starts again at the top.
+  const [limit, setLimit] = useState({ for: "", count: PAGE });
   const searchBox = useRef<HTMLInputElement>(null);
   const needs = preferences.needs;
 
@@ -139,6 +143,9 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
     // A search keeps its relevance order unless another order is chosen.
     return results ? list : [...list].sort((a, b) => a.name.localeCompare(b.name));
   }, [results, places, category, categoryOf, show, sort, relevant, signals]);
+
+  const listKey = [results ? "search" : "", category, show, sort].join("|");
+  const visible = limit.for === listKey ? limit.count : PAGE;
 
   const mapPlaces = useMemo(() => shown.map((p) => ({ key: keyOf(p), name: p.name, href: placePath(p), latitude: p.latitude, longitude: p.longitude })), [shown]);
 
@@ -299,7 +306,7 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
             <p className="empty-state">{emptyMessage}</p>
           ) : (
             <ul className="place-list">
-              {shown.map((p) => {
+              {shown.slice(0, visible).map((p) => {
                 const signal = signals[keyOf(p)];
                 const note = indicator(p);
                 const kind = categoryOf.get(keyOf(p));
@@ -328,6 +335,11 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
                 );
               })}
             </ul>
+          )}
+          {shown.length > visible && (
+            <button type="button" className="button-secondary list-more" onClick={() => setLimit({ for: listKey, count: visible + PAGE })}>
+              Show {Math.min(PAGE, shown.length - visible)} more of {shown.length - visible}
+            </button>
           )}
         </div>
       </div>

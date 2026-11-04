@@ -77,6 +77,8 @@ for (const width of WIDTHS) {
         await page.goto("/owner");
         await page.fill('input[name="key"]', LOCAL_OWNER_KEY);
         await Promise.all([page.waitForURL("**/owner"), page.click('button[type="submit"]')]);
+        // Let the dashboard finish loading, so any error on it is reported against it and not the next page.
+        await page.waitForLoadState("networkidle");
         await inspect(page, path, width);
       });
     }

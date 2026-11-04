@@ -6,10 +6,6 @@ export function formatDateTime(iso: string): string {
   return dateTime.format(new Date(iso));
 }
 
-export function formatSeconds(ms: number): string {
-  return `${(ms / 1000).toFixed(1)} s`;
-}
-
 export function formatDuration(ms: number): string {
   const seconds = Math.round(ms / 1000);
   return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min ${seconds % 60} s`;

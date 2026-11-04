@@ -217,7 +217,11 @@ export function DemoScenario({ scenario }: { scenario: Scenario }) {
       {step === 2 && (
         <section className="flow-panel" aria-labelledby="demo-ai">
           <h2 id="demo-ai" tabIndex={-1} className="step-heading">Review the AI&apos;s suggestions</h2>
-          <p className="muted">These sample suggestions start as AI suggested. Only your decision takes them further.</p>
+          <p className="muted">
+            On the real site, Muse Spark 1.3 suggests possible barriers in your photo and SAM 3.1 outlines the evidence for each. Here the
+            picture is drawn and the outlines are fixed samples: no model is called. The suggestions start as AI suggested, and only your
+            decision takes them further.
+          </p>
           <div className="demo-evidence">
             <Illustration
               kind={scenario.illustration}

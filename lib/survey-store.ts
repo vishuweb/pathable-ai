@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { PlaceRef } from "./place";
 import { publicSurvey, type PublicSurvey, type Survey } from "./survey";
-import { sublocations, surveyPriorities, surveys } from "./store";
+import { sublocations, surveys } from "./store";
 
 /** Later approved surveys replace earlier ones in the current picture; the earlier ones stay in the history. */
 function supersededMap(all: Survey[]): Map<string, string> {
@@ -28,5 +28,3 @@ export function priorityId(place: Pick<PlaceRef, "osmType" | "osmId">): string {
   const h = createHash("sha256").update(`priority:${place.osmType}/${place.osmId}`).digest("hex");
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
-
-export const listPriorities = () => surveyPriorities.list();

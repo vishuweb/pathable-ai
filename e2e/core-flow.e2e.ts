@@ -318,6 +318,8 @@ test("campus places: search stays on campus, the map shows the boundary, and a p
   await (await page.waitForSelector('xpath/.//div[contains(@class,"view-toggle")]//button[contains(., "Map")]'))!.click();
   await page.waitForSelector(".campus-map path.leaflet-interactive");
   await (await page.waitForSelector('xpath/.//div[contains(@class,"view-toggle")]//button[contains(., "List")]'))!.click();
+  assert.equal(await page.$$eval(".place-list li", (l) => l.length), 20, "a long list starts with one page");
+  await showAll(page);
   const listed = await page.$$eval(".place-list li a", (a) => a.map((x) => x.textContent ?? ""));
   assert.ok(listed.length > 50, "the campus directory is listed");
   assert.equal(new Set(listed).size, listed.length, "no two entries have the same name");
@@ -393,6 +395,14 @@ async function openLibraryFromHome(page: Page): Promise<string> {
   return page.$eval("main", (m) => (m as HTMLElement).innerText);
 }
 
+// The explorer lists a page at a time.
+const showAll = async (page: Page) => {
+  for (let more = await page.$(".list-more"); more; more = await page.$(".list-more")) {
+    await more.click();
+    await new Promise((r) => setTimeout(r, 100));
+  }
+};
+
 const section = (text: string, from: string, to: string) => text.slice(text.indexOf(from), text.indexOf(to));
 
 test("journey 1, mobility: step-free, ramp, lift, entrance and toilet information, with unknowns named", { skip: !CHROME && "Chrome not found" }, async () => {
@@ -418,7 +428,7 @@ test("journey 1, mobility: step-free, ramp, lift, entrance and toilet informatio
 test("journey 2, visual: tactile, obstacle, lighting and wayfinding information, with unknowns named", { skip: !CHROME && "Chrome not found" }, async () => {
   const page = await openAs(["Visual"]);
   await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
-  const overview = section(await page.$eval("main", (m) => (m as HTMLElement).innerText), "Your accessibility overview", "What is known");
+  const overview = section(await page.$eval("main", (m) => (m as HTMLElement).innerText), "Your accessibility overview", "Reported barriers");
   assert.match(overview, /For your needs: Vision/);
   for (const label of ["Tactile paving", "Obstacles a cane may miss on the way in", "Lighting", "High-contrast or audio guidance signs"]) {
     assert.match(overview, new RegExp(`${label}\\s+Unknown`), `${label} is unknown, not assumed`);
@@ -431,7 +441,7 @@ test("journey 3, hearing: visual alerts and communication facilities, with no as
   const page = await openAs(["Hearing"]);
   await page.goto(BASE + LIBRARY_PATH, { waitUntil: "networkidle0" });
   const text = await page.$eval("main", (m) => (m as HTMLElement).innerText);
-  const overview = section(text, "Your accessibility overview", "What is known");
+  const overview = section(text, "Your accessibility overview", "Reported barriers");
   assert.match(overview, /For your needs: Hearing/);
   assert.match(overview, /Visual emergency alarms and written notices\s+Unknown/);
   assert.match(overview, /Hearing loop\s+Unknown/);
@@ -479,8 +489,9 @@ test("journey 4, contribution: observe a feature, report a barrier at the place,
   const overview = await page.$eval(".overview", (o) => (o as HTMLElement).innerText);
   assert.match(overview, /Ramp\s+Community reported\s+Community reported: There, but blocked · An entrance · last seen \d{4}-\d{2}-\d{2}/);
   assert.match(overview, /Applies to one entrance, not to every entrance at this place\./, "a local finding says how far it reaches");
+  assert.match(overview, /Community reported: There, but blocked.*“A bike rack stands in front of the ramp\.”/s);
   const known = await page.$eval("#known-title", (h) => (h.parentElement as HTMLElement).innerText);
-  assert.match(known, /Community reported: There, but blocked.*“A bike rack stands in front of the ramp\.”/s);
+  assert.ok(!known.includes("A bike rack stands"), "what the overview shows is not repeated below it");
 
   // Report a barrier with a photo, pre-filled with this place.
   mock.replies.chat = { kind: "content", content: modelReply([finding("Bike rack blocks the ramp", {})]) };
@@ -638,8 +649,10 @@ test("discovery: filters use real records, and empty results do not read as good
   const choose = async (value: string) => {
     await page.select(showSelect, value);
     await new Promise((r) => setTimeout(r, 500));
+    await showAll(page);
     return page.$$eval(".place-list li a", (a) => a.map((x) => x.textContent ?? ""));
   };
+  await showAll(page);
   const all = await page.$$eval(".place-list li a", (a) => a.length);
   const barriers = await choose("barriers");
   assert.deepEqual(barriers, ["Central Library"], "the only place with an approved linked report");
