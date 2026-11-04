@@ -17,7 +17,7 @@ Updated at each milestone. Plan: [PROJECT_MASTER_PLAN.md](PROJECT_MASTER_PLAN.md
 | 9 Final acceptance | Done against mocks only | See docs/ACCEPTANCE.md |
 
 | Redesign | Deployed (`main` 529a70e, authorised by the owner) | Design system, home, explorer, profile, guided report, reports, needs, owner workspace, demo |
-| Final sprint | On `redesign`, not deployed | Place pages no longer repeat overview details, explore list paged 20 at a time, dead code removed, HACKATHON_CONTRIBUTIONS.md, demo plan in docs/demo/ |
+| Final sprint | Deployed (`main` b7e517f, authorised by the owner) | Place pages no longer repeat overview details, explore list paged 20 at a time, dead code removed, HACKATHON_CONTRIBUTIONS.md, demo plan in docs/demo/ |
 
 ## Blockers needing the owner
 
@@ -32,7 +32,7 @@ Branch `redesign`, 2026-11-04. Lint clean, typecheck clean, 163 unit and API tes
 
 ## Deployment
 
-`main` and production are at `529a70e` (the redesign), authorised by the owner on 2026-11-04. Live read-only checks passed: see the final report in the session. No live Meta call has been made, on hold by the owner.
+`main` and production are at `b7e517f`, authorised by the owner on 2026-11-04. Live checks passed: pages respond, the explore list pages, the profile shows "Other recorded details", the demo notice shows, no page errors. Live read-only checks passed: see the final report in the session. No live Meta call has been made, on hold by the owner.
 
 ## Next action
 
