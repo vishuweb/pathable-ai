@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { directory } from "@/lib/campus-directory";
 import { formatDateTime } from "@/lib/format";
 import { publicObservations, publicReports } from "@/lib/moderation-store";
+import { NEED_GROUPS } from "@/lib/needs";
 import { placePath } from "@/lib/place";
 import { PLACE_CATEGORY_LABEL, type PlaceCategory } from "@/lib/place-categories";
 import { PROVENANCE_INFO, type Provenance } from "@/lib/provenance";
@@ -40,7 +41,13 @@ export default async function HomePage() {
     <div className="landing">
       <section className="hero" aria-labelledby="home-title">
         <div>
-          <h1 id="home-title">Explore your campus with confidence.</h1>
+          <p className="hero-badge">
+            <span className="hero-badge-dot" aria-hidden="true" />
+            Piloting at {region.name} · Built with Meta AI
+          </p>
+          <h1 id="home-title">
+            Explore your campus <span className="hero-accent">with confidence.</span>
+          </h1>
           <p className="hero-lead">Discover places, understand accessibility information relevant to your needs, and help create a more inclusive campus.</p>
           <form action="/places" method="get" role="search" className="destination-search">
             <label htmlFor="destination" className="visually-hidden">
@@ -72,6 +79,25 @@ export default async function HomePage() {
           <figcaption>The real campus boundary and {places.length} places from OpenStreetMap. Being on this map does not mean a place has been checked.</figcaption>
         </figure>
       </section>
+
+      <dl className="hero-stats">
+        <div>
+          <dt>Campus places mapped</dt>
+          <dd>{places.length}</dd>
+        </div>
+        <div>
+          <dt>Kinds of need, from mobility to hearing</dt>
+          <dd>{NEED_GROUPS.length}</dd>
+        </div>
+        <div>
+          <dt>Meta models: Muse Spark, SAM 3.1, Muse Voice</dt>
+          <dd>3</dd>
+        </div>
+        <div>
+          <dt>Scores or guesses. Unknown stays unknown</dt>
+          <dd>0</dd>
+        </div>
+      </dl>
 
       <section aria-labelledby="needs-title" className="home-section home-rule home-needs">
         <div>

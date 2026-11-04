@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Dialog } from "./ui/Dialog";
 import { Icon } from "./ui/Icon";
+import { ThemeToggle } from "./ui/ThemeToggle";
 
 const LINKS = [
   { href: "/places", label: "Explore campus", match: "/places" },
@@ -29,11 +30,13 @@ export function SiteNav() {
             {link.label}
           </Link>
         ))}
+        <ThemeToggle />
         <Link href="/report" className="nav-cta" aria-current={pathname === "/report" ? "page" : undefined}>
           Report a barrier
         </Link>
       </nav>
       <div className="site-nav-compact">
+        <ThemeToggle />
         <Link href="/report" className="nav-cta" aria-current={pathname === "/report" ? "page" : undefined}>
           <span>Report</span>
         </Link>
