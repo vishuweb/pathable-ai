@@ -231,7 +231,7 @@ export function ReviewSession({
                 <h2 id="save-heading">Add details and share</h2>
                 <fieldset className="plain-fieldset" disabled={saved}>
                   <legend className="visually-hidden">Report details</legend>
-                  <MissedIssuesEditor issues={missedIssues} onChange={setMissedIssues} />
+                  <MissedIssuesEditor issues={missedIssues} onChange={setMissedIssues} manual={manual} />
                   <LocationField value={location} onChange={setLocation} />
                   <fieldset className="field-group">
                     <legend>

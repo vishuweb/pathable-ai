@@ -30,13 +30,11 @@ export function SiteNav() {
           </Link>
         ))}
         <Link href="/report" className="nav-cta" aria-current={pathname === "/report" ? "page" : undefined}>
-          <Icon name="camera" size={18} />
           Report a barrier
         </Link>
       </nav>
       <div className="site-nav-compact">
         <Link href="/report" className="nav-cta" aria-current={pathname === "/report" ? "page" : undefined}>
-          <Icon name="camera" size={18} />
           <span>Report</span>
         </Link>
         <button type="button" className="icon-button" onClick={() => setOpen(true)}>

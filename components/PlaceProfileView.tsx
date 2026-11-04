@@ -22,6 +22,9 @@ interface Props {
   isOwner?: boolean;
   /** Observations can be added only to places in the campus directory. */
   canContribute?: boolean;
+  /** The place's position on the campus outline, drawn on the server. */
+  map?: React.ReactNode;
+  osmEdited?: string;
 }
 
 type Response = {
@@ -244,7 +247,7 @@ function BarrierCard({ barrier, affectsYou }: { barrier: Barrier; affectsYou?: b
 const KEY_FEATURES = ["wheelchair", "step_free_entrance", "steps", "ramp", "lift", "toilets_wheelchair", "tactile_paving", "hearing_loop", "signage"];
 
 /** A place's accessibility profile, ordered around the visitor's own needs. */
-export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, isOwner, canContribute = true }: Props) {
+export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, isOwner, canContribute = true, map, osmEdited }: Props) {
   const { preferences, loaded } = usePreferences();
   const { features, barriers, resolved, contributions, surveys, summary } = intelligence;
   const [featureId, setFeatureId] = useState(features[0]?.id ?? "");
@@ -300,67 +303,7 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
 
   return (
     <div className="profile">
-      <nav aria-label="On this page" className="profile-jump">
-        <a href="#overview-title">Your overview</a>
-        <a href="#reports-title">Barriers{barriers.length ? ` (${barriers.length})` : ""}</a>
-        <a href="#known-title">Known</a>
-        <a href="#surveyed-title">Checked on site</a>
-        <a href="#unknown-title">Unknown ({summary.unknown})</a>
-        <a href="#community-title">Community</a>
-        <a href="#contribute">Contribute</a>
-      </nav>
-      <section aria-labelledby="place-overview-title" className="profile-summary">
-        <h2 id="place-overview-title">Place overview</h2>
-        <dl className="summary-tiles">
-          <div className="tile-osm">
-            <dt>Recorded in OpenStreetMap</dt>
-            <dd>{summary.byProvenance.osm}</dd>
-          </div>
-          <div className="tile-community">
-            <dt>Recorded by the project team</dt>
-            <dd>{summary.byProvenance.owner_recorded}</dd>
-          </div>
-          <div className="tile-community">
-            <dt>Reported by visitors</dt>
-            <dd>{summary.byProvenance.community}</dd>
-          </div>
-          <div className="tile-verified">
-            <dt>Independently verified</dt>
-            <dd>{summary.byProvenance.verified}</dd>
-          </div>
-          <div className="tile-unknown">
-            <dt>Still unknown</dt>
-            <dd>{summary.unknown}</dd>
-          </div>
-        </dl>
-        <p className="muted">
-          {summary.withRecord} of the {summary.features} details this page can hold have at least one record. That is a count of what is
-          recorded, not a rating: a place is never called accessible because some details are recorded, and a place with no reports has
-          not been shown to have no barriers.
-        </p>
-        <ul className="overview-facts">
-          <li>
-            {summary.openBarriers === 0
-              ? "No open barrier reports are linked to this place."
-              : `${summary.openBarriers} open barrier ${summary.openBarriers === 1 ? "report" : "reports"} linked to this place.`}
-          </li>
-          {summary.conflicts > 0 && (
-            <li>
-              {summary.conflicts} {summary.conflicts === 1 ? "detail has" : "details have"} records that disagree.
-            </li>
-          )}
-          {summary.outdated > 0 && (
-            <li>
-              {summary.outdated} {summary.outdated === 1 ? "detail was" : "details were"} last seen more than two years ago.
-            </li>
-          )}
-          <li>
-            {summary.lastObservedOn ? `Most recent observation: ${summary.lastObservedOn}.` : "No visitor has observed anything here yet."}
-            {summary.lastUpdatedAt && ` Last updated ${date(summary.lastUpdatedAt)}.`}
-          </li>
-        </ul>
-      </section>
-
+      <div className="profile-main">
       <section aria-labelledby="overview-title" className="profile-section overview">
         <h2 id="overview-title">Your accessibility overview</h2>
         {!loaded ? null : chosen.length === 0 ? (
@@ -446,10 +389,12 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
 
       <section aria-labelledby="known-title" className="profile-section">
         <h2 id="known-title">What is known</h2>
-        <details className="source-details">
-          <summary>Where this information comes from</summary>
-          <p className="source-note">{sourceNote}</p>
-        </details>
+        {known.length > 0 && (
+          <details className="source-details">
+            <summary>Where this information comes from</summary>
+            <p className="source-note">{sourceNote}</p>
+          </details>
+        )}
         {known.length === 0 ? (
           <p className="empty-state">Nothing has been recorded about this place yet. You can be the first to add something.</p>
         ) : (
@@ -628,6 +573,58 @@ export function PlaceProfileView({ place, intelligence, reportHref, sourceNote, 
           </p>
         )}
       </section>
+      </div>
+
+      <aside className="profile-side" aria-labelledby="place-overview-title">
+        {map}
+        <h2 id="place-overview-title" className="visually-hidden">
+          Place overview
+        </h2>
+        <dl className="glance">
+          <div>
+            <dt>Details recorded</dt>
+            <dd>
+              {summary.withRecord} of {summary.features}
+            </dd>
+          </div>
+          <div>
+            <dt>Open barrier reports</dt>
+            <dd>{summary.openBarriers}</dd>
+          </div>
+          {summary.conflicts > 0 && (
+            <div>
+              <dt>Records disagree</dt>
+              <dd>{summary.conflicts}</dd>
+            </div>
+          )}
+          {summary.outdated > 0 && (
+            <div>
+              <dt>Last seen over 2 years ago</dt>
+              <dd>{summary.outdated}</dd>
+            </div>
+          )}
+          <div>
+            <dt>Recorded in OpenStreetMap</dt>
+            <dd>{summary.byProvenance.osm}</dd>
+          </div>
+          <div>
+            <dt>Recorded by the project team</dt>
+            <dd>{summary.byProvenance.owner_recorded}</dd>
+          </div>
+          <div>
+            <dt>Reported by visitors</dt>
+            <dd>{summary.byProvenance.community}</dd>
+          </div>
+          <div>
+            <dt>Independently verified</dt>
+            <dd>{summary.byProvenance.verified}</dd>
+          </div>
+        </dl>
+        <p className="profile-side-note">
+          {summary.lastObservedOn ? `Most recent observation ${summary.lastObservedOn}. ` : osmEdited ? `OpenStreetMap record edited ${osmEdited}. ` : ""}
+          These are counts, not a rating. A place is never called accessible because some details are recorded, and no reports does not mean no barriers.
+        </p>
+      </aside>
     </div>
   );
 }

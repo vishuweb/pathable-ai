@@ -69,9 +69,7 @@ export function LocationField({ value, onChange }: Props) {
 
   return (
     <fieldset className="field-group">
-      <legend>
-        Where is this? <span className="muted">(optional)</span>
-      </legend>
+      <legend className="visually-hidden">Where is this?</legend>
       {value.place ? (
         <p className="linked-place">
           Place: <strong>{value.place.name}</strong>{" "}

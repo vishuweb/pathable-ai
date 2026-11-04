@@ -149,11 +149,13 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
       </dl>
 
       <div className="two-panels">
-        <section aria-labelledby="coverage-head" className="landing-panel">
+        <section aria-labelledby="coverage-head" className="owner-panel">
           <h2 id="coverage-head">Campus coverage</h2>
           <p>
             {coverage.survey.placesWithApprovedSurvey} of {coverage.directory.places} directory places have a published survey. {coverage.verified.places} have an independently verified record.
           </p>
+          {NEED_GROUPS.some((g) => coverage.byNeedGroup[g] > 0) && (
+            <>
           <h3 className="subhead">Assessed survey lines by kind of need</h3>
           <ul className="bar-list">
             {NEED_GROUPS.map((g) => (
@@ -166,11 +168,13 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
               </li>
             ))}
           </ul>
+            </>
+          )}
           <p>
             <Link href="/owner/coverage">Full coverage and the survey queue</Link>
           </p>
         </section>
-        <section aria-labelledby="evaluation-head" className="landing-panel">
+        <section aria-labelledby="evaluation-head" className="owner-panel">
           <h2 id="evaluation-head">AI evaluation</h2>
           <p>
             {evaluation.photos} reviewed {evaluation.photos === 1 ? "photo" : "photos"} in the evaluation set: {evaluation.confirmed} suggestions confirmed, {evaluation.corrected} corrected, {evaluation.rejected} rejected, {evaluation.missed} barriers the AI missed.

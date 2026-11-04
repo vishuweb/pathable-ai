@@ -1,16 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible } from "next/font/google";
+import { Atkinson_Hyperlegible_Next } from "next/font/google";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { ToastProvider } from "@/components/ui/Toast";
-import "./globals.css";
-import "./design.css";
-import "./design-home.css";
-import "./design-pages.css";
+import "./styles.css";
 
 // Designed by the Braille Institute so similar letters stay distinct for low-vision readers.
 // Served from this site at build time, so no visitor's request goes to a font service.
-const font = Atkinson_Hyperlegible({ subsets: ["latin"], weight: ["400", "700"], display: "swap", variable: "--font-sans" });
+// No fallback size data exists for this newer font, so none is generated.
+const font = Atkinson_Hyperlegible_Next({ subsets: ["latin"], display: "swap", variable: "--font-sans", adjustFontFallback: false });
 
 export const metadata: Metadata = {
   title: "PathAble AI",
@@ -34,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="site-header-inner">
               <Link href="/" className="brand">
                 <span className="brand-mark" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="18" height="18" focusable="false">
+                  <svg viewBox="0 0 24 24" width="15" height="15" focusable="false">
                     <path d="M12 3v18 M12 5h6l3 3-3 3h-6 M12 11H6l-3 3 3 3h6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </span>
@@ -46,10 +44,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main id="main">{children}</main>
           <footer className="site-footer">
             <div className="site-footer-inner">
-              <div>
-                <p className="footer-brand">PathAble AI</p>
-                <p>One World. Different Needs. More Accessible Journeys.</p>
-              </div>
+              <p>
+                <span className="footer-brand">PathAble AI.</span> One World. Different Needs. More Accessible Journeys.
+              </p>
               <nav aria-label="Footer" className="footer-links">
                 <Link href="/privacy">Privacy and data</Link>
                 <Link href="/results">Measured results</Link>

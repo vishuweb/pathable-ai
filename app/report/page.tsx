@@ -26,9 +26,8 @@ export default async function ReportBarrierPage({ searchParams }: { searchParams
   const initialLocation = placeFromQuery(await searchParams);
   return (
     <>
-      <section>
-        <h1>Report a barrier</h1>
-        <p className="intro">A few guided steps. AI suggests, you decide, and nothing is public until it has been checked.</p>
+      <section className="flow-page">
+        <h1 className="flow-title">Report a barrier</h1>
         {initialLocation?.place && (
           <p className="callout">
             Reporting at <Link href={placePath(initialLocation.place)}>{initialLocation.place.name}</Link>. You can change

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DEMO_NOTICE, demoReport, type DemoScenario as Scenario, type DemoIllustration } from "@/lib/demo/fixtures";
 import { NEED_GROUPS, NEED_GROUP_INFO, needsOfGroups, type NeedGroup } from "@/lib/needs";
 import { FINDING_LABEL, OBSERVATION_FINDINGS, type Observation, type ObservationFinding } from "@/lib/observations";
@@ -94,6 +94,18 @@ export function DemoScenario({ scenario }: { scenario: Scenario }) {
   const [finding, setFinding] = useState<ObservationFinding>("present");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
+  const firstStep = useRef(true);
+
+  // A new step starts at its heading: in view, and where keyboard and screen-reader focus goes next.
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    const heading = document.querySelector<HTMLElement>(".demo-scenario .step-heading");
+    heading?.scrollIntoView({ block: "start" });
+    heading?.focus({ preventScroll: true });
+  }, [step]);
 
   const confirmed = scenario.candidates.filter((c) => decisions[c.id] === "confirmed").map((c) => c.id);
   const allDecided = scenario.candidates.every((c) => decisions[c.id]);
@@ -139,7 +151,7 @@ export function DemoScenario({ scenario }: { scenario: Scenario }) {
 
       {step === 0 && (
         <section className="flow-panel" aria-labelledby="demo-discover">
-          <h2 id="demo-discover">Discover a destination</h2>
+          <h2 id="demo-discover" tabIndex={-1} className="step-heading">Discover a destination</h2>
           <p className="muted">On the real site this searches the campus directory. These sample places are fictional.</p>
           <label className="field">
             Search sample places
@@ -169,7 +181,7 @@ export function DemoScenario({ scenario }: { scenario: Scenario }) {
 
       {step === 1 && (
         <section className="flow-panel" aria-labelledby="demo-profile">
-          <h2 id="demo-profile">{scenario.place.name}: your view</h2>
+          <h2 id="demo-profile" tabIndex={-1} className="step-heading">{scenario.place.name}: your view</h2>
           <p className="muted">Choose needs below and watch the order change. Nothing is hidden, and these choices are not saved.</p>
           <div className="chip-row" role="group" aria-label="Needs for this demo">
             {NEED_GROUPS.map((g) => (
@@ -204,7 +216,7 @@ export function DemoScenario({ scenario }: { scenario: Scenario }) {
 
       {step === 2 && (
         <section className="flow-panel" aria-labelledby="demo-ai">
-          <h2 id="demo-ai">Review the AI&apos;s suggestions</h2>
+          <h2 id="demo-ai" tabIndex={-1} className="step-heading">Review the AI&apos;s suggestions</h2>
           <p className="muted">These sample suggestions start as AI suggested. Only your decision takes them further.</p>
           <div className="demo-evidence">
             <Illustration
@@ -242,7 +254,7 @@ export function DemoScenario({ scenario }: { scenario: Scenario }) {
 
       {step === 3 && (
         <section className="flow-panel" aria-labelledby="demo-verify">
-          <h2 id="demo-verify">Understand verification</h2>
+          <h2 id="demo-verify" tabIndex={-1} className="step-heading">Understand verification</h2>
           <p className="muted">Each stage means something different. Try them in order and watch the place page below.</p>
           <ol className="demo-ladder">
             <li className="step-done">
@@ -280,7 +292,7 @@ export function DemoScenario({ scenario }: { scenario: Scenario }) {
 
       {step >= 4 && (
         <section className="flow-panel" aria-labelledby="demo-contribute">
-          <h2 id="demo-contribute">Contribute an observation</h2>
+          <h2 id="demo-contribute" tabIndex={-1} className="step-heading">Contribute an observation</h2>
           <p className="muted">On the real site this would wait for approval. Here it stays in this browser, and nothing is sent.</p>
           <form
             onSubmit={(e) => {

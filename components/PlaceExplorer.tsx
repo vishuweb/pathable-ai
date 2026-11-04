@@ -81,6 +81,8 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
   const [category, setCategory] = useState<PlaceCategory | "">(initialCategory ?? "");
   const [show, setShow] = useState<ShowFilter | "">(initialShow ?? "");
   const [sort, setSort] = useState<Sort>("name");
+  // Open when arriving with a filter already in the address, so it is visible.
+  const [filtersOpen, setFiltersOpen] = useState(Boolean(initialShow));
   const [view, setView] = useState<"list" | "map">("list");
   const [wide, setWide] = useState(false);
   const [results, setResults] = useState<PlaceResult[]>();
@@ -209,11 +211,13 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
           void runSearch(query);
         }}
       >
-        <label htmlFor="place-search">Search {regionName}</label>
+        <label htmlFor="place-search" className="visually-hidden">
+          Search {regionName}
+        </label>
         <div className="explorer-search-row">
           <span className="explorer-search-box">
             <Icon name="search" />
-            <input ref={searchBox} id="place-search" type="search" value={query} maxLength={120} autoComplete="off" list="explorer-places" placeholder="A building, hostel, gate or facility" onChange={(e) => setQuery(e.target.value)} />
+            <input ref={searchBox} id="place-search" type="search" value={query} maxLength={120} autoComplete="off" list="explorer-places" placeholder="Search a building, hostel, gate or facility" onChange={(e) => setQuery(e.target.value)} />
           </span>
           <datalist id="explorer-places">
             {places.map((p) => (
@@ -242,7 +246,11 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
             </button>
           ))}
         </div>
-        <div className="explorer-filter-grid">
+        <details className="filters-more" open={filtersOpen} onToggle={(e) => setFiltersOpen(e.currentTarget.open)}>
+          <summary>
+            Needs, filters and sort{needs.length || show || sort !== "name" ? " (in use)" : ""}
+          </summary>
+          <div className="explorer-filter-grid">
         <NeedGroupChips heading="Your needs" headingLevel={3} />
         <div className="explorer-selects">
           <label className="field">
@@ -264,7 +272,8 @@ export function PlaceExplorer({ regionName, boundary, places, initialQuery = "",
             </select>
           </label>
         </div>
-        </div>
+          </div>
+        </details>
       </div>
 
       <div className="explorer-bar">

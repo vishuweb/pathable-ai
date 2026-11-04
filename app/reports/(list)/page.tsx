@@ -47,9 +47,6 @@ export default async function ReportsPage() {
     <section aria-labelledby="reports-title">
       <div className="page-heading">
         <h1 id="reports-title">Community reports</h1>
-        <Link className="button-primary" href="/report">
-          Report a barrier
-        </Link>
       </div>
       <p className="intro">
         Barriers people have photographed and checked. Each report shows its status, so you can see whether anyone

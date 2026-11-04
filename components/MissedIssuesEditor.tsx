@@ -9,9 +9,11 @@ import { VoiceNoteButton, appendDictation } from "./VoiceNoteButton";
 interface Props {
   issues: MissedIssue[];
   onChange: (issues: MissedIssue[]) => void;
+  /** The AI did not run: the person describes the barriers themselves. */
+  manual?: boolean;
 }
 
-export function MissedIssuesEditor({ issues, onChange }: Props) {
+export function MissedIssuesEditor({ issues, onChange, manual = false }: Props) {
   const [category, setCategory] = useState<IssueCategory>("obstructed_footpath");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
@@ -30,9 +32,9 @@ export function MissedIssuesEditor({ issues, onChange }: Props) {
 
   return (
     <fieldset className="field-group">
-      <legend>Did the AI miss anything?</legend>
+      <legend>{manual ? "What barrier can you see?" : "Did the AI miss anything?"}</legend>
       <p className="muted">
-        Add barriers you can see in the photo that are not listed above. This measures what the AI misses.
+        {manual ? "Add each barrier you can see in the photo." : "Add barriers you can see in the photo that are not listed above. This measures what the AI misses."}
       </p>
 
       {issues.length > 0 && (
@@ -67,7 +69,7 @@ export function MissedIssuesEditor({ issues, onChange }: Props) {
           </select>
         </label>
         <label className="field grow">
-          What did the AI miss?
+          {manual ? "What is it?" : "What did the AI miss?"}
           <input
             type="text"
             value={description}
@@ -85,7 +87,7 @@ export function MissedIssuesEditor({ issues, onChange }: Props) {
           />
         </label>
         <button type="button" className="button-secondary" onClick={add}>
-          Add missed barrier
+          {manual ? "Add barrier" : "Add missed barrier"}
         </button>
       </div>
       <VoiceNoteButton

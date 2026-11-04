@@ -62,7 +62,7 @@ before(async () => {
   // The dev server compiles each route on first use, which can reload an open page; compile them
   // all up front. These requests are invalid on purpose, so none reaches the (mock) model.
   const missing = "00000000-0000-4000-8000-000000000000";
-  for (const route of ["/", "/report", "/reports", "/needs", "/places", "/owner", "/batch", `/reports/${missing}`]) {
+  for (const route of ["/", "/report", "/reports", "/needs", "/places", "/owner", "/batch", `/reports/${missing}`, "/demo", "/demo/mobility", "/privacy", "/owner/survey", "/owner/coverage", "/owner/moderation"]) {
     await fetch(BASE + route);
   }
   await fetch(`${BASE}/places/way/1`);
@@ -654,7 +654,7 @@ test("discovery: filters use real records, and empty results do not read as good
 
   // "Fill a gap" on the home page goes straight to the gaps.
   await page.goto(BASE, { waitUntil: "networkidle0" });
-  assert.ok(await page.waitForSelector('.info-card a[href="/places?show=gaps"]'));
+  assert.ok(await page.waitForSelector('.text-columns a[href="/places?show=gaps"]'));
   assert.ok(!(await page.$eval("main", (m) => m.textContent ?? "")).includes("Popular places"), "no claim of popularity without data");
 
   const missing = await page.goto(`${BASE}/no-such-page`, { waitUntil: "domcontentloaded" });

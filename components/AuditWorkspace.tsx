@@ -185,7 +185,9 @@ export function AuditWorkspace({ initialLocation }: { initialLocation?: ReportLo
     (phase === "done" && analysis
       ? findings.length
         ? `Found ${findings.length} potential ${findings.length === 1 ? "issue" : "issues"} for review.`
-        : "No potential barriers were identified in this photo."
+        : manual
+          ? ""
+          : "No potential barriers were identified in this photo."
       : "");
 
   const review = busy || phase === "done";
@@ -209,6 +211,7 @@ export function AuditWorkspace({ initialLocation }: { initialLocation?: ReportLo
 
   return (
     <div className="workspace">
+      <div className="flow-page">
       <StepProgress steps={STEPS} current={current} />
 
       {!placeDone ? (
@@ -240,7 +243,6 @@ export function AuditWorkspace({ initialLocation }: { initialLocation?: ReportLo
             {location.place && <p className="muted">At {location.place.name}. <button type="button" className="button-link" onClick={() => setPlaceDone(false)}>Change</button></p>}
             {!location.place && <p className="muted"><button type="button" className="button-link" onClick={() => setPlaceDone(false)}>Add a place</button></p>}
             <div className="dropzone">
-              <Icon name="camera" size={32} />
               <label className="button-primary">
                 Take or choose a photo
                 <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={onFileChange} disabled={busy} className="visually-hidden" />
@@ -287,6 +289,7 @@ export function AuditWorkspace({ initialLocation }: { initialLocation?: ReportLo
           </p>
         </div>
       )}
+      </div>
 
       {image && phase !== "error" && (
         <ReviewSession

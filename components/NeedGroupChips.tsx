@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { NEED_GROUPS, NEED_GROUP_INFO, groupsOf, needsOfGroups, type NeedGroup } from "@/lib/needs";
 import { usePreferences } from "@/lib/use-preferences";
-import { Icon } from "./ui/Icon";
 
 const CHIP_LABEL: Record<NeedGroup, string> = {
   mobility: "Mobility",
@@ -17,7 +16,7 @@ const CHIP_LABEL: Record<NeedGroup, string> = {
  * Quick, coarse choice of needs: each chip turns a whole group on or off, saved only on this
  * device. "My needs" offers the detailed choices.
  */
-export function NeedGroupChips({ heading = "What matters to you?", headingLevel = 2, variant = "chips" }: { heading?: string; headingLevel?: 2 | 3; variant?: "chips" | "cards" }) {
+export function NeedGroupChips({ heading = "What matters to you?", headingLevel = 2 }: { heading?: string; headingLevel?: 2 | 3 }) {
   const { preferences, save } = usePreferences();
   const active = groupsOf(preferences);
   const Heading = headingLevel === 2 ? "h2" : "h3";
@@ -30,33 +29,23 @@ export function NeedGroupChips({ heading = "What matters to you?", headingLevel 
   };
 
   return (
-    <div className={variant === "cards" ? "need-group-chips need-cards" : "need-group-chips"} role="group" aria-labelledby="need-chips-heading">
-      <Heading id="need-chips-heading" className={variant === "cards" ? "visually-hidden" : "chips-heading"}>
+    <div className="need-group-chips" role="group" aria-labelledby="need-chips-heading">
+      <Heading id="need-chips-heading" className="chips-heading">
         {heading}
       </Heading>
       <div className="filter-buttons">
-        {NEED_GROUPS.map((group) =>
-          variant === "cards" ? (
-            <button key={group} type="button" className="need-card" aria-pressed={active.includes(group)} onClick={() => toggle(group)}>
-              <Icon name={group} />
-              <span className="need-card-label">{CHIP_LABEL[group]}</span>
-              <span className="need-card-check">{active.includes(group) && <Icon name="check" size={16} />}</span>
-              <span className="need-card-text">{NEED_GROUP_INFO[group].description}</span>
-            </button>
-          ) : (
-            <button
-              key={group}
-              type="button"
-              className="filter-button"
-              aria-pressed={active.includes(group)}
-              aria-describedby={`need-chip-${group}`}
-              onClick={() => toggle(group)}
-            >
-              {active.includes(group) && <span aria-hidden="true">✓ </span>}
-              {CHIP_LABEL[group]}
-            </button>
-          ),
-        )}
+        {NEED_GROUPS.map((group) => (
+          <button
+            key={group}
+            type="button"
+            className="filter-button"
+            aria-pressed={active.includes(group)}
+            aria-describedby={`need-chip-${group}`}
+            onClick={() => toggle(group)}
+          >
+            {CHIP_LABEL[group]}
+          </button>
+        ))}
       </div>
       <div className="visually-hidden">
         {NEED_GROUPS.map((group) => (

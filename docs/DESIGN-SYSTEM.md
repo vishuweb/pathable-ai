@@ -1,69 +1,57 @@
 # PathAble design system
 
-One design language for every screen — public, reporting flow and owner workspace.
-Implemented as layered CSS loaded in this order (later files refine earlier ones):
-`app/globals.css` (base) → `app/design.css` (tokens, header/footer, buttons, dialogs,
-toasts, skeletons) → `app/design-home.css` (landing) → `app/design-pages.css`
-(explorer, profiles, flows, reports, needs, workspace, demo, target sizes).
-No page may invent its own colours, radii or spacing — extend the tokens here.
+One quiet design language for every screen: public pages, the report flow and the owner workspace. It lives in one stylesheet, `app/styles.css`, and nothing else defines colours, type or spacing.
 
-## Tokens (`app/design.css` `:root`, state colours in `app/globals.css`)
+## Principles
 
-| Token | Value / role |
+- **Type and space do the work.** Structure comes from a clear type scale, generous margins and hairlines, not from boxes. A surface is used only when something sits above something else: dialogs, the search bar, photos.
+- **One ink, one accent.** Near-black for text and primary actions; a single deep green for small highlights. State colours appear only where a state is being reported.
+- **One main thing per screen.** Secondary controls fold away: explorer filters, the observation form, the sources note, long lists.
+- **Unknown stays unknown, and looks calm.** A missing detail is one quiet line with a hollow marker, not an alarming box.
+
+## Tokens (`:root` in `app/styles.css`)
+
+| Token | Role |
 | --- | --- |
-| `--bg` / `--surface` / `--surface-2` | Page, card and inset backgrounds (`#f6f5f1` / white / `#eeede6`) |
-| `--text` / `--muted` | Body text `#16211f`, secondary `#4d5a57` — both ≥4.5:1 on their backgrounds |
-| `--accent` / `--accent-hover` / `--accent-soft` | Primary brand teal `#0b5d5b` / `#084a48` / `#e2f0ee` |
-| `--ink` / `--on-ink` / `--on-ink-muted` | Dark footer and toast surface `#10302e` |
-| `--border` / `--border-strong` | Hairlines `#d9d7cd`, control borders `#8a9490` (≥3:1) |
-| `--ok-*`, `--warn-*`, `--danger-*` | Success, warning, error background+text pairs (globals.css) |
-| `--amber`, `--focus` | Map highlight; focus ring `#16211f`, 3px with 2px offset |
-| `--radius` / `--radius-lg` | 10px controls, 16px cards/dialogs |
-| `--shadow-sm` / `--shadow-md` | Resting and raised surfaces |
-| `--page` / `--gutter` | 1180px content width; `clamp(1rem, 4vw, 2rem)` gutters |
+| `--bg`, `--tint` | White page; warm off-white for the rare surface (`#f6f5f1`) |
+| `--text`, `--muted` | Ink `#111614`; secondary `#59625f`, at least 4.5:1 on both backgrounds |
+| `--line`, `--line-strong` | Hairlines `#e7e5df`; control borders `#858c89`, at least 3:1 |
+| `--accent`, `--accent-tint` | Deep green `#1a5c4c`, used sparingly |
+| `--danger`, `--warn`, `--ok`, `--info` and their `-bg` pairs | State text and background, each at least 4.5:1 |
+| `--text-sm` … `--text-3xl` | Type scale: 0.875, 1, 1.125, about 1.5, about 2.5 and about 4.5rem |
+| `--page`, `--reading` | 1160px page, 720px reading column for flows and forms |
+| `--gutter`, `--section` | Fluid side margins and section spacing |
 
 ## Typography
 
-Atkinson Hyperlegible (Braille Institute), bundled at build time — no font-service
-request. `h1` clamps 1.75–2.5rem, `h2` 1.25–1.6rem, body 1rem/1.55, metadata 0.82–0.95rem.
-Headings use -0.012em tracking; nothing below 0.82rem is used for information.
+Atkinson Hyperlegible Next, a variable font from the Braille Institute that keeps similar letters distinct for low-vision readers. It is bundled at build time, so no visitor request goes to a font service. Headings use weight 600 with slight negative tracking. Large numbers use 500, because the slashed zero is heavy when bold. Nothing smaller than 0.82rem carries information.
 
-## Component rules
+## Components
 
-- **Buttons:** `.button-primary` / `.button-secondary` / `.button-solid-danger`,
-  min-height 44px, radius 9px, disabled state keeps readable contrast.
-- **Chips/filters:** `.filter-button`, pill, `aria-pressed` fills with accent.
-- **Cards:** 1px `--border`, `--radius-lg`, `--shadow-sm`; whole-card link targets
-  use a stretched `::after` (place cards).
-- **Status:** `.provenance-*` badges — every state carries a *word*, never colour alone:
-  Unknown, Recorded in OpenStreetMap, Community reported, Reporter confirmed,
-  AI suggested (`Unverified AI finding`), Independently verified, Outdated, Resolved.
-- **Forms:** `.field` controls min-height 44px, 1.5px `--border-strong`.
-- **Dialogs/drawers/toasts:** native `<dialog>` (`.modal`, `.modal-drawer`),
-  `.toasts` bottom-right, errors use the danger surface.
-- **Loading/empty:** `.skeleton*` shimmer (disabled under reduced motion),
-  `.empty-state` dashed panel — empty results never read as good news.
+- **Buttons:** `.button-primary` is solid ink; `.button-secondary` is a hairline outline; `.button-link` is underlined text. All are at least 44px tall except text links in a sentence.
+- **Filters:** `.filter-button` pills; pressed means solid ink with white text, plus `aria-pressed`.
+- **Status:** `.provenance-*` is a coloured dot followed by the word: Unknown (hollow), Recorded in OpenStreetMap, Suggested by AI, Community reported, Recorded by the project team, Independently verified, Outdated, Resolved. The word always carries the meaning.
+- **Lists:** places, reports, queue items, surveys and features are rows separated by hairlines, not cards.
+- **Dialogs, drawers, toasts:** the native `<dialog>` element (`.modal`, `.modal-drawer`), and ink toasts at the bottom right.
+- **Progress:** one line of text and a 2px bar (`StepProgress`).
 
-## Interaction & accessibility minimums (enforced by `ui-review/pages.spec.ts`)
+## Page structure
 
-- Interactive targets ≥24px (WCAG 2.5.8); primary controls, nav, buttons,
-  checkboxes (24–26px), selects and standalone action links are 44px-class.
-  Links *inside a sentence* are the WCAG prose exemption and keep text flow.
-- Keyboard: visible 3px focus, focus never hidden under sticky bars
-  (`scroll-padding-top` 90–150px), phone menu closes on Escape and restores focus,
-  skip link paints above the header (z-index 3000, inside the header landmark).
-- `prefers-reduced-motion` collapses all animation in `design.css`.
-- Colour is never the only cue: numbered markers, labels and icons accompany colour.
+- **Home:** large headline, one search field, four text links, and the real campus outline. Then calm sections divided by hairlines: needs, categories as an index, how it works, verification labels, and ways to contribute. Recent reports appear only when there are some.
+- **Explore:** search first, then one scrolling row of kinds; needs, filters and sort sit behind one disclosure. Results are a list beside a sticky map, with a list/map toggle on phones.
+- **Place profile:** a reading column (overview, barriers, known, checked on site, unknown, community, contribute) beside a sticky side column with the campus position and the counts. Empty sections collapse to a heading and one line.
+- **Report flow:** a single 720px column with one question per step, widening to photo and suggestions side by side only for review.
+- **Workspace:** a quiet text sidebar on wide screens and a tab strip on phones; figures are large numbers with plain labels.
 
-## Responsive
+## Accessibility minimums (checked by `npm run ui:review`)
 
-Mobile-first. Breakpoints in use: 420, 520, 640, 720, 860–880, 959–1000px.
-Verified by screenshot at 360, 390, 768, 1280 and 1920px in the UI review —
-no horizontal overflow, no clipped sticky bars, map/list toggle below 960px.
+- Targets at least 24px (WCAG 2.5.8). Primary controls are 44px. Links inside a sentence are exempt.
+- 2px focus outline; focus never hidden under the sticky header (`scroll-padding-top`). The phone menu closes on Escape and returns focus.
+- Each demo step moves focus to its heading.
+- `prefers-reduced-motion` removes all animation and transitions.
+- Colour is never the only cue.
+- No sideways scrolling from 360px to 1920px.
 
-## Data honesty (design-level)
+## Data honesty
 
-Unknown stays unknown and looks different (dashed `.feature-unknown`); demo data
-only ever appears behind the sticky `Illustrative demo — not verified campus data`
-banner; no ratings, scores or completeness percentages are rendered unless they
-are calculated from real records and labelled as such.
+Demo content appears only under the "Illustrative demo — not verified campus data." notice. No rating, score or completeness percentage is shown. Counts are labelled as counts, and an empty result says it does not mean "accessible".

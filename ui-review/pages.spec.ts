@@ -49,7 +49,11 @@ async function inspect(page: Page, path: string, width: number) {
       .filter((e) => {
         const box = e.getBoundingClientRect();
         if (!box.width || !box.height) return false;
-        if (e.tagName === "A" && e.parentElement && e.parentElement.textContent!.trim().length > (e.textContent ?? "").trim().length) return false;
+        // A radio drawn as a labelled segment: the whole label is the target.
+        if (e.closest("label") && e.closest("label")!.getBoundingClientRect().height >= 24 && getComputedStyle(e).opacity === "0") return false;
+        // A link inside a sentence is exempt; judge by the whole block it sits in.
+        const block = e.closest("p, li, dd, td, th, h1, h2, h3, h4, label, .leaflet-control-attribution");
+        if (e.tagName === "A" && block && block.textContent!.trim().length > (e.textContent ?? "").trim().length) return false;
         return box.height < 24 || box.width < 24;
       })
       .map((e) => `${e.tagName} "${(e.textContent ?? "").trim().slice(0, 30)}"`),
